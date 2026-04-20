@@ -8,6 +8,7 @@ import { LucideIcon } from "lucide-react";
 
 export type InputType =
   | "upload"
+  | "multi-upload"
   | "prompt"
   | "button-group"
   | "ratio-picker"
@@ -40,6 +41,7 @@ export interface ToolInput {
   max?: number;
   step?: number;
   unit?: string;             // slider display unit
+  maxFiles?: number;         // multi-upload: max number of files (default 5)
 }
 
 // ── Tool Interface ────────────────────────────────────────────────────────────
@@ -365,6 +367,14 @@ export const IMAGE_TOOLS: Tool[] = [
         options: IMAGE_STYLES,
         defaultValue: "",
         hint: "اختياري — اختر أسلوبًا بصريًا لتوجيه التوليد",
+      },
+      {
+        id: "refs",
+        type: "multi-upload",
+        label: "صور مرجعية",
+        accept: "image/*",
+        maxFiles: 5,
+        hint: "اختياري — حتى 5 صور لتوجيه التوليد",
       },
     ],
   },

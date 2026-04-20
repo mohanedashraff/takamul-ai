@@ -194,6 +194,127 @@ function ButtonGroup({
   );
 }
 
+// ── Multi Upload ─────────────────────────────────────────────────────────────
+
+function MultiUploadInput({
+  input,
+  files,
+  onChange,
+  colorRgb,
+}: {
+  input: ToolInput;
+  files: File[];
+  onChange: (files: File[]) => void;
+  colorRgb: string;
+}) {
+  const maxFiles = input.maxFiles ?? 5;
+  const [previews, setPreviews] = useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Generate/revoke object URLs whenever files change
+  useEffect(() => {
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [files]);
+
+  const handleAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []);
+    if (!picked.length) return;
+    const merged = [...files, ...picked].slice(0, maxFiles);
+    onChange(merged);
+    // reset input so same file can be re-picked
+    e.target.value = "";
+  };
+
+  const handleRemove = (idx: number) => {
+    onChange(files.filter((_, i) => i !== idx));
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const dropped = Array.from(e.dataTransfer.files).filter(
+      (f) => !input.accept || f.type.match(input.accept.replace("*", ".*"))
+    );
+    const merged = [...files, ...dropped].slice(0, maxFiles);
+    onChange(merged);
+  };
+
+  const canAdd = files.length < maxFiles;
+
+  return (
+    <div className="space-y-2.5">
+      {input.label && (
+        <label className="text-sm text-gray-400 font-medium block">
+          {input.label}
+          {input.hint && (
+            <span className="text-gray-600 font-normal mr-2 text-xs">{input.hint}</span>
+          )}
+        </label>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {/* Filled slots */}
+        {previews.map((url, idx) => (
+          <div
+            key={idx}
+            className="relative w-[72px] h-[72px] rounded-xl overflow-hidden border border-white/10 flex-shrink-0 group"
+          >
+            <img src={url} alt="" className="w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => handleRemove(idx)}
+              className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+            >
+              <div className="w-6 h-6 rounded-full bg-red-500/80 flex items-center justify-center">
+                <X className="w-3.5 h-3.5 text-white" />
+              </div>
+            </button>
+            {/* index badge */}
+            <div className="absolute bottom-1 right-1 text-[9px] font-bold text-white/50 leading-none">
+              {idx + 1}
+            </div>
+          </div>
+        ))}
+
+        {/* Add slot */}
+        {canAdd && (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+            className="w-[72px] h-[72px] rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-1 transition-all hover:border-white/25 flex-shrink-0"
+            style={{ backgroundColor: `rgba(${colorRgb}, 0.04)` }}
+          >
+            <Plus className="w-5 h-5" style={{ color: `rgba(${colorRgb}, 0.5)` }} />
+            <span className="text-[10px] font-medium" style={{ color: `rgba(${colorRgb}, 0.4)` }}>
+              {files.length}/{maxFiles}
+            </span>
+          </button>
+        )}
+
+        {/* Empty remaining slots (visual only) */}
+        {Array.from({ length: Math.max(0, Math.min(maxFiles - files.length - 1, maxFiles - 1)) }).map((_, i) => (
+          <div
+            key={`empty-${i}`}
+            className="w-[72px] h-[72px] rounded-xl border border-dashed border-white/[0.06] flex-shrink-0"
+          />
+        ))}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={input.accept}
+        multiple
+        className="hidden"
+        onChange={handleAdd}
+      />
+    </div>
+  );
+}
+
 // ── Ratio Picker ─────────────────────────────────────────────────────────────
 
 function RatioPickerInput({
@@ -969,6 +1090,17 @@ export function renderToolInput(
           input={input}
           value={values[input.id] ?? ""}
           onChange={(v) => setValue(input.id, v)}
+          colorRgb={colorRgb}
+        />
+      );
+
+    case "multi-upload":
+      return (
+        <MultiUploadInput
+          key={input.id}
+          input={input}
+          files={(values[input.id] as File[]) ?? []}
+          onChange={(f) => setValue(input.id, f)}
           colorRgb={colorRgb}
         />
       );
