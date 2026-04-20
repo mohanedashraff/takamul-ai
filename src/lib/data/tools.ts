@@ -55,7 +55,7 @@ export interface Tool {
   image: string | string[];
   credits: number;
   isNew?: boolean;
-  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene" | "change-clothes";
+  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene" | "change-clothes" | "fashion-designer";
   inputs: ToolInput[];
 }
 
@@ -722,6 +722,7 @@ export const IMAGE_TOOLS: Tool[] = [
   },
   {
     id: "fashion-designer",
+    layout: "fashion-designer" as const,
     title: "مصمم الأزياء",
     desc: "صمم أزياءك الخاصة وشاهدها على عارضين واقعيين.",
     icon: Wand2,

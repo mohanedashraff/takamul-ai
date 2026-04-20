@@ -11,6 +11,7 @@ import { AngleWorkspace } from "@/components/tools/AngleWorkspace";
 import { RelightWorkspace } from "@/components/tools/RelightWorkspace";
 import { MultiSceneWorkspace } from "@/components/tools/MultiSceneWorkspace";
 import { ChangeClothesWorkspace } from "@/components/tools/ChangeClothesWorkspace";
+import { FashionDesignerWorkspace } from "@/components/tools/FashionDesignerWorkspace";
 import {
   renderToolInput,
   isFormValid,
@@ -64,6 +65,9 @@ export default function WorkspacePage({ params }: { params: Promise<{ toolId: st
   }
   if (tool.layout === "change-clothes") {
     return <ChangeClothesWorkspace tool={tool} config={config} />;
+  }
+  if (tool.layout === "fashion-designer") {
+    return <FashionDesignerWorkspace tool={tool} config={config} />;
   }
   return <WorkspaceInterface tool={tool} config={config} />;
 }
