@@ -55,7 +55,7 @@ export interface Tool {
   image: string | string[];
   credits: number;
   isNew?: boolean;
-  layout?: "default" | "centered" | "inpaint"; // "centered" = drop-zone; "inpaint" = canvas editor
+  layout?: "default" | "centered" | "inpaint" | "sketch"; // "sketch" = drawing canvas
   inputs: ToolInput[];
 }
 
@@ -481,6 +481,7 @@ export const IMAGE_TOOLS: Tool[] = [
     image: "https://static.higgsfield.ai/nano_draw/image_draw.mp4",
     credits: 5,
     isNew: true,
+    layout: "sketch",
     inputs: [
       {
         id: "sketch",
