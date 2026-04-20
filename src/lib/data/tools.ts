@@ -432,6 +432,7 @@ export const IMAGE_TOOLS: Tool[] = [
     icon: Layers,
     image: "https://claid.ai/static/remove_bg-f6045fe63f17a1a42b07ff97ce4e20af.mp4",
     credits: 2,
+    layout: "centered",
     inputs: [
       {
         id: "image",
