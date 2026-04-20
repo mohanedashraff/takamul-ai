@@ -506,6 +506,7 @@ export const IMAGE_TOOLS: Tool[] = [
     icon: Frame,
     image: "https://c.topshort.org/fluxai/flux_kontext_apps/old_photo_restore/key_feature/2.webp",
     credits: 4,
+    layout: "centered",
     inputs: [
       {
         id: "image",
