@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary-400: #9d4edd;
-  --color-primary-500: #7a00cc;
-  --color-primary-600: #5a189a;
+  --color-primary-400: #fee440;
+  --color-primary-500: #fcd303;
+  --color-primary-600: #d4a017;
 
-  --color-accent-400: #00f5d4;
-  --color-accent-500: #00bbf9;
-  
-  --color-neon-pink: #f15bb5;
+  --color-accent-400: #fee440;
+  --color-accent-500: #ffd60a;
+
+  --color-neon-pink: #fee440;
   --color-neon-yellow: #fee440;
 
   --color-bg-primary: #030305;
@@ -16,7 +16,7 @@
   --color-bg-tertiary: rgba(30, 30, 40, 0.5);
 
   --color-border-glass: rgba(255, 255, 255, 0.05);
-  --color-border-glow: rgba(157, 78, 221, 0.3);
+  --color-border-glow: rgba(254, 228, 64, 0.3);
 
   --font-alexandria: var(--font-alexandria), sans-serif;
 }
@@ -49,18 +49,18 @@ body {
   }
 
   .text-glow {
-    text-shadow: 0 0 20px rgba(157, 78, 221, 0.5);
+    text-shadow: 0 0 20px rgba(254, 228, 64, 0.6);
   }
 
   .text-gradient-cosmic {
-    background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #fee440 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
   .text-gradient-neon {
-    background: linear-gradient(to right, #00f5d4, #00bbf9, #9d4edd);
+    background: linear-gradient(to right, #fee440, #fcd303, #ffffff);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -107,8 +107,8 @@ body {
   }
   
   .bento-card:hover {
-    border-color: var(--hover-border, rgba(157, 78, 221, 1));
-    box-shadow: 0 0 40px var(--hover-shadow, rgba(157, 78, 221, 0.3));
+    border-color: var(--hover-border, rgba(254, 228, 64, 1));
+    box-shadow: 0 0 40px var(--hover-shadow, rgba(254, 228, 64, 0.2));
   }
 
   .hide-scroll::-webkit-scrollbar {
@@ -142,7 +142,7 @@ body {
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(157, 78, 221, 0.4);
+  background: rgba(254, 228, 64, 0.4);
 }
 
 *::-webkit-scrollbar-corner {

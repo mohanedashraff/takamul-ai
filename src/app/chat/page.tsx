@@ -130,7 +130,7 @@ export default function ChatPage() {
           {/* Chat Messages Area (Empty State for now) */}
           <div className="flex-1 overflow-y-auto w-full relative z-10 flex flex-col custom-scrollbar">
             <div className="flex-1 flex flex-col items-center gap-8 justify-center min-h-[400px] p-6">
-               <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-primary-500 to-accent-500 flex items-center justify-center shadow-[0_0_40px_rgba(157,78,221,0.3)] animate-pulse-slow">
+               <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-primary-500 to-accent-500 flex items-center justify-center shadow-[0_0_40px_rgba(254,228,64,0.3)] animate-pulse-slow">
                  <Sparkles className="w-8 h-8 text-white" />
                </div>
                <div className="text-center">

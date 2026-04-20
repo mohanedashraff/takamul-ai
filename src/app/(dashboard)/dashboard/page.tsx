@@ -54,7 +54,7 @@ export default function DashboardOverview() {
               <div className="text-sm text-gray-500 mb-2 font-medium">/ 50,000</div>
             </div>
             <div className="mt-6 h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-              <div className="h-full bg-gradient-to-r from-accent-400 via-primary-400 to-neon-pink w-[85%] rounded-full shadow-[0_0_10px_rgba(0,245,212,0.8)]"></div>
+              <div className="h-full bg-gradient-to-r from-accent-400 via-primary-400 to-neon-pink w-[85%] rounded-full shadow-[0_0_10px_rgba(254,228,64,0.8)]"></div>
             </div>
           </CardContent>
         </Card>
@@ -89,7 +89,7 @@ export default function DashboardOverview() {
           <CardContent>
             <div className="text-5xl font-black text-white">1,048</div>
             <p className="text-sm text-gray-400 mt-6 font-medium flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-neon-pink shadow-[0_0_8px_rgba(241,91,181,0.8)]"></span>
+              <span className="w-2 h-2 rounded-full bg-neon-pink shadow-[0_0_8px_rgba(254,228,64,0.8)]"></span>
               مزامنة نشطة
             </p>
           </CardContent>

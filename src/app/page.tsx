@@ -100,7 +100,7 @@ const VOICE_PROFILES = [
 
 const AGENT_PROFILES = [
   { name: "خبير الـ SEO", task: "تحليل وتصدر نتائج البحث", desc: "محرك مصمم لتحليل الكلمات المفتاحية، قراءة استراتيجيات المنافسين، وبناء خطط محتوى تضمن تصدر صفحاتك في محرك بحث جوجل بسهولة.", icon: Sparkles, iconColor: "text-blue-400", bgClass: "bg-blue-400/10 border-blue-400/30", glow: "shadow-[0_0_60px_rgba(59,130,246,0.15)]" },
-  { name: "المبرمج المساعد", task: "كتابة ومراجعة الأكواد", desc: "أقرأ الأكواد، أكتشف الثغرات، وأقوم بكتابة تطبيقات كاملة بلغات البرمجة الحديثة. مهندس برمجيات متكامل يعمل لخدمتك.", icon: Code, iconColor: "text-primary-400", bgClass: "bg-primary-400/10 border-primary-400/30", glow: "shadow-[0_0_60px_rgba(157,78,221,0.15)]" },
+  { name: "المبرمج المساعد", task: "كتابة ومراجعة الأكواد", desc: "أقرأ الأكواد، أكتشف الثغرات، وأقوم بكتابة تطبيقات كاملة بلغات البرمجة الحديثة. مهندس برمجيات متكامل يعمل لخدمتك.", icon: Code, iconColor: "text-primary-400", bgClass: "bg-primary-400/10 border-primary-400/30", glow: "shadow-[0_0_60px_rgba(254,228,64,0.15)]" },
   { name: "مدير التسويق", task: "إدارة الحملات الإعلانية", desc: "أقوم بإدارة حملاتك، كتابة نصوص الإعلانات، وتحليل بيانات السوشيال ميديا لرفع نسبة التحويل والمبيعات بشكل استثنائي.", icon: MessageSquare, iconColor: "text-neon-pink", bgClass: "bg-neon-pink/10 border-neon-pink/30", glow: "shadow-[0_0_60px_rgba(255,105,180,0.15)]" },
   { name: "المحلل المالي", task: "قراءة وتحليل البيانات", desc: "أقرأ الجداول، البيانات المالية، وتحركات السوق لأعطيك تقارير تحليلية بالذكاء الاصطناعي تدعم قراراتك الاستثمارية بدقة.", icon: Database, iconColor: "text-neon-yellow", bgClass: "bg-neon-yellow/10 border-neon-yellow/30", glow: "shadow-[0_0_60px_rgba(255,255,0,0.15)]" },
 ];
@@ -241,7 +241,7 @@ const SpacesSection = () => {
       {/* Background Gradients & Effects */}
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-bg-primary to-transparent z-10 pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-accent-400/5 rounded-full blur-[150px] pointer-events-none z-0" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#00bbf9]/5 rounded-full blur-[100px] pointer-events-none z-0" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#fee440]/5 rounded-full blur-[100px] pointer-events-none z-0" />
       
       <div 
         className="absolute inset-0 opacity-20 z-0" 
@@ -283,12 +283,12 @@ const SpacesSection = () => {
             <svg className="absolute inset-0 w-full h-full z-0 opacity-80" viewBox="0 0 1300 650">
               <defs>
                 <linearGradient id="line-grad-1" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#9d4edd" />
-                  <stop offset="100%" stopColor="#00bbf9" />
+                  <stop offset="0%" stopColor="#fee440" />
+                  <stop offset="100%" stopColor="#fee440" />
                 </linearGradient>
                 <linearGradient id="line-grad-2" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#4ade80" />
-                  <stop offset="100%" stopColor="#00f5d4" />
+                  <stop offset="100%" stopColor="#fee440" />
                 </linearGradient>
               </defs>
 
@@ -344,7 +344,7 @@ const SpacesSection = () => {
             {/* NODE 3: Prompt Textarea */}
             <motion.div 
               animate={{ y: [-5, 5, -5] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-              className="absolute w-[340px] bg-[#141419] border border-accent-400/30 p-5 rounded-[1.5rem] shadow-[0_0_40px_rgba(0,245,212,0.15)] flex flex-col gap-3 z-10"
+              className="absolute w-[340px] bg-[#141419] border border-accent-400/30 p-5 rounded-[1.5rem] shadow-[0_0_40px_rgba(254,228,64,0.15)] flex flex-col gap-3 z-10"
               style={{ left: "480px", top: "250px" }}
             >
                {/* Input Port */}
@@ -370,7 +370,7 @@ const SpacesSection = () => {
             {/* NODE 4: Final Image Result */}
             <motion.div 
               animate={{ y: [8, -8, 8] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-              className="absolute w-[340px] bg-[#141419] border border-white/10 p-5 rounded-[2rem] shadow-[0_0_50px_rgba(0,187,249,0.2)] flex flex-col gap-4 z-10"
+              className="absolute w-[340px] bg-[#141419] border border-white/10 p-5 rounded-[2rem] shadow-[0_0_50px_rgba(254,228,64,0.2)] flex flex-col gap-4 z-10"
               style={{ left: "920px", top: "120px" }}
             >
                {/* Input Port 1 (Top) */}
@@ -393,12 +393,12 @@ const SpacesSection = () => {
 
             {/* Floating Cursors inside App */}
             <div className="absolute left-[360px] top-[160px] flex items-center gap-1 z-30 drop-shadow-xl">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="#9d4edd"><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.42c.45 0 .67-.54.35-.85L6.35 3.35a.5.5 0 0 0-.85.35Z"/></svg>
-              <div className="bg-[#9d4edd] text-white text-[12px] font-bold px-3 py-1 rounded-full shadow-[0_0_10px_rgba(157,78,221,0.5)]">Jeremy</div>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#fee440"><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.42c.45 0 .67-.54.35-.85L6.35 3.35a.5.5 0 0 0-.85.35Z"/></svg>
+              <div className="bg-[#fee440] text-white text-[12px] font-bold px-3 py-1 rounded-full shadow-[0_0_10px_rgba(254,228,64,0.5)]">Jeremy</div>
             </div>
             <div className="absolute left-[880px] top-[460px] flex items-center gap-1 z-30 drop-shadow-xl">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="#00bbf9" className="rotate-[-60deg]"><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.42c.45 0 .67-.54.35-.85L6.35 3.35a.5.5 0 0 0-.85.35Z"/></svg>
-              <div className="bg-[#00bbf9] text-black text-[12px] font-bold px-3 py-1 rounded-full shadow-[0_0_10px_rgba(0,187,249,0.5)]">Edward</div>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#fee440" className="rotate-[-60deg]"><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.42c.45 0 .67-.54.35-.85L6.35 3.35a.5.5 0 0 0-.85.35Z"/></svg>
+              <div className="bg-[#fee440] text-black text-[12px] font-bold px-3 py-1 rounded-full shadow-[0_0_10px_rgba(254,228,64,0.5)]">Edward</div>
             </div>
 
           </div>
@@ -408,7 +408,7 @@ const SpacesSection = () => {
 
         {/* Floating Call to Action */}
         <div className="mt-8 z-20 z-relative">
-          <Button variant="cosmic" className="h-[64px] px-14 text-xl font-bold rounded-full shadow-[0_0_60px_rgba(157,78,221,0.4)] hover:scale-110 transition-transform duration-300 relative z-20">
+          <Button variant="cosmic" className="h-[64px] px-14 text-xl font-bold rounded-full shadow-[0_0_60px_rgba(254,228,64,0.4)] hover:scale-110 transition-transform duration-300 relative z-20">
             اطلب الوصول المبكر للمساحات
           </Button>
         </div>
@@ -457,7 +457,7 @@ const AgentsStoreSection = () => {
           </div>
           <div className="flex items-center gap-3 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 hide-scroll snap-x">
             {['الكل', 'المبيعات', 'التسويق', 'العمليات', 'البرمجة'].map((tag, i) => (
-              <button key={tag} className={`snap-center px-6 py-3 rounded-2xl text-sm font-bold whitespace-nowrap transition-all ${i===0 ? 'bg-gradient-to-l from-primary-500 to-accent-500 text-white shadow-[0_0_20px_rgba(157,78,221,0.3)] border border-transparent' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10 hover:bg-white/10'}`}>
+              <button key={tag} className={`snap-center px-6 py-3 rounded-2xl text-sm font-bold whitespace-nowrap transition-all ${i===0 ? 'bg-neon-yellow text-black shadow-[0_0_20px_rgba(254,228,64,0.4)] border border-transparent' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10 hover:bg-white/10'}`}>
                 {tag}
               </button>
             ))}
@@ -470,7 +470,7 @@ const AgentsStoreSection = () => {
              <div
                key={agent.title}
                className="bento-card rounded-[2rem] p-3 group hover:scale-[1.02] hover:-translate-y-2 transition-all duration-500 cursor-pointer w-full bg-black/40"
-               style={{ '--hover-border': 'rgba(0, 245, 212, 0.4)', '--hover-shadow': 'rgba(0, 245, 212, 0.1)' } as React.CSSProperties}
+               style={{ '--hover-border': 'rgba(254, 228, 64, 0.4)', '--hover-shadow': 'rgba(254, 228, 64, 0.1)' } as React.CSSProperties}
              >
                {/* Card Image Wrapper */}
                <div className="w-full h-[220px] rounded-[1.5rem] bg-black mb-5 overflow-hidden relative">
@@ -631,13 +631,13 @@ const PromotionalBanner = () => {
   
     return (
       <div className="site-container relative z-40 mt-[50px]">
-        <div className="w-full rounded-[1.5rem] bg-gradient-to-l from-neon-pink/10 to-transparent border border-neon-pink/20 p-2 sm:p-3 flex flex-col md:flex-row items-center gap-4 lg:gap-8 justify-between shadow-[0_0_40px_rgba(241,91,181,0.05)] relative overflow-hidden backdrop-blur-xl group hover:border-neon-pink/40 transition-colors">
+        <div className="w-full rounded-[1.5rem] bg-gradient-to-l from-neon-pink/10 to-transparent border border-neon-pink/20 p-2 sm:p-3 flex flex-col md:flex-row items-center gap-4 lg:gap-8 justify-between shadow-[0_0_40px_rgba(254,228,64,0.05)] relative overflow-hidden backdrop-blur-xl group hover:border-neon-pink/40 transition-colors">
           
           {/* Glow overlay */}
           <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-r from-transparent to-neon-pink/5 pointer-events-none" />
   
           {/* Left/RTL Right: The Timer Card */}
-          <div className="relative z-10 bg-gradient-to-br from-neon-pink/80 to-primary-500/80 rounded-xl p-3 shadow-[0_0_30px_rgba(241,91,181,0.2)] border border-white/20 shrink-0 w-full md:w-auto">
+          <div className="relative z-10 bg-gradient-to-br from-neon-pink/80 to-primary-500/80 rounded-xl p-3 shadow-[0_0_30px_rgba(254,228,64,0.2)] border border-white/20 shrink-0 w-full md:w-auto">
             <div className="flex items-center justify-center gap-2 mb-2 text-white/90 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
               <svg className="w-3.5 h-3.5 animate-pulse text-neon-yellow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
               عرض حصري لفترة محدودة
@@ -663,7 +663,7 @@ const PromotionalBanner = () => {
           {/* Center: Text Content */}
           <div className="flex-1 text-center md:text-right relative z-10" dir="rtl">
             <h3 className="text-white font-black text-lg sm:text-xl lg:text-2xl mb-1 flex items-center justify-center md:justify-start flex-wrap gap-x-2">
-              <span className="text-neon-pink tracking-wide uppercase drop-shadow-[0_0_10px_rgba(241,91,181,0.5)]">تكامل اللامحدودة</span> 
+              <span className="text-neon-pink tracking-wide uppercase drop-shadow-[0_0_10px_rgba(254,228,64,0.5)]">تكامل اللامحدودة</span> 
               <span>— متاح الآن للجميع! خصم أكثر من 70% 🚀</span>
             </h3>
             <p className="text-gray-400 text-xs sm:text-sm font-medium">
@@ -673,7 +673,7 @@ const PromotionalBanner = () => {
   
           {/* Right/RTL Left: CTA Button */}
           <div className="relative z-10 shrink-0 w-full md:w-auto pb-1 md:pb-0" dir="ltr">
-            <Button className="w-full md:w-auto bg-neon-pink hover:bg-[#d84b9f] text-white font-black py-4 sm:py-6 px-6 lg:px-10 rounded-xl shadow-[0_0_20px_rgba(241,91,181,0.5)] transition-all hover:scale-105 flex items-center justify-center gap-3 text-sm sm:text-base border border-white/20">
+            <Button className="w-full md:w-auto bg-neon-yellow hover:bg-primary-500 text-black font-black py-4 sm:py-6 px-6 lg:px-10 rounded-xl shadow-[0_0_20px_rgba(254,228,64,0.5)] transition-all hover:scale-105 flex items-center justify-center gap-3 text-sm sm:text-base border border-white/20">
               احصل على خصم 70% الآن
               <svg className="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" /></svg>
             </Button>
@@ -767,7 +767,7 @@ const SeedancePromoWidget = () => {
                             </div>
                         </div>
 
-                        <Button className="w-full mt-6 bg-gradient-to-r from-accent-400 to-primary-500 hover:from-accent-400/90 hover:to-primary-500/90 text-black shadow-[0_0_20px_rgba(0,245,212,0.3)] border-none rounded-xl py-6 font-bold text-sm md:text-base transition-all hover:scale-[1.02]">
+                        <Button className="w-full mt-6 bg-neon-yellow hover:bg-primary-500 text-black shadow-[0_0_20px_rgba(254,228,64,0.4)] border-none rounded-xl py-6 font-black text-sm md:text-base transition-all hover:scale-[1.02]">
                             احصل على العرض الحصري اللامحدود
                         </Button>
                     </div>
@@ -826,7 +826,7 @@ export default function PremiumLanding() {
         {/* Floating Complex Glass Widgets (Background App Mockups) - TEMPORARILY DISABLED */}
         {/*
         <div className="absolute inset-0 pointer-events-none z-0">
-           <motion.div animate={{ y: [-15, 15, -15] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[15%] right-[2%] lg:right-[5%] xl:right-[10%] w-60 p-4 rounded-[1.5rem] bento-card border border-white/10 bg-[#0a0a0f]/80 backdrop-blur-2xl shadow-[0_0_50px_rgba(157,78,221,0.2)] hidden lg:block opacity-60">
+           <motion.div animate={{ y: [-15, 15, -15] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[15%] right-[2%] lg:right-[5%] xl:right-[10%] w-60 p-4 rounded-[1.5rem] bento-card border border-white/10 bg-[#0a0a0f]/80 backdrop-blur-2xl shadow-[0_0_50px_rgba(254,228,64,0.2)] hidden lg:block opacity-60">
               <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-3">
                  <div className="w-8 h-8 rounded-xl bg-accent-400/20 flex items-center justify-center border border-accent-400/30"><Music className="w-4 h-4 text-accent-400" /></div>
                  <span className="text-white text-xs font-bold tracking-widest">تحليل الموجات</span>
@@ -836,7 +836,7 @@ export default function PremiumLanding() {
               </div>
            </motion.div>
 
-           <motion.div animate={{ y: [15, -15, 15] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }} className="absolute top-[45%] left-[2%] lg:left-[5%] xl:left-[10%] w-72 p-4 rounded-[1.5rem] bento-card border border-white/10 bg-[#0a0a0f]/80 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,187,249,0.2)] hidden lg:block opacity-60">
+           <motion.div animate={{ y: [15, -15, 15] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }} className="absolute top-[45%] left-[2%] lg:left-[5%] xl:left-[10%] w-72 p-4 rounded-[1.5rem] bento-card border border-white/10 bg-[#0a0a0f]/80 backdrop-blur-2xl shadow-[0_0_50px_rgba(254,228,64,0.2)] hidden lg:block opacity-60">
               <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
                  <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500 border border-red-400/50" />
@@ -883,7 +883,7 @@ export default function PremiumLanding() {
 
           <motion.h1 variants={fadeUpVar} className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-[1.25] text-white mb-6 drop-shadow-2xl pb-2">
             نظام <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500 pb-2 inline-block">خارق</span><br/>
-            لبناء <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-accent-400 to-neon-pink drop-shadow-[0_0_40px_rgba(157,78,221,0.5)] pb-2 inline-block">أي شيء.</span>
+            لبناء <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-accent-400 to-neon-pink drop-shadow-[0_0_40px_rgba(254,228,64,0.5)] pb-2 inline-block">أي شيء.</span>
           </motion.h1>
 
           <motion.p variants={fadeUpVar} className="text-base md:text-lg text-gray-400 font-light max-w-2xl leading-relaxed mb-10 mx-auto">
@@ -955,7 +955,7 @@ export default function PremiumLanding() {
       
       {/* ── ADVANCED LINE DIVIDER ── */}
       <div className="w-full max-w-5xl mx-auto py-2 relative z-20 opacity-80 mt-[-10px] md:mt-[-20px] mb-8 md:mb-10">
-        <AdvancedLineDivider colorHex="#f15bb5" />
+        <AdvancedLineDivider colorHex="#fee440" />
       </div>
 
       {/* ── 3. HOLOGRAPHIC BENTO GRID ── */}
@@ -973,7 +973,7 @@ export default function PremiumLanding() {
           className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-6 md:gap-8 auto-rows-[280px]"
         >
           {/* Card 1: Video (Large) */}
-          <motion.div variants={fadeUpVar} style={{ '--hover-border': 'rgba(0, 245, 212, 0.5)', '--hover-shadow': 'rgba(0, 245, 212, 0.2)' } as React.CSSProperties} className="bento-card col-span-1 md:col-span-4 lg:col-span-4 row-span-1 md:row-span-2 p-8 md:p-10 flex flex-col">
+          <motion.div variants={fadeUpVar} style={{ '--hover-border': 'rgba(254, 228, 64, 0.5)', '--hover-shadow': 'rgba(254, 228, 64, 0.2)' } as React.CSSProperties} className="bento-card col-span-1 md:col-span-4 lg:col-span-4 row-span-1 md:row-span-2 p-8 md:p-10 flex flex-col">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-14 h-14 rounded-2xl bg-accent-500/10 border border-accent-500/20 flex items-center justify-center shrink-0">
                 <Video className="w-7 h-7 text-accent-400" />
@@ -997,7 +997,7 @@ export default function PremiumLanding() {
           </motion.div>
 
            {/* Card 2: Image Studio (Tall) - SWAPPED */}
-           <motion.div variants={fadeUpVar} style={{ '--hover-border': 'rgba(241, 91, 181, 0.5)', '--hover-shadow': 'rgba(241, 91, 181, 0.2)' } as React.CSSProperties} className="bento-card col-span-1 md:col-span-2 lg:col-span-2 row-span-1 md:row-span-2 p-8 md:p-10 flex flex-col">
+           <motion.div variants={fadeUpVar} style={{ '--hover-border': 'rgba(254, 228, 64, 0.5)', '--hover-shadow': 'rgba(254, 228, 64, 0.2)' } as React.CSSProperties} className="bento-card col-span-1 md:col-span-2 lg:col-span-2 row-span-1 md:row-span-2 p-8 md:p-10 flex flex-col">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-14 h-14 rounded-2xl bg-neon-pink/10 border border-neon-pink/20 flex items-center justify-center shrink-0">
                 <ImageIcon className="w-7 h-7 text-neon-pink" />
@@ -1102,31 +1102,31 @@ export default function PremiumLanding() {
 
       {/* ── 3.5. SEPARATE TOOL SLIDER SECTIONS ── */}
       <div className="bg-bg-primary relative py-4">
-        <ToolSliderSection 
-          title="ترسانة الصور الفائقة" 
+        <ToolSliderSection
+          title="ترسانة الصور الفائقة"
           desc="حوّل مخيلتك إلى صور حقيقية عالية الدقة باستخدام حزمة مذهلة من المولدات الرسومية."
-          colorClass="text-neon-pink"
-          shadowColor="241, 91, 181"
+          colorClass="text-neon-yellow"
+          shadowColor="254, 228, 64"
           items={IMAGE_TOOLS}
         />
 
-        <AdvancedLineDivider colorHex="#f15bb5" />
-        
-        <ToolSliderSection 
-          title="استوديو الفيديو السينمائي" 
+        <AdvancedLineDivider colorHex="#fee440" />
+
+        <ToolSliderSection
+          title="استوديو الفيديو السينمائي"
           desc="لا توجد معدات؟ لا مشكلة. أنتج فيديوهات وإعلانات خرافية بنصوصك."
-          colorClass="text-accent-400"
-          shadowColor="0, 245, 212"
+          colorClass="text-neon-yellow"
+          shadowColor="254, 228, 64"
           items={VIDEO_TOOLS}
         />
 
         {/* SEEDANCE NEW WIDGET */}
         <SeedancePromoWidget />
 
-        <AdvancedLineDivider colorHex="#00f5d4" />
-        
-        <ToolSliderSection 
-          title="الهندسة الصوتية الرقمية" 
+        <AdvancedLineDivider colorHex="#fee440" />
+
+        <ToolSliderSection
+          title="الهندسة الصوتية الرقمية"
           desc="أصوات بشرية، تنقية ضوضاء ومؤثرات سينمائية بضغطة زر واحدة."
           colorClass="text-neon-yellow"
           shadowColor="254, 228, 64"
@@ -1135,11 +1135,11 @@ export default function PremiumLanding() {
 
         <AdvancedLineDivider colorHex="#fee440" />
 
-        <ToolSliderSection 
-          title="محرك الأكواد المتقدم" 
+        <ToolSliderSection
+          title="محرك الأكواد المتقدم"
           desc="مساعدك البرمجي الخاص، دع الذكاء الاصطناعي يبني وينقح نظامك بكفاءة عالية."
-          colorClass="text-primary-400"
-          shadowColor="157, 78, 221"
+          colorClass="text-neon-yellow"
+          shadowColor="254, 228, 64"
           items={CODE_TOOLS}
         />
       </div>

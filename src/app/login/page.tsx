@@ -125,7 +125,7 @@ export default function LoginPage() {
           <motion.div 
             animate={{ y: [-15, 15, -15], rotate: [0, 5, 0] }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full border border-white/10 blur-[1px] bg-gradient-to-tr from-primary-900/40 to-black/40 shadow-[0_0_100px_rgba(157,78,221,0.2)] flex items-center justify-center backdrop-blur-md"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full border border-white/10 blur-[1px] bg-gradient-to-tr from-primary-900/40 to-black/40 shadow-[0_0_100px_rgba(254,228,64,0.2)] flex items-center justify-center backdrop-blur-md"
           >
             <div className="w-48 h-48 rounded-full border border-accent-400/20 bg-accent-400/5 flex items-center justify-center animate-pulse">
               <Sparkles className="w-16 h-16 text-accent-400" />

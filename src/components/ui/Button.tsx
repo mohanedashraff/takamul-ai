@@ -8,11 +8,11 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-white text-black hover:bg-gray-200 shadow-[0_0_20px_rgba(255,255,255,0.15)]",
-        cosmic: "bg-primary-500 text-white hover:bg-primary-400 shadow-[0_0_30px_rgba(157,78,221,0.4)] border border-primary-400/50",
-        cyber: "bg-transparent text-accent-400 border border-accent-400/50 hover:bg-accent-400/10 hover:shadow-[0_0_20px_rgba(0,245,212,0.3)]",
+        cosmic: "bg-primary-400 text-black hover:bg-primary-500 shadow-[0_0_30px_rgba(254,228,64,0.4)] border border-primary-400/70 font-black",
+        cyber: "bg-transparent text-primary-400 border border-primary-400/50 hover:bg-primary-400/10 hover:shadow-[0_0_20px_rgba(254,228,64,0.3)]",
         glass: "glass-button text-white hover:bg-white/10",
         ghost: "hover:bg-white/5 text-gray-300 hover:text-white",
-        link: "text-accent-400 underline-offset-4 hover:underline",
+        link: "text-primary-400 underline-offset-4 hover:underline",
       },
       size: {
         default: "h-11 px-6",

@@ -28,7 +28,7 @@ export default function PricingPage() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-accent-400/30 text-accent-400 text-sm font-bold tracking-wide mb-6 shadow-[0_0_20px_rgba(0,245,212,0.15)]"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-accent-400/30 text-accent-400 text-sm font-bold tracking-wide mb-6 shadow-[0_0_20px_rgba(254,228,64,0.15)]"
         >
           <Sparkles className="w-4 h-4" />
           الاستثمار الأمثل لمشروعك
@@ -49,13 +49,13 @@ export default function PricingPage() {
           >
             <motion.div 
               layout
-              className="w-6 h-6 bg-accent-400 rounded-full shadow-[0_0_10px_rgba(0,245,212,0.5)]"
+              className="w-6 h-6 bg-accent-400 rounded-full shadow-[0_0_10px_rgba(254,228,64,0.5)]"
               animate={{ x: isAnnual ? -32 : 0 }} // -32px for RTL shift
             />
           </button>
           <div className="flex items-center gap-2">
             <span className={`text-lg font-bold transition-colors ${isAnnual ? 'text-white' : 'text-gray-500'}`}>سنوي</span>
-            <span className="px-2 py-0.5 rounded bg-neon-pink/20 text-neon-pink text-xs font-black border border-neon-pink/30 shadow-[0_0_10px_rgba(241,91,181,0.2)]">وفّر 20%</span>
+            <span className="px-2 py-0.5 rounded bg-neon-pink/20 text-neon-pink text-xs font-black border border-neon-pink/30 shadow-[0_0_10px_rgba(254,228,64,0.2)]">وفّر 20%</span>
           </div>
         </div>
       </div>
@@ -96,11 +96,11 @@ export default function PricingPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="w-full relative p-[2px] rounded-[2rem] bg-gradient-to-t from-primary-600 via-primary-400 to-accent-400 shadow-[0_0_60px_rgba(157,78,221,0.25)] md:-mt-8 md:mb-8 hover:shadow-[0_0_80px_rgba(0,245,212,0.35)] transition-all duration-500 group"
+            className="w-full relative p-[2px] rounded-[2rem] bg-gradient-to-t from-primary-600 via-primary-400 to-accent-400 shadow-[0_0_60px_rgba(254,228,64,0.25)] md:-mt-8 md:mb-8 hover:shadow-[0_0_80px_rgba(254,228,64,0.35)] transition-all duration-500 group"
           >
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black text-white px-4 py-1 rounded-full text-xs font-black tracking-widest border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.2)] z-10">الأكثر طلباً</div>
             <div className="w-full h-full bg-[#0a0a0f]/95 backdrop-blur-3xl rounded-[calc(2rem-2px)] p-8">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary-400 to-accent-400 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(157,78,221,0.5)]">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary-400 to-accent-400 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(254,228,64,0.5)]">
                 <Crown className="w-6 h-6 text-black" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">المحترف</h3>
@@ -112,7 +112,7 @@ export default function PricingPage() {
               <ul className="space-y-4 mb-8">
                 {["توليد لا محدود للصور العالية الدقة", "100 دقيقة لتوليد وتحرير الفيديو الثقيل", "الوصول لديف-مود المبرمج المساعد", "استنساخ الأصوات العربية المتقدم", "أولوية وسرعة المعالجة (Priority Queue)"].map((feature, i) => (
                   <li key={i} className="flex items-center gap-3 text-white text-sm font-bold">
-                    <CheckCircle2 className="w-5 h-5 text-accent-400 shrink-0 shadow-[0_0_10px_rgba(0,245,212,0.4)] rounded-full" />
+                    <CheckCircle2 className="w-5 h-5 text-accent-400 shrink-0 shadow-[0_0_10px_rgba(254,228,64,0.4)] rounded-full" />
                     {feature}
                   </li>
                 ))}

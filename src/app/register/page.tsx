@@ -138,7 +138,7 @@ export default function RegisterPage() {
           <motion.div 
             animate={{ y: [-15, 15, -15], rotate: [0, -5, 0] }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full border border-white/10 blur-[1px] bg-gradient-to-tr from-black to-primary-900/50 shadow-[0_0_100px_rgba(241,91,181,0.15)] flex items-center justify-center backdrop-blur-md"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full border border-white/10 blur-[1px] bg-gradient-to-tr from-black to-primary-900/50 shadow-[0_0_100px_rgba(254,228,64,0.15)] flex items-center justify-center backdrop-blur-md"
           >
             <div className="w-56 h-56 rounded-full border border-neon-pink/20 bg-neon-pink/5 flex items-center justify-center animate-pulse">
               <Layers className="w-20 h-20 text-neon-pink" />
