@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Upload, X, Plus, Minus, Search, LayoutGrid, Check } from "lucide-react";
+import { Upload, X, Plus, Minus, Search, LayoutGrid, Check, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { STYLE_CATEGORIES } from "@/lib/data/tools";
@@ -423,6 +423,91 @@ function PromptInput({
   );
 }
 
+// ── Select ────────────────────────────────────────────────────────────────────
+
+function SelectInput({
+  input,
+  value,
+  onChange,
+  colorRgb,
+}: {
+  input: ToolInput;
+  value: string;
+  onChange: (v: string) => void;
+  colorRgb: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = input.options?.find((o) => o.value === value);
+
+  useEffect(() => {
+    if (!open) return;
+    const fn = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", fn);
+    return () => document.removeEventListener("mousedown", fn);
+  }, [open]);
+
+  return (
+    <div className="space-y-2.5" ref={ref}>
+      {input.label && (
+        <label className="text-sm text-gray-400 font-medium block">{input.label}</label>
+      )}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((p) => !p)}
+          className={cn(
+            "w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border text-sm transition-all duration-200",
+            open
+              ? "border-white/20 bg-white/[0.07]"
+              : "border-white/10 bg-white/[0.04] hover:border-white/15 hover:bg-white/[0.06]"
+          )}
+          style={open ? { borderColor: `rgba(${colorRgb}, 0.4)`, boxShadow: `0 0 0 1px rgba(${colorRgb}, 0.15)` } : {}}
+        >
+          <span className="text-white font-medium truncate">{selected?.label ?? "اختر..."}</span>
+          <ChevronDown
+            className="w-4 h-4 text-gray-500 flex-shrink-0 transition-transform duration-200"
+            style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+          />
+        </button>
+
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: -4, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.98 }}
+              transition={{ duration: 0.12 }}
+              className="absolute top-full mt-1.5 left-0 right-0 bg-[#1a1b1e] border border-white/10 rounded-xl overflow-hidden z-20 shadow-xl"
+            >
+              {input.options?.map((opt) => {
+                const isActive = value === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => { onChange(opt.value); setOpen(false); }}
+                    className={cn(
+                      "w-full text-right px-4 py-2.5 text-sm transition-colors flex items-center justify-between",
+                      isActive ? "text-white font-medium" : "text-gray-400 hover:text-white hover:bg-white/[0.06]"
+                    )}
+                    style={isActive ? { backgroundColor: `rgba(${colorRgb}, 0.12)`, color: `rgb(${colorRgb})` } : {}}
+                  >
+                    <span>{opt.label}</span>
+                    {isActive && <Check className="w-3.5 h-3.5 flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
 // ── Style Picker ──────────────────────────────────────────────────────────────
 
 function StylePickerInput({
@@ -439,7 +524,29 @@ function StylePickerInput({
   const [open, setOpen]           = useState(false);
   const [search, setSearch]       = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [canScrollLeft, setCanScrollLeft]   = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const searchRef  = useRef<HTMLInputElement>(null);
+  const pillsRef   = useRef<HTMLDivElement>(null);
+
+  const checkScroll = useCallback(() => {
+    const el = pillsRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = pillsRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    return () => el.removeEventListener("scroll", checkScroll);
+  }, [checkScroll, open]);
+
+  const scrollPills = (dir: "left" | "right") => {
+    pillsRef.current?.scrollBy({ left: dir === "left" ? -160 : 160, behavior: "smooth" });
+  };
 
   const allOptions = input.options ?? [];
   const selected   = allOptions.find((o) => o.value === value);
@@ -578,41 +685,74 @@ function StylePickerInput({
                 </button>
               </div>
 
-              {/* ── Category pills (horizontal scroll) ── */}
-              <div className="flex gap-2 px-4 pb-3 overflow-x-auto flex-shrink-0 scrollbar-none" dir="rtl">
-                {STYLE_CATEGORIES.map((cat) => {
-                  const isActive = activeCategory === cat.key;
-                  const count = cat.key === "all"
-                    ? allOptions.length
-                    : allOptions.filter(o => (o.categories ?? []).includes(cat.key)).length;
-                  return (
+              {/* ── Category pills (horizontal scroll + arrows) ── */}
+              <div className="relative flex-shrink-0 px-4 pb-3">
+                {/* Left fade + arrow */}
+                {canScrollLeft && (
+                  <div className="absolute right-4 top-0 bottom-3 w-10 flex items-center justify-end z-10 pointer-events-none"
+                    style={{ background: "linear-gradient(to left, transparent, #111315 80%)" }}>
                     <button
-                      key={cat.key}
                       type="button"
-                      onClick={() => { setActiveCategory(cat.key); setSearch(""); }}
-                      className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-150 border"
-                      style={isActive ? {
-                        backgroundColor: `rgba(${colorRgb}, 0.18)`,
-                        borderColor: `rgba(${colorRgb}, 0.5)`,
-                        color: `rgb(${colorRgb})`,
-                      } : {
-                        backgroundColor: "rgba(255,255,255,0.04)",
-                        borderColor: "rgba(255,255,255,0.08)",
-                        color: "rgba(255,255,255,0.45)",
-                      }}
+                      className="pointer-events-auto w-6 h-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                      onClick={() => scrollPills("left")}
                     >
-                      <span>{cat.label}</span>
-                      <span
-                        className="text-[10px] tabular-nums px-1.5 py-0.5 rounded-full font-semibold"
-                        style={isActive
-                          ? { backgroundColor: `rgba(${colorRgb}, 0.25)`, color: `rgb(${colorRgb})` }
-                          : { backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.3)" }}
-                      >
-                        {count}
-                      </span>
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
-                  );
-                })}
+                  </div>
+                )}
+                {/* Right fade + arrow */}
+                {canScrollRight && (
+                  <div className="absolute left-4 top-0 bottom-3 w-10 flex items-center justify-start z-10 pointer-events-none"
+                    style={{ background: "linear-gradient(to right, transparent, #111315 80%)" }}>
+                    <button
+                      type="button"
+                      className="pointer-events-auto w-6 h-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                      onClick={() => scrollPills("right")}
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+                <div
+                  ref={pillsRef}
+                  className="flex gap-2 overflow-x-auto scrollbar-none"
+                  dir="rtl"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                >
+                  {STYLE_CATEGORIES.map((cat) => {
+                    const isActive = activeCategory === cat.key;
+                    const count = cat.key === "all"
+                      ? allOptions.length
+                      : allOptions.filter(o => (o.categories ?? []).includes(cat.key)).length;
+                    return (
+                      <button
+                        key={cat.key}
+                        type="button"
+                        onClick={() => { setActiveCategory(cat.key); setSearch(""); setTimeout(checkScroll, 50); }}
+                        className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-150 border"
+                        style={isActive ? {
+                          backgroundColor: `rgba(${colorRgb}, 0.18)`,
+                          borderColor: `rgba(${colorRgb}, 0.5)`,
+                          color: `rgb(${colorRgb})`,
+                        } : {
+                          backgroundColor: "rgba(255,255,255,0.04)",
+                          borderColor: "rgba(255,255,255,0.08)",
+                          color: "rgba(255,255,255,0.45)",
+                        }}
+                      >
+                        <span>{cat.label}</span>
+                        <span
+                          className="text-[10px] tabular-nums px-1.5 py-0.5 rounded-full font-semibold"
+                          style={isActive
+                            ? { backgroundColor: `rgba(${colorRgb}, 0.25)`, color: `rgb(${colorRgb})` }
+                            : { backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.3)" }}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* ── Grid ── */}
@@ -794,6 +934,17 @@ export function renderToolInput(
           key={input.id}
           input={input}
           value={values[input.id] ?? input.defaultValue ?? 1}
+          onChange={(v) => setValue(input.id, v)}
+          colorRgb={colorRgb}
+        />
+      );
+
+    case "select":
+      return (
+        <SelectInput
+          key={input.id}
+          input={input}
+          value={values[input.id] ?? input.defaultValue ?? ""}
           onChange={(v) => setValue(input.id, v)}
           colorRgb={colorRgb}
         />
