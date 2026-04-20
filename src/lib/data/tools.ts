@@ -1119,6 +1119,7 @@ export const VIDEO_TOOLS: Tool[] = [
     image: "https://cdn.higgsfield.ai/application_main/6f93883b-e8e3-4c77-9f50-3d20090f8ec3.mp4",
     credits: 8,
     isNew: true,
+    layout: "centered" as const,
     inputs: [
       {
         id: "video",
