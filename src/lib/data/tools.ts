@@ -55,7 +55,7 @@ export interface Tool {
   image: string | string[];
   credits: number;
   isNew?: boolean;
-  layout?: "default" | "centered" | "inpaint" | "sketch"; // "sketch" = drawing canvas
+  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle";
   inputs: ToolInput[];
 }
 
@@ -546,6 +546,7 @@ export const IMAGE_TOOLS: Tool[] = [
     image: "https://cdn.higgsfield.ai/application_main/18f1d529-5a2d-4f60-9a9a-a7d012464d40.mp4",
     credits: 5,
     isNew: true,
+    layout: "outpaint",
     inputs: [
       {
         id: "image",
@@ -566,6 +567,7 @@ export const IMAGE_TOOLS: Tool[] = [
   },
   {
     id: "change-angle",
+    layout: "angle",
     title: "تغيير الزاوية",
     desc: "غير زاوية رؤية الصورة كما لو تم التقاطها من جديد.",
     icon: Wand2,
