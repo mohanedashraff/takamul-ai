@@ -55,7 +55,7 @@ export interface Tool {
   image: string | string[];
   credits: number;
   isNew?: boolean;
-  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight";
+  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene";
   inputs: ToolInput[];
 }
 
@@ -622,6 +622,7 @@ export const IMAGE_TOOLS: Tool[] = [
   },
   {
     id: "multi-scene",
+    layout: "multi-scene" as const,
     title: "لقطات سينمائية",
     desc: "صورة واحدة تُولّد 9 زوايا سينمائية مختلفة.",
     icon: Layers,

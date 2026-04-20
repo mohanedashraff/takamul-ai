@@ -9,6 +9,7 @@ import { SketchWorkspace } from "@/components/tools/SketchWorkspace";
 import { OutpaintWorkspace } from "@/components/tools/OutpaintWorkspace";
 import { AngleWorkspace } from "@/components/tools/AngleWorkspace";
 import { RelightWorkspace } from "@/components/tools/RelightWorkspace";
+import { MultiSceneWorkspace } from "@/components/tools/MultiSceneWorkspace";
 import {
   renderToolInput,
   isFormValid,
@@ -56,6 +57,9 @@ export default function WorkspacePage({ params }: { params: Promise<{ toolId: st
   }
   if (tool.layout === "relight") {
     return <RelightWorkspace tool={tool} config={config} />;
+  }
+  if (tool.layout === "multi-scene") {
+    return <MultiSceneWorkspace tool={tool} config={config} />;
   }
   return <WorkspaceInterface tool={tool} config={config} />;
 }
