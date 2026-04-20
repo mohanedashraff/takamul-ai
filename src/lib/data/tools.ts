@@ -55,7 +55,7 @@ export interface Tool {
   image: string | string[];
   credits: number;
   isNew?: boolean;
-  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle";
+  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight";
   inputs: ToolInput[];
 }
 
@@ -641,6 +641,7 @@ export const IMAGE_TOOLS: Tool[] = [
   },
   {
     id: "relighting",
+    layout: "relight",
     title: "توزيع الإضاءة",
     desc: "تحكم كامل في إضاءة صورتك لإبراز التفاصيل.",
     icon: Zap,

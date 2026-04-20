@@ -8,6 +8,7 @@ import { InpaintWorkspace } from "@/components/tools/InpaintWorkspace";
 import { SketchWorkspace } from "@/components/tools/SketchWorkspace";
 import { OutpaintWorkspace } from "@/components/tools/OutpaintWorkspace";
 import { AngleWorkspace } from "@/components/tools/AngleWorkspace";
+import { RelightWorkspace } from "@/components/tools/RelightWorkspace";
 import {
   renderToolInput,
   isFormValid,
@@ -52,6 +53,9 @@ export default function WorkspacePage({ params }: { params: Promise<{ toolId: st
   }
   if (tool.layout === "angle") {
     return <AngleWorkspace tool={tool} config={config} />;
+  }
+  if (tool.layout === "relight") {
+    return <RelightWorkspace tool={tool} config={config} />;
   }
   return <WorkspaceInterface tool={tool} config={config} />;
 }
