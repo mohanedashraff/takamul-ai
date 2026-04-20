@@ -55,7 +55,7 @@ export interface Tool {
   image: string | string[];
   credits: number;
   isNew?: boolean;
-  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene" | "change-clothes" | "fashion-designer" | "face-swap";
+  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene" | "change-clothes" | "fashion-designer" | "face-swap" | "whats-next";
   inputs: ToolInput[];
 }
 
@@ -776,6 +776,7 @@ export const IMAGE_TOOLS: Tool[] = [
   },
   {
     id: "whats-next",
+    layout: "whats-next" as const,
     title: "ماذا بعد ؟",
     desc: "صورة واحدة تُولّد 8 احتمالات للمشهد التالي.",
     icon: Sparkles,

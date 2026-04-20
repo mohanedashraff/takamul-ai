@@ -13,6 +13,7 @@ import { MultiSceneWorkspace } from "@/components/tools/MultiSceneWorkspace";
 import { ChangeClothesWorkspace } from "@/components/tools/ChangeClothesWorkspace";
 import { FashionDesignerWorkspace } from "@/components/tools/FashionDesignerWorkspace";
 import { FaceSwapWorkspace } from "@/components/tools/FaceSwapWorkspace";
+import { WhatsNextWorkspace } from "@/components/tools/WhatsNextWorkspace";
 import {
   renderToolInput,
   isFormValid,
@@ -72,6 +73,9 @@ export default function WorkspacePage({ params }: { params: Promise<{ toolId: st
   }
   if (tool.layout === "face-swap") {
     return <FaceSwapWorkspace tool={tool} config={config} />;
+  }
+  if (tool.layout === "whats-next") {
+    return <WhatsNextWorkspace tool={tool} config={config} />;
   }
   return <WorkspaceInterface tool={tool} config={config} />;
 }
