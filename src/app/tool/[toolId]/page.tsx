@@ -6,6 +6,7 @@ import { notFound, useRouter } from "next/navigation";
 import { STUDIO_CATEGORIES, ToolCategory, Tool } from "@/lib/data/tools";
 import { InpaintWorkspace } from "@/components/tools/InpaintWorkspace";
 import { SketchWorkspace } from "@/components/tools/SketchWorkspace";
+import { OutpaintWorkspace } from "@/components/tools/OutpaintWorkspace";
 import {
   renderToolInput,
   isFormValid,
@@ -44,6 +45,9 @@ export default function WorkspacePage({ params }: { params: Promise<{ toolId: st
   }
   if (tool.layout === "sketch") {
     return <SketchWorkspace tool={tool} config={config} />;
+  }
+  if (tool.layout === "outpaint") {
+    return <OutpaintWorkspace tool={tool} config={config} />;
   }
   return <WorkspaceInterface tool={tool} config={config} />;
 }
