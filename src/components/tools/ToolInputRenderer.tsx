@@ -603,14 +603,45 @@ function CounterInput({
 function PromptInput({
   input,
   value,
+  attachedFiles,
   onChange,
+  onAttach,
   colorRgb,
 }: {
   input: ToolInput;
   value: string;
+  attachedFiles?: File[];
   onChange: (v: string) => void;
+  onAttach?: (files: File[]) => void;
   colorRgb: string;
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const hasAttachments = !!input.attachments;
+  const files = attachedFiles ?? [];
+  const maxFiles = input.attachments?.max ?? 5;
+
+  // Generate object URLs for attached file previews
+  useEffect(() => {
+    if (!hasAttachments) return;
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [files, hasAttachments]);
+
+  const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []);
+    if (!picked.length || !onAttach) return;
+    onAttach([...files, ...picked].slice(0, maxFiles));
+    e.target.value = "";
+  };
+
+  const removeFile = (idx: number) => {
+    onAttach?.(files.filter((_, i) => i !== idx));
+  };
+
+  const isFocused = !!value || files.length > 0;
+
   return (
     <div className="space-y-2.5">
       {input.label && (
@@ -619,15 +650,76 @@ function PromptInput({
           {input.required && <span className="text-red-400 mr-1">*</span>}
         </label>
       )}
-      <textarea
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={input.placeholder}
-        rows={4}
-        className="w-full bg-black/30 border border-white/10 rounded-2xl p-4 text-white placeholder:text-gray-600 resize-none focus:outline-none transition-all text-sm leading-relaxed"
-        style={value ? { boxShadow: `0 0 0 1px rgba(${colorRgb}, 0.4)`, borderColor: `rgba(${colorRgb}, 0.3)` } : {}}
-        dir="rtl"
-      />
+
+      <div
+        className="relative rounded-2xl border transition-all duration-200 overflow-hidden bg-black/30"
+        style={isFocused
+          ? { borderColor: `rgba(${colorRgb}, 0.35)`, boxShadow: `0 0 0 1px rgba(${colorRgb}, 0.15)` }
+          : { borderColor: "rgba(255,255,255,0.08)" }}
+      >
+        <textarea
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={input.placeholder}
+          rows={4}
+          className="w-full bg-transparent px-4 pt-3.5 text-white placeholder:text-gray-600 resize-none focus:outline-none text-sm leading-relaxed"
+          style={{ paddingBottom: hasAttachments ? "0.75rem" : "0.875rem" }}
+          dir="rtl"
+        />
+
+        {/* ── Attachment strip (only when attachments enabled) ── */}
+        {hasAttachments && (
+          <div className="flex items-center gap-2 px-3 pb-3 pt-1">
+            {/* Thumbnails */}
+            {previews.map((url, idx) => (
+              <div
+                key={idx}
+                className="relative w-9 h-9 rounded-lg overflow-hidden border border-white/10 flex-shrink-0 group"
+              >
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removeFile(idx)}
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                >
+                  <X className="w-3 h-3 text-white" />
+                </button>
+              </div>
+            ))}
+
+            {/* Add button — only if under limit */}
+            {files.length < maxFiles && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-9 h-9 rounded-lg border border-dashed border-white/15 flex items-center justify-center flex-shrink-0 hover:border-white/30 transition-colors group"
+                style={{ backgroundColor: `rgba(${colorRgb}, 0.04)` }}
+                title={`إضافة صورة مرجعية (${files.length}/${maxFiles})`}
+              >
+                <Plus className="w-4 h-4 transition-colors" style={{ color: `rgba(${colorRgb}, 0.5)` }} />
+              </button>
+            )}
+
+            {/* Count hint when files present */}
+            {files.length > 0 && (
+              <span className="text-[10px] text-gray-600 mr-auto tabular-nums">
+                {files.length}/{maxFiles}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {hasAttachments && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={input.attachments!.accept}
+          multiple
+          className="hidden"
+          onChange={handleFileAdd}
+        />
+      )}
     </div>
   );
 }
@@ -1089,7 +1181,9 @@ export function renderToolInput(
           key={input.id}
           input={input}
           value={values[input.id] ?? ""}
+          attachedFiles={input.attachments ? (values[input.id + "_files"] as File[] ?? []) : undefined}
           onChange={(v) => setValue(input.id, v)}
+          onAttach={input.attachments ? (f) => setValue(input.id + "_files", f) : undefined}
           colorRgb={colorRgb}
         />
       );

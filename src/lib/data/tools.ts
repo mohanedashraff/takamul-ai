@@ -42,6 +42,7 @@ export interface ToolInput {
   step?: number;
   unit?: string;             // slider display unit
   maxFiles?: number;         // multi-upload: max number of files (default 5)
+  attachments?: { accept: string; max: number }; // prompt: inline attachment strip
 }
 
 // ── Tool Interface ────────────────────────────────────────────────────────────
@@ -326,6 +327,7 @@ export const IMAGE_TOOLS: Tool[] = [
         label: "صف المشهد",
         placeholder: "صف الصورة التي تريد توليدها بالتفصيل...",
         required: true,
+        attachments: { accept: "image/*", max: 5 },
       },
       {
         id: "model",
@@ -367,14 +369,6 @@ export const IMAGE_TOOLS: Tool[] = [
         options: IMAGE_STYLES,
         defaultValue: "",
         hint: "اختياري — اختر أسلوبًا بصريًا لتوجيه التوليد",
-      },
-      {
-        id: "refs",
-        type: "multi-upload",
-        label: "صور مرجعية",
-        accept: "image/*",
-        maxFiles: 5,
-        hint: "اختياري — حتى 5 صور لتوجيه التوليد",
       },
     ],
   },
