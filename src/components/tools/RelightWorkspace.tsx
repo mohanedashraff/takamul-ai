@@ -175,9 +175,10 @@ export function RelightWorkspace({ tool, config }: Props) {
   const [lx, ly, lz] = transform([0, 0, 1], rotRX, rotRY);
   const indX    = CX + R_SVG * lx;
   const indY    = CY - R_SVG * ly;
-  const isFront = lz >= 0;
-  // Angle from indicator → center (beam points inward)
-  const beamAngle = (Math.atan2(CY - indY, CX - indX) * 180) / Math.PI;
+  const isFront = lz > 0.05;
+  // Beam points from indicator toward sphere center.
+  // Computed from 3D tangent: project (-lx, ly) to get SVG angle — smooth everywhere.
+  const beamAngle = (Math.atan2(ly, -lx) * 180) / Math.PI;
 
   // ── Globe ──────────────────────────────────────────────────────────────────
   const Globe = (
@@ -214,23 +215,44 @@ export function RelightWorkspace({ tool, config }: Props) {
 
       {/* Light indicator */}
       {isFront ? (
-        <g transform={`translate(${indX.toFixed(1)},${indY.toFixed(1)}) rotate(${beamAngle.toFixed(1)})`}>
-          {/* beam cone toward center */}
-          <polygon points="2,-10 26,0 2,10"
-            fill={lightColor === "#ffffff" ? "rgba(255,255,220,0.55)" : `${lightColor}88`} />
-          {/* body */}
-          <rect x={-18} y={-6} width={22} height={12} rx={3}
-            fill="rgba(240,240,240,0.92)" />
-          {/* lens glow */}
-          <circle cx={4} cy={0} r={5}
-            fill={lightColor === "#ffffff" ? "rgba(255,240,180,0.95)" : lightColor}
-            style={{ filter: "blur(1px)" }} />
-          <circle cx={4} cy={0} r={3}
-            fill="white" />
+        <g transform={`translate(${indX},${indY}) rotate(${beamAngle})`}>
+          {/* Outer halo at light position */}
+          <circle cx={0} cy={0} r={18}
+            fill={`${lightColor}08`} stroke={`${lightColor}18`} strokeWidth="0.5" />
+
+          {/* Wide beam cone */}
+          <path d="M5,-18 L34,0 L5,18"
+            fill={`${lightColor}15`}
+            stroke={`${lightColor}25`} strokeWidth="0.5" strokeLinejoin="round" />
+
+          {/* Narrow inner cone */}
+          <path d="M5,-9 L28,0 L5,9"
+            fill={`${lightColor}30`} strokeLinejoin="round" />
+
+          {/* Center ray */}
+          <line x1="5" y1="0" x2="30" y2="0"
+            stroke={lightColor} strokeOpacity="0.55" strokeWidth="1" />
+
+          {/* Flashlight body — sits to the LEFT of the lens */}
+          <rect x={-20} y={-6} width={18} height={12} rx={3}
+            fill="rgba(210,210,215,0.96)"
+            stroke="rgba(255,255,255,0.35)" strokeWidth="0.5" />
+          {/* Grip lines on body */}
+          <line x1={-15} y1={-4} x2={-15} y2={4} stroke="rgba(0,0,0,0.12)" strokeWidth="1" />
+          <line x1={-11} y1={-4} x2={-11} y2={4} stroke="rgba(0,0,0,0.12)" strokeWidth="1" />
+
+          {/* Lens housing (dark ring) */}
+          <circle cx={0} cy={0} r={7} fill="rgba(20,20,22,0.92)" />
+          {/* Lens colour */}
+          <circle cx={0} cy={0} r={5}
+            fill={lightColor === "#ffffff" ? "rgba(255,220,80,1)" : lightColor} />
+          {/* Lens shine */}
+          <circle cx={-1.5} cy={-1.5} r={2.2} fill="rgba(255,255,255,0.7)" />
         </g>
       ) : (
-        <circle cx={indX.toFixed(1)} cy={indY.toFixed(1)} r={5}
-          fill="rgba(255,255,200,0.15)" stroke="rgba(255,255,200,0.35)"
+        /* Back-hemisphere ghost */
+        <circle cx={indX} cy={indY} r={5}
+          fill="rgba(255,255,200,0.1)" stroke="rgba(255,255,200,0.3)"
           strokeWidth="1" strokeDasharray="2 2" />
       )}
     </svg>
