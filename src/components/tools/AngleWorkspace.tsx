@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,37 +20,119 @@ interface Props {
   config: (typeof STUDIO_CATEGORIES)[ToolCategory];
 }
 
-// ── Globe constants ────────────────────────────────────────────────────────────
-const R   = 100;
-const CX  = 120;
-const CY  = 120;
-const PER = 0.33; // perspective ratio for horizontal ellipses
+// ── 3D Math ───────────────────────────────────────────────────────────────────
 
-const LAT_LINES = [-60, -30, 0, 30, 60];
-// Meridian angles from the "facing" meridian (0 = straight line, 90 = outer circle)
-const MER_ANGLES = [0, 30, 60, 90, 120, 150];
+type V3 = [number, number, number];
 
-const WIRE_STROKE = "rgba(255,255,255,0.13)";
+// Rotate around Y axis (horizontal spin)
+function rotY(p: V3, a: number): V3 {
+  return [
+    Math.cos(a) * p[0] + Math.sin(a) * p[2],
+    p[1],
+    -Math.sin(a) * p[0] + Math.cos(a) * p[2],
+  ];
+}
+
+// Rotate around X axis (vertical tilt)
+function rotX(p: V3, a: number): V3 {
+  return [
+    p[0],
+    Math.cos(a) * p[1] - Math.sin(a) * p[2],
+    Math.sin(a) * p[1] + Math.cos(a) * p[2],
+  ];
+}
+
+function transform(p: V3, rx: number, ry: number): V3 {
+  return rotX(rotY(p, ry), rx);
+}
+
+// ── Sphere geometry ───────────────────────────────────────────────────────────
+
+const SEGS = 64; // segments per circle (smoothness)
+
+function latCircle(latDeg: number): V3[] {
+  const phi = (latDeg * Math.PI) / 180;
+  const r   = Math.cos(phi);
+  const y   = Math.sin(phi);
+  return Array.from({ length: SEGS + 1 }, (_, i) => {
+    const t = (i / SEGS) * Math.PI * 2;
+    return [r * Math.cos(t), y, r * Math.sin(t)] as V3;
+  });
+}
+
+function lonCircle(lonDeg: number): V3[] {
+  const lam = (lonDeg * Math.PI) / 180;
+  return Array.from({ length: SEGS + 1 }, (_, i) => {
+    const phi = ((i / SEGS) * 2 - 1) * Math.PI;
+    const r   = Math.cos(phi);
+    const y   = Math.sin(phi);
+    return [r * Math.cos(lam), y, r * Math.sin(lam)] as V3;
+  });
+}
+
+const LATITUDES  = [-60, -30, 0, 30, 60];
+const LONGITUDES = [0, 30, 60, 90, 120, 150];
+
+const ALL_CIRCLES: V3[][] = [
+  ...LATITUDES.map(latCircle),
+  ...LONGITUDES.map(lonCircle),
+];
+
+// ── Globe SVG renderer ────────────────────────────────────────────────────────
+
+const R_SVG = 100;
+const CX    = 120;
+const CY    = 120;
+const SENS  = 0.008; // radians per pixel drag
+
+function buildPaths(rx: number, ry: number) {
+  const proj = (p: V3) => {
+    const [x, y, z] = transform(p, rx, ry);
+    return { x: CX + R_SVG * x, y: CY - R_SVG * y, z };
+  };
+
+  const front: string[] = [];
+  const back:  string[] = [];
+
+  for (const circle of ALL_CIRCLES) {
+    const pts = circle.map(proj);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const seg = `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+      if ((a.z + b.z) >= 0) front.push(seg);
+      else                   back.push(seg);
+    }
+  }
+
+  return { frontD: front.join(""), backD: back.join("") };
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
+
 export function AngleWorkspace({ tool, config }: Props) {
-  const router  = useRouter();
-  const rgb     = config.shadowColor;
+  const router = useRouter();
+  const rgb    = config.shadowColor;
 
   const [phase,   setPhase]   = useState<Phase>("idle");
   const [preview, setPreview] = useState("");
   const previewRef   = useRef("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [azimuth,   setAzimuth]   = useState(45);   // 0–360
-  const [elevation, setElevation] = useState(30);   // −85 – 85
-  const [prompt,    setPrompt]    = useState("");
-  const [gen12,     setGen12]     = useState(false);
+  // Primary sphere rotation in radians (rotRX = vertical, rotRY = horizontal)
+  const [rotRX, setRotRX] = useState(-0.38); // ~-22° elevation
+  const [rotRY, setRotRY] = useState(0.79);  // ~45° azimuth
+
+  const [prompt, setPrompt] = useState("");
+  const [gen12,  setGen12]  = useState(false);
+
+  // Derived display angles
+  const azimuth   = Math.round((((rotRY * 180) / Math.PI) % 360 + 360) % 360);
+  const elevation = Math.round(Math.max(-85, Math.min(85, (-rotRX * 180) / Math.PI)));
 
   // ── Cleanup ────────────────────────────────────────────────────────────────
   useEffect(() => () => { if (previewRef.current) URL.revokeObjectURL(previewRef.current); }, []);
 
-  // ── File ───────────────────────────────────────────────────────────────────
+  // ── File pick ──────────────────────────────────────────────────────────────
   const pickFile = useCallback((f: File) => {
     if (previewRef.current) URL.revokeObjectURL(previewRef.current);
     const url = URL.createObjectURL(f);
@@ -59,22 +141,21 @@ export function AngleWorkspace({ tool, config }: Props) {
     setPhase("edit");
   }, []);
 
-  // ── Sphere drag ────────────────────────────────────────────────────────────
-  const dragRef = useRef<{ startX: number; startY: number; startAz: number; startEl: number } | null>(null);
+  // ── Drag ───────────────────────────────────────────────────────────────────
+  const dragRef = useRef<{ startX: number; startY: number; startRX: number; startRY: number } | null>(null);
 
   const onSphereDown = (e: React.MouseEvent) => {
     e.preventDefault();
-    dragRef.current = { startX: e.clientX, startY: e.clientY, startAz: azimuth, startEl: elevation };
+    dragRef.current = { startX: e.clientX, startY: e.clientY, startRX: rotRX, startRY: rotRY };
   };
 
   useEffect(() => {
+    const MAX_EL = (85 * Math.PI) / 180;
     const onMove = (e: MouseEvent) => {
       if (!dragRef.current) return;
-      const { startX, startY, startAz, startEl } = dragRef.current;
-      const newAz = ((startAz + (e.clientX - startX) * 0.5) % 360 + 360) % 360;
-      const newEl = Math.max(-85, Math.min(85, startEl - (e.clientY - startY) * 0.5));
-      setAzimuth(Math.round(newAz));
-      setElevation(Math.round(newEl));
+      const { startX, startY, startRX, startRY } = dragRef.current;
+      setRotRY(startRY + (e.clientX - startX) * SENS);
+      setRotRX(Math.max(-MAX_EL, Math.min(MAX_EL, startRX + (e.clientY - startY) * SENS)));
     };
     const onUp = () => { dragRef.current = null; };
     window.addEventListener("mousemove", onMove);
@@ -85,19 +166,26 @@ export function AngleWorkspace({ tool, config }: Props) {
     };
   }, []);
 
-  // ── Nudge buttons ──────────────────────────────────────────────────────────
+  // ── Nudge / slider helpers ─────────────────────────────────────────────────
   const nudge = (dAz: number, dEl: number) => {
-    setAzimuth(az => ((az + dAz) % 360 + 360) % 360);
-    setElevation(el => Math.max(-85, Math.min(85, el + dEl)));
+    const MAX_EL = (85 * Math.PI) / 180;
+    setRotRY(ry => ry + (dAz * Math.PI) / 180);
+    setRotRX(rx => Math.max(-MAX_EL, Math.min(MAX_EL, rx - (dEl * Math.PI) / 180)));
   };
 
-  // ── Indicator projection ───────────────────────────────────────────────────
-  const azRad = (azimuth   * Math.PI) / 180;
-  const elRad = (elevation * Math.PI) / 180;
-  // 3D point on unit sphere → orthographic projection
-  const indX   = CX + R * Math.cos(elRad) * Math.sin(azRad);
-  const indY   = CY - R * Math.sin(elRad);
-  const isFront = Math.cos(azRad) * Math.cos(elRad) >= 0;
+  const setAzEl = (az: number, el: number) => {
+    setRotRY((az * Math.PI) / 180);
+    setRotRX((-el * Math.PI) / 180);
+  };
+
+  // ── Computed sphere paths (memoized) ───────────────────────────────────────
+  const { frontD, backD } = useMemo(() => buildPaths(rotRX, rotRY), [rotRX, rotRY]);
+
+  // ── Camera indicator position ──────────────────────────────────────────────
+  const [indFX, indFY, indFZ] = transform([0, 0, 1], rotRX, rotRY);
+  const indX    = CX + R_SVG * indFX;
+  const indY    = CY - R_SVG * indFY;
+  const isFront = indFZ >= 0;
 
   // ── Globe SVG ──────────────────────────────────────────────────────────────
   const Globe = (
@@ -106,70 +194,65 @@ export function AngleWorkspace({ tool, config }: Props) {
       className="w-full h-full cursor-grab active:cursor-grabbing select-none"
       onMouseDown={onSphereDown}
     >
-      {/* Outer glow ring */}
-      <circle cx={CX} cy={CY} r={R + 2} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
-      {/* Outer circle */}
-      <circle cx={CX} cy={CY} r={R} fill="rgba(0,0,0,0.15)" stroke="rgba(255,255,255,0.22)" strokeWidth="1" />
+      {/* Sphere background */}
+      <circle cx={CX} cy={CY} r={R_SVG + 2} fill="rgba(0,0,0,0.3)" />
 
-      {/* Latitude lines */}
-      {LAT_LINES.map(lat => {
-        const φ  = (lat * Math.PI) / 180;
-        const cy = CY - R * Math.sin(φ);
-        const rx = R * Math.cos(φ);
-        const ry = rx * PER;
-        return <ellipse key={lat} cx={CX} cy={cy} rx={rx} ry={ry}
-          fill="none" stroke={WIRE_STROKE} strokeWidth="0.8" />;
-      })}
+      {/* Back-face wireframe (behind sphere centre) */}
+      {backD && (
+        <path d={backD} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.7" />
+      )}
 
-      {/* Meridian lines */}
-      {MER_ANGLES.map(ang => {
-        const rad = (ang * Math.PI) / 180;
-        const rx  = R * Math.sin(rad);
-        if (rx < 1.5) {
-          return <line key={ang} x1={CX} y1={CY - R} x2={CX} y2={CY + R}
-            stroke={WIRE_STROKE} strokeWidth="0.8" />;
-        }
-        return <ellipse key={ang} cx={CX} cy={CY} rx={rx} ry={R}
-          fill="none" stroke={WIRE_STROKE} strokeWidth="0.8" />;
-      })}
-
-      {/* ── Image thumbnail clipped to square in center ── */}
+      {/* Image thumbnail (always centered, not rotating) */}
       {preview && (
         <>
           <defs>
             <clipPath id="thumb-clip">
-              <rect x={CX - 28} y={CY - 28} width={56} height={56} rx={6} />
+              <rect x={CX - 26} y={CY - 26} width={52} height={52} rx={5} />
             </clipPath>
           </defs>
-          <image href={preview} x={CX - 28} y={CY - 28} width={56} height={56}
-            clipPath="url(#thumb-clip)" preserveAspectRatio="xMidYMid slice" />
-          <rect x={CX - 28} y={CY - 28} width={56} height={56} rx={6}
-            fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1" />
+          <image
+            href={preview}
+            x={CX - 26} y={CY - 26} width={52} height={52}
+            clipPath="url(#thumb-clip)"
+            preserveAspectRatio="xMidYMid slice"
+          />
+          <rect x={CX - 26} y={CY - 26} width={52} height={52} rx={5}
+            fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
         </>
       )}
 
-      {/* ── Camera indicator (back — dimmed dot) ── */}
-      {!isFront && (
-        <circle cx={indX} cy={indY} r={5}
-          fill={`rgba(${rgb},0.25)`} stroke={`rgba(${rgb},0.45)`} strokeWidth="1" />
+      {/* Front-face wireframe (in front of sphere centre) */}
+      {frontD && (
+        <path d={frontD} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="0.9" />
       )}
 
-      {/* ── Camera indicator (front — camera icon) ── */}
-      {isFront && (
-        <g transform={`translate(${indX},${indY})`}>
-          {/* dashed line to center */}
-          <line x1={0} y1={0} x2={CX - indX} y2={CY - indY}
-            stroke={`rgba(${rgb},0.45)`} strokeWidth="1" strokeDasharray="3 2" />
+      {/* Outer rim */}
+      <circle cx={CX} cy={CY} r={R_SVG} fill="none"
+        stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+
+      {/* Camera indicator */}
+      {isFront ? (
+        <g transform={`translate(${indX.toFixed(1)},${indY.toFixed(1)})`}>
+          {/* line to center */}
+          <line x1={0} y1={0}
+            x2={(CX - indX).toFixed(1)} y2={(CY - indY).toFixed(1)}
+            stroke={`rgba(${rgb},0.5)`} strokeWidth="1" strokeDasharray="3 2" />
           {/* camera body */}
-          <rect x={-11} y={-7} width={22} height={14} rx={3}
+          <rect x={-12} y={-8} width={24} height={15} rx={3.5}
             fill={`rgb(${rgb})`} />
           {/* lens */}
-          <circle cx={0} cy={0} r={4.5} fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.5)" strokeWidth="0.8" />
-          <circle cx={0} cy={0} r={2.5} fill={`rgba(${rgb},0.6)`} />
-          {/* viewfinder bump */}
-          <rect x={8} y={-4.5} width={5} height={4} rx={1.5}
+          <circle cx={0} cy={-1} r={5}
+            fill="rgba(0,0,0,0.55)" stroke="rgba(255,255,255,0.55)" strokeWidth="0.9" />
+          <circle cx={0} cy={-1} r={2.5} fill={`rgba(${rgb},0.7)`} />
+          {/* viewfinder */}
+          <rect x={9} y={-6} width={5} height={4} rx={1.5}
             fill={`rgb(${rgb})`} stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
         </g>
+      ) : (
+        /* Back-face indicator — dim ghost */
+        <circle cx={indX.toFixed(1)} cy={indY.toFixed(1)} r={5}
+          fill={`rgba(${rgb},0.2)`} stroke={`rgba(${rgb},0.4)`}
+          strokeWidth="1" strokeDasharray="2 2" />
       )}
     </svg>
   );
@@ -188,10 +271,10 @@ export function AngleWorkspace({ tool, config }: Props) {
             <div>
               <p className="text-sm font-semibold text-gray-300 mb-3">زاوية الكاميرا</p>
               <div className="rounded-2xl bg-white/4 border border-white/8 p-3 space-y-2">
-                <p className="text-xs text-gray-500 text-center">اسحب للتحكم في الزاوية</p>
+                <p className="text-xs text-gray-500 text-center">اسحب الكرة لتدويرها وتحديد الزاوية</p>
 
-                {/* Globe + arrow buttons */}
-                <div className="relative flex items-center justify-center py-2">
+                {/* Globe + arrows */}
+                <div className="relative flex items-center justify-center py-3">
                   <button onClick={() => nudge(0, 10)}
                     className="absolute top-0 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white transition-colors z-10">
                     <ChevronUp className="w-5 h-5" />
@@ -208,14 +291,14 @@ export function AngleWorkspace({ tool, config }: Props) {
                     className="absolute right-0 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white transition-colors z-10">
                     <ChevronRight className="w-5 h-5" />
                   </button>
-
                   <div className="w-[200px] h-[200px]">{Globe}</div>
                 </div>
 
-                {/* Generate from 12 */}
+                {/* Generate 12 */}
                 <label className="flex items-center gap-2 px-1 cursor-pointer select-none">
-                  <input type="checkbox" checked={gen12} onChange={e => setGen12(e.target.checked)}
-                    className="rounded accent-current"
+                  <input type="checkbox" checked={gen12}
+                    onChange={e => setGen12(e.target.checked)}
+                    className="rounded"
                     style={{ accentColor: `rgb(${rgb})` }} />
                   <span className="text-xs text-gray-400">توليد من أفضل 12 زاوية</span>
                 </label>
@@ -224,7 +307,6 @@ export function AngleWorkspace({ tool, config }: Props) {
 
             {/* Sliders */}
             <div className="space-y-4">
-              {/* Rotation */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm text-gray-400">الدوران</span>
@@ -233,12 +315,10 @@ export function AngleWorkspace({ tool, config }: Props) {
                   </span>
                 </div>
                 <input type="range" min={0} max={360} value={azimuth}
-                  onChange={e => setAzimuth(Number(e.target.value))}
+                  onChange={e => setAzEl(Number(e.target.value), elevation)}
                   className="w-full h-1.5 rounded-full"
                   style={{ accentColor: `rgb(${rgb})` }} />
               </div>
-
-              {/* Tilt */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm text-gray-400">الإمالة</span>
@@ -247,7 +327,7 @@ export function AngleWorkspace({ tool, config }: Props) {
                   </span>
                 </div>
                 <input type="range" min={-85} max={85} value={elevation}
-                  onChange={e => setElevation(Number(e.target.value))}
+                  onChange={e => setAzEl(azimuth, Number(e.target.value))}
                   className="w-full h-1.5 rounded-full"
                   style={{ accentColor: `rgb(${rgb})` }} />
               </div>
@@ -374,17 +454,13 @@ export function AngleWorkspace({ tool, config }: Props) {
                   className="relative w-full h-full flex items-center justify-center"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={preview}
-                    alt="الصورة"
+                  <img src={preview} alt="الصورة"
                     className="max-w-full max-h-full object-contain rounded-2xl"
                     style={{
                       boxShadow: `0 0 60px rgba(${rgb}, 0.15)`,
                       filter: phase === "processing" ? "blur(4px) brightness(0.5)" : undefined,
                     }}
                   />
-
-                  {/* Angle badge */}
                   <div className="absolute top-4 left-4 flex gap-2">
                     <span className="text-xs font-mono bg-black/70 backdrop-blur-sm border border-white/10 px-3 py-1.5 rounded-xl text-white">
                       {azimuth}°
@@ -393,8 +469,6 @@ export function AngleWorkspace({ tool, config }: Props) {
                       {elevation > 0 ? "+" : ""}{elevation}°
                     </span>
                   </div>
-
-                  {/* Processing overlay */}
                   {phase === "processing" && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-5">
                       <div className="relative w-16 h-16">
