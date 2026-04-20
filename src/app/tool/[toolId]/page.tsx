@@ -39,6 +39,18 @@ function findToolById(toolId: string): { tool: Tool; categoryKey: ToolCategory }
   return null;
 }
 
+const ToolDotsBackground = () => (
+  <div
+    className="fixed inset-0 pointer-events-none"
+    style={{
+      backgroundImage:
+        "radial-gradient(circle at center, rgba(255,255,255,0.12) 1.5px, transparent 1.5px)",
+      backgroundSize: "40px 40px",
+      zIndex: 0,
+    }}
+  />
+);
+
 export default function WorkspacePage({ params }: { params: Promise<{ toolId: string }> }) {
   const { toolId } = use(params);
   const result = findToolById(toolId);
@@ -46,46 +58,29 @@ export default function WorkspacePage({ params }: { params: Promise<{ toolId: st
   const { tool, categoryKey } = result;
   const config = STUDIO_CATEGORIES[categoryKey];
 
-  if (tool.layout === "centered") {
-    return <CenteredWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "inpaint") {
-    return <InpaintWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "sketch") {
-    return <SketchWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "outpaint") {
-    return <OutpaintWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "angle") {
-    return <AngleWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "relight") {
-    return <RelightWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "multi-scene") {
-    return <MultiSceneWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "change-clothes") {
-    return <ChangeClothesWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "fashion-designer") {
-    return <FashionDesignerWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "face-swap") {
-    return <FaceSwapWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "whats-next") {
-    return <WhatsNextWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "sketch-to-video") {
-    return <SketchToVideoWorkspace tool={tool} config={config} />;
-  }
-  if (tool.layout === "video-transitions") {
-    return <VideoTransitionsWorkspace tool={tool} config={config} />;
-  }
-  return <WorkspaceInterface tool={tool} config={config} />;
+  const workspace = (() => {
+    if (tool.layout === "centered")        return <CenteredWorkspace tool={tool} config={config} />;
+    if (tool.layout === "inpaint")         return <InpaintWorkspace tool={tool} config={config} />;
+    if (tool.layout === "sketch")          return <SketchWorkspace tool={tool} config={config} />;
+    if (tool.layout === "outpaint")        return <OutpaintWorkspace tool={tool} config={config} />;
+    if (tool.layout === "angle")           return <AngleWorkspace tool={tool} config={config} />;
+    if (tool.layout === "relight")         return <RelightWorkspace tool={tool} config={config} />;
+    if (tool.layout === "multi-scene")     return <MultiSceneWorkspace tool={tool} config={config} />;
+    if (tool.layout === "change-clothes")  return <ChangeClothesWorkspace tool={tool} config={config} />;
+    if (tool.layout === "fashion-designer")return <FashionDesignerWorkspace tool={tool} config={config} />;
+    if (tool.layout === "face-swap")       return <FaceSwapWorkspace tool={tool} config={config} />;
+    if (tool.layout === "whats-next")      return <WhatsNextWorkspace tool={tool} config={config} />;
+    if (tool.layout === "sketch-to-video") return <SketchToVideoWorkspace tool={tool} config={config} />;
+    if (tool.layout === "video-transitions")return <VideoTransitionsWorkspace tool={tool} config={config} />;
+    return <WorkspaceInterface tool={tool} config={config} />;
+  })();
+
+  return (
+    <>
+      <ToolDotsBackground />
+      {workspace}
+    </>
+  );
 }
 
 // ─── Centered workspace (single-upload tools like enhance-image) ──────────────
