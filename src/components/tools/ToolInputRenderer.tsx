@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
-import { Upload, X, Plus, Minus } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Upload, X, Plus, Minus, Search, LayoutGrid, Check } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { ToolInput } from "@/lib/data/tools";
 
@@ -421,6 +422,235 @@ function PromptInput({
   );
 }
 
+// ── Style Picker ──────────────────────────────────────────────────────────────
+
+function StylePickerInput({
+  input,
+  value,
+  onChange,
+  colorRgb,
+}: {
+  input: ToolInput;
+  value: string;
+  onChange: (v: string) => void;
+  colorRgb: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const selected = input.options?.find((o) => o.value === value);
+  const filtered = (input.options ?? []).filter(
+    (o) => !search || o.label.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Focus search when modal opens
+  useEffect(() => {
+    if (open) setTimeout(() => searchRef.current?.focus(), 80);
+    else setSearch("");
+  }, [open]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    const fn = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [open]);
+
+  return (
+    <div className="space-y-2.5">
+      {input.label && (
+        <label className="text-sm text-gray-400 font-medium block">{input.label}</label>
+      )}
+
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "w-full flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 text-left group",
+          selected
+            ? "border-white/20 bg-white/5 hover:border-white/30"
+            : "border-white/10 bg-white/[0.03] hover:border-white/20"
+        )}
+      >
+        {selected?.image ? (
+          <img
+            src={selected.image}
+            alt={selected.label}
+            className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-white/10"
+          />
+        ) : (
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border border-white/10"
+            style={{ backgroundColor: `rgba(${colorRgb}, 0.08)` }}
+          >
+            <LayoutGrid className="w-4.5 h-4.5" style={{ color: `rgba(${colorRgb}, 0.5)` }} />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white truncate">
+            {selected ? selected.label : "اختر أسلوب الصورة"}
+          </p>
+          {input.hint && !selected && (
+            <p className="text-xs text-gray-600 mt-0.5 truncate">{input.hint}</p>
+          )}
+        </div>
+        <div
+          className="text-xs font-bold px-2.5 py-1 rounded-lg flex-shrink-0"
+          style={{ color: `rgb(${colorRgb})`, backgroundColor: `rgba(${colorRgb}, 0.1)` }}
+        >
+          {(input.options?.length ?? 0)} أسلوب
+        </div>
+      </button>
+
+      {/* If style selected: show clear button */}
+      {selected && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="text-xs text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1"
+        >
+          <X className="w-3 h-3" /> إزالة الأسلوب
+        </button>
+      )}
+
+      {/* Modal */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0, y: 8 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.96, opacity: 0, y: 8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-2xl bg-[#0d0e10] border border-white/10 rounded-3xl flex flex-col overflow-hidden shadow-2xl"
+              style={{ maxHeight: "80vh", boxShadow: `0 0 60px rgba(${colorRgb}, 0.1)` }}
+            >
+              {/* Header */}
+              <div className="flex items-center gap-3 p-4 border-b border-white/5">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: `rgba(${colorRgb}, 0.12)` }}
+                >
+                  <LayoutGrid className="w-4 h-4" style={{ color: `rgb(${colorRgb})` }} />
+                </div>
+                <h3 className="text-white font-bold text-base flex-1">أسلوب الصورة</h3>
+                {/* Search */}
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 flex-1 max-w-xs">
+                  <Search className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    placeholder="ابحث..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="bg-transparent text-sm text-white placeholder:text-gray-600 outline-none flex-1 min-w-0"
+                  />
+                  {search && (
+                    <button onClick={() => setSearch("")} className="text-gray-500 hover:text-white">
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Grid */}
+              <div className="overflow-y-auto p-4">
+                {filtered.length === 0 ? (
+                  <div className="text-center py-12 text-gray-600 text-sm">
+                    لا توجد نتائج لـ &quot;{search}&quot;
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    {filtered.map((opt) => {
+                      const isActive = value === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => { onChange(opt.value); setOpen(false); }}
+                          className="group relative aspect-square rounded-xl overflow-hidden focus:outline-none"
+                          style={
+                            isActive
+                              ? { boxShadow: `0 0 0 2px rgb(${colorRgb})` }
+                              : { boxShadow: "0 0 0 1px rgba(255,255,255,0.06)" }
+                          }
+                        >
+                          {opt.image ? (
+                            <img
+                              src={opt.image}
+                              alt={opt.label}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                              <LayoutGrid className="w-5 h-5 text-gray-600" />
+                            </div>
+                          )}
+
+                          {/* Hover overlay with name */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-1.5">
+                            <span className="text-white text-[10px] font-semibold leading-tight line-clamp-2">
+                              {opt.label}
+                            </span>
+                          </div>
+
+                          {/* Active indicator */}
+                          {isActive && (
+                            <div
+                              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                              style={{ backgroundColor: `rgb(${colorRgb})` }}
+                            >
+                              <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-3 border-t border-white/5 flex items-center justify-between">
+                <span className="text-xs text-gray-600">
+                  {filtered.length} أسلوب
+                  {search ? ` (من ${input.options?.length})` : ""}
+                </span>
+                {value && (
+                  <button
+                    onClick={() => { onChange(""); setOpen(false); }}
+                    className="text-xs text-gray-500 hover:text-white transition-colors"
+                  >
+                    مسح الاختيار
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ── Master Renderer ───────────────────────────────────────────────────────────
 
 export function renderToolInput(
@@ -517,6 +747,17 @@ export function renderToolInput(
           key={input.id}
           input={input}
           value={values[input.id] ?? input.defaultValue ?? 1}
+          onChange={(v) => setValue(input.id, v)}
+          colorRgb={colorRgb}
+        />
+      );
+
+    case "style-picker":
+      return (
+        <StylePickerInput
+          key={input.id}
+          input={input}
+          value={values[input.id] ?? input.defaultValue ?? ""}
           onChange={(v) => setValue(input.id, v)}
           colorRgb={colorRgb}
         />
