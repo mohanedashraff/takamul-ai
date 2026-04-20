@@ -55,7 +55,7 @@ export interface Tool {
   image: string | string[];
   credits: number;
   isNew?: boolean;
-  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene";
+  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene" | "change-clothes";
   inputs: ToolInput[];
 }
 
@@ -694,6 +694,7 @@ export const IMAGE_TOOLS: Tool[] = [
   },
   {
     id: "change-clothes",
+    layout: "change-clothes" as const,
     title: "تغيير الملابس",
     desc: "قم بتغيير أزياء شخصياتك بأناقة وسهولة غير مسبوقة.",
     icon: ImageIcon,
