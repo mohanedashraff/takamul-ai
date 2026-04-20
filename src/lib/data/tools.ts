@@ -525,6 +525,7 @@ export const IMAGE_TOOLS: Tool[] = [
     icon: Sparkles,
     image: "https://cdn.higgsfield.ai/application_main/fb84f803-64b0-4259-b9a3-b2fc57073da4.mp4",
     credits: 2,
+    layout: "centered",
     isNew: true,
     inputs: [
       {
