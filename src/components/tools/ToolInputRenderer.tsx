@@ -535,31 +535,33 @@ function StylePickerInput({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+            className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-md flex items-end sm:items-center justify-center"
             onClick={() => setOpen(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 12 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 12 }}
-              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-4xl bg-[#111214] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
-              style={{ height: "78vh", boxShadow: `0 0 80px rgba(${colorRgb}, 0.08), 0 25px 50px rgba(0,0,0,0.6)` }}
+              className="w-full sm:w-[92vw] sm:max-w-3xl bg-[#111315] border border-white/10 sm:rounded-2xl rounded-t-2xl overflow-hidden flex flex-col"
+              style={{
+                height: "88vh",
+                boxShadow: `0 -4px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)`,
+              }}
             >
               {/* ── Header ── */}
-              <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.06] flex-shrink-0">
-                <h3 className="text-white font-semibold text-base flex-1">أسلوب الصورة</h3>
-                {/* Search */}
-                <div className="flex items-center gap-2 bg-white/[0.06] border border-white/[0.08] rounded-xl px-3 py-2 w-52">
+              <div className="flex items-center gap-3 px-4 pt-4 pb-3 flex-shrink-0">
+                <h3 className="text-white font-bold text-base flex-1 text-right">أسلوب الصورة</h3>
+                <div className="flex items-center gap-2 bg-white/[0.07] border border-white/[0.08] rounded-xl px-3 py-2 flex-1 max-w-[200px]">
                   <Search className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                   <input
                     ref={searchRef}
                     type="text"
-                    placeholder="ابحث في الأساليب..."
+                    placeholder="ابحث..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="bg-transparent text-sm text-white placeholder:text-gray-600 outline-none flex-1 min-w-0"
+                    className="bg-transparent text-sm text-white placeholder:text-gray-600 outline-none flex-1 min-w-0 text-right"
                     dir="rtl"
                   />
                   {search && (
@@ -570,115 +572,114 @@ function StylePickerInput({
                 </div>
                 <button
                   onClick={() => setOpen(false)}
-                  className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
+                  className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors flex-shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* ── Body: sidebar + grid ── */}
-              <div className="flex flex-1 min-h-0 overflow-hidden">
-
-                {/* Sidebar */}
-                <div className="w-48 flex-shrink-0 border-l border-white/[0.06] overflow-y-auto py-3 px-2">
-                  {STYLE_CATEGORIES.map((cat) => {
-                    const isActive = activeCategory === cat.key;
-                    const count = cat.key === "all"
-                      ? allOptions.length
-                      : allOptions.filter(o => (o.categories ?? []).includes(cat.key)).length;
-                    return (
-                      <button
-                        key={cat.key}
-                        type="button"
-                        onClick={() => { setActiveCategory(cat.key); setSearch(""); }}
-                        className={cn(
-                          "w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 mb-0.5",
-                          isActive ? "font-medium" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]"
-                        )}
+              {/* ── Category pills (horizontal scroll) ── */}
+              <div className="flex gap-2 px-4 pb-3 overflow-x-auto flex-shrink-0 scrollbar-none" dir="rtl">
+                {STYLE_CATEGORIES.map((cat) => {
+                  const isActive = activeCategory === cat.key;
+                  const count = cat.key === "all"
+                    ? allOptions.length
+                    : allOptions.filter(o => (o.categories ?? []).includes(cat.key)).length;
+                  return (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => { setActiveCategory(cat.key); setSearch(""); }}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-150 border"
+                      style={isActive ? {
+                        backgroundColor: `rgba(${colorRgb}, 0.18)`,
+                        borderColor: `rgba(${colorRgb}, 0.5)`,
+                        color: `rgb(${colorRgb})`,
+                      } : {
+                        backgroundColor: "rgba(255,255,255,0.04)",
+                        borderColor: "rgba(255,255,255,0.08)",
+                        color: "rgba(255,255,255,0.45)",
+                      }}
+                    >
+                      <span>{cat.label}</span>
+                      <span
+                        className="text-[10px] tabular-nums px-1.5 py-0.5 rounded-full font-semibold"
                         style={isActive
-                          ? { backgroundColor: `rgba(${colorRgb}, 0.15)`, color: `rgb(${colorRgb})` }
-                          : {}}
+                          ? { backgroundColor: `rgba(${colorRgb}, 0.25)`, color: `rgb(${colorRgb})` }
+                          : { backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.3)" }}
                       >
-                        <span className="truncate text-right">{cat.label}</span>
-                        <span
-                          className="text-[11px] tabular-nums flex-shrink-0 font-medium px-1.5 py-0.5 rounded-md"
-                          style={isActive
-                            ? { backgroundColor: `rgba(${colorRgb}, 0.2)`, color: `rgb(${colorRgb})` }
-                            : { backgroundColor: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.25)" }}
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* ── Grid ── */}
+              <div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0">
+                {filtered.length === 0 ? (
+                  <div className="h-48 flex flex-col items-center justify-center gap-3 text-gray-700">
+                    <LayoutGrid className="w-10 h-10 opacity-30" />
+                    <p className="text-sm">{search ? `لا نتائج لـ "${search}"` : "لا توجد أساليب"}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    {filtered.map((opt) => {
+                      const isActive = value === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => { onChange(opt.value); setOpen(false); }}
+                          className="group relative rounded-2xl overflow-hidden focus:outline-none"
+                          style={{
+                            aspectRatio: "3/4",
+                            boxShadow: isActive
+                              ? `0 0 0 3px rgb(${colorRgb})`
+                              : "0 0 0 1px rgba(255,255,255,0.07)",
+                          }}
                         >
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Grid */}
-                <div className="flex-1 overflow-y-auto p-4">
-                  {filtered.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center gap-3 text-gray-600">
-                      <LayoutGrid className="w-10 h-10 opacity-20" />
-                      <p className="text-sm">{search ? `لا نتائج لـ "${search}"` : "لا توجد أساليب في هذه الفئة"}</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                      {filtered.map((opt) => {
-                        const isActive = value === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => { onChange(opt.value); setOpen(false); }}
-                            className="group relative rounded-xl overflow-hidden focus:outline-none transition-transform duration-150 hover:scale-[1.03]"
-                            style={{
-                              aspectRatio: "3/4",
-                              boxShadow: isActive
-                                ? `0 0 0 2.5px rgb(${colorRgb}), 0 0 16px rgba(${colorRgb}, 0.3)`
-                                : "0 0 0 1px rgba(255,255,255,0.07)",
-                            }}
-                          >
-                            {opt.image ? (
-                              <img
-                                src={opt.image}
-                                alt={opt.label}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                                <LayoutGrid className="w-6 h-6 text-gray-600" />
-                              </div>
-                            )}
-
-                            {/* Always-visible label at bottom */}
-                            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/75 to-transparent pt-6 pb-2 px-2">
-                              <span className="text-white text-[11px] font-medium leading-tight block truncate">
-                                {opt.label}
-                              </span>
+                          {opt.image ? (
+                            <img
+                              src={opt.image}
+                              alt={opt.label}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                              <LayoutGrid className="w-7 h-7 text-gray-600" />
                             </div>
-
-                            {/* Active checkmark */}
-                            {isActive && (
+                          )}
+                          {/* Label */}
+                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pt-8 pb-2.5 px-2.5">
+                            <span className="text-white text-xs font-semibold leading-tight block text-left" dir="ltr">
+                              {opt.label}
+                            </span>
+                          </div>
+                          {/* Active ring + check */}
+                          {isActive && (
+                            <>
+                              <div className="absolute inset-0 rounded-2xl" style={{ boxShadow: `inset 0 0 0 3px rgb(${colorRgb})` }} />
                               <div
-                                className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-lg"
+                                className="absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center shadow-lg"
                                 style={{ backgroundColor: `rgb(${colorRgb})` }}
                               >
                                 <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                               </div>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                            </>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* ── Footer ── */}
-              <div className="px-5 py-3 border-t border-white/[0.06] flex items-center justify-between flex-shrink-0 bg-white/[0.02]">
+              <div className="px-4 py-3 border-t border-white/[0.05] flex items-center justify-between flex-shrink-0">
                 <span className="text-xs text-gray-600 tabular-nums">
-                  {filtered.length}
-                  {search || activeCategory !== "all" ? ` من ${allOptions.length}` : ""} أسلوب
+                  {filtered.length}{search || activeCategory !== "all" ? ` / ${allOptions.length}` : ""} أسلوب
                 </span>
                 {value && (
                   <button
