@@ -199,8 +199,9 @@ const ToolSliderSection = ({ title, desc, colorClass, shadowColor, items }: { ti
           } : {};
 
           return (
-            <div
+            <Link
               key={tool.title}
+              href={`/tool/${tool.id}`}
               style={{ ...baseStyle, ...activeStyle }}
               className={`shrink-0 w-[280px] md:w-[340px] snap-center bento-card rounded-[2rem] p-3 group hover:scale-[1.02] hover:-translate-y-2 transition-all duration-500 cursor-pointer`}
             >
@@ -214,7 +215,7 @@ const ToolSliderSection = ({ title, desc, colorClass, shadowColor, items }: { ti
               <h3 className="text-xl font-bold text-white mb-2">{tool.title}</h3>
               <p className="text-sm text-gray-400 font-light leading-relaxed">{tool.desc}</p>
             </div>
-          </div>
+          </Link>
           );
         })}
 
