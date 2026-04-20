@@ -535,47 +535,42 @@ function StylePickerInput({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
             onClick={() => setOpen(false)}
           >
             <motion.div
-              initial={{ scale: 0.96, opacity: 0, y: 8 }}
+              initial={{ scale: 0.95, opacity: 0, y: 12 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.96, opacity: 0, y: 8 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              exit={{ scale: 0.95, opacity: 0, y: 12 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-3xl bg-[#0d0e10] border border-white/10 rounded-3xl flex flex-col overflow-hidden shadow-2xl"
-              style={{ maxHeight: "82vh", boxShadow: `0 0 60px rgba(${colorRgb}, 0.1)` }}
+              className="w-full max-w-4xl bg-[#111214] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+              style={{ height: "78vh", boxShadow: `0 0 80px rgba(${colorRgb}, 0.08), 0 25px 50px rgba(0,0,0,0.6)` }}
             >
               {/* ── Header ── */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 flex-shrink-0">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `rgba(${colorRgb}, 0.12)` }}
-                >
-                  <LayoutGrid className="w-4 h-4" style={{ color: `rgb(${colorRgb})` }} />
-                </div>
-                <h3 className="text-white font-bold text-sm flex-1">أسلوب الصورة</h3>
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.06] flex-shrink-0">
+                <h3 className="text-white font-semibold text-base flex-1">أسلوب الصورة</h3>
                 {/* Search */}
-                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 w-48">
+                <div className="flex items-center gap-2 bg-white/[0.06] border border-white/[0.08] rounded-xl px-3 py-2 w-52">
                   <Search className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                   <input
                     ref={searchRef}
                     type="text"
-                    placeholder="ابحث..."
+                    placeholder="ابحث في الأساليب..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="bg-transparent text-sm text-white placeholder:text-gray-600 outline-none flex-1 min-w-0"
+                    dir="rtl"
                   />
                   {search && (
-                    <button onClick={() => setSearch("")} className="text-gray-500 hover:text-white">
+                    <button onClick={() => setSearch("")} className="text-gray-500 hover:text-white transition-colors">
                       <X className="w-3 h-3" />
                     </button>
                   )}
                 </div>
                 <button
                   onClick={() => setOpen(false)}
-                  className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
+                  className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -583,8 +578,9 @@ function StylePickerInput({
 
               {/* ── Body: sidebar + grid ── */}
               <div className="flex flex-1 min-h-0 overflow-hidden">
-                {/* Sidebar categories */}
-                <div className="w-44 flex-shrink-0 border-l border-white/5 overflow-y-auto p-2 flex flex-col gap-0.5">
+
+                {/* Sidebar */}
+                <div className="w-48 flex-shrink-0 border-l border-white/[0.06] overflow-y-auto py-3 px-2">
                   {STYLE_CATEGORIES.map((cat) => {
                     const isActive = activeCategory === cat.key;
                     const count = cat.key === "all"
@@ -596,17 +592,19 @@ function StylePickerInput({
                         type="button"
                         onClick={() => { setActiveCategory(cat.key); setSearch(""); }}
                         className={cn(
-                          "w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-all duration-150 text-right",
-                          isActive
-                            ? "text-white font-semibold"
-                            : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                          "w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 mb-0.5",
+                          isActive ? "font-medium" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]"
                         )}
-                        style={isActive ? { backgroundColor: `rgba(${colorRgb}, 0.12)`, color: `rgb(${colorRgb})` } : {}}
+                        style={isActive
+                          ? { backgroundColor: `rgba(${colorRgb}, 0.15)`, color: `rgb(${colorRgb})` }
+                          : {}}
                       >
-                        <span className="truncate">{cat.label}</span>
+                        <span className="truncate text-right">{cat.label}</span>
                         <span
-                          className="text-[10px] tabular-nums flex-shrink-0 ml-1"
-                          style={isActive ? { color: `rgba(${colorRgb}, 0.7)` } : { color: "rgba(255,255,255,0.2)" }}
+                          className="text-[11px] tabular-nums flex-shrink-0 font-medium px-1.5 py-0.5 rounded-md"
+                          style={isActive
+                            ? { backgroundColor: `rgba(${colorRgb}, 0.2)`, color: `rgb(${colorRgb})` }
+                            : { backgroundColor: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.25)" }}
                         >
                           {count}
                         </span>
@@ -615,14 +613,15 @@ function StylePickerInput({
                   })}
                 </div>
 
-                {/* Styles grid */}
-                <div className="flex-1 overflow-y-auto p-3">
+                {/* Grid */}
+                <div className="flex-1 overflow-y-auto p-4">
                   {filtered.length === 0 ? (
-                    <div className="h-full flex items-center justify-center text-gray-600 text-sm">
-                      {search ? `لا نتائج لـ "${search}"` : "لا توجد أساليب في هذه الفئة"}
+                    <div className="h-full flex flex-col items-center justify-center gap-3 text-gray-600">
+                      <LayoutGrid className="w-10 h-10 opacity-20" />
+                      <p className="text-sm">{search ? `لا نتائج لـ "${search}"` : "لا توجد أساليب في هذه الفئة"}</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                       {filtered.map((opt) => {
                         const isActive = value === opt.value;
                         return (
@@ -630,12 +629,12 @@ function StylePickerInput({
                             key={opt.value}
                             type="button"
                             onClick={() => { onChange(opt.value); setOpen(false); }}
-                            className="group relative rounded-xl overflow-hidden focus:outline-none"
+                            className="group relative rounded-xl overflow-hidden focus:outline-none transition-transform duration-150 hover:scale-[1.03]"
                             style={{
                               aspectRatio: "3/4",
                               boxShadow: isActive
-                                ? `0 0 0 2px rgb(${colorRgb})`
-                                : "0 0 0 1px rgba(255,255,255,0.06)",
+                                ? `0 0 0 2.5px rgb(${colorRgb}), 0 0 16px rgba(${colorRgb}, 0.3)`
+                                : "0 0 0 1px rgba(255,255,255,0.07)",
                             }}
                           >
                             {opt.image ? (
@@ -647,13 +646,13 @@ function StylePickerInput({
                               />
                             ) : (
                               <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                                <LayoutGrid className="w-5 h-5 text-gray-600" />
+                                <LayoutGrid className="w-6 h-6 text-gray-600" />
                               </div>
                             )}
 
-                            {/* Hover overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-1.5">
-                              <span className="text-white text-[10px] font-semibold leading-tight line-clamp-2">
+                            {/* Always-visible label at bottom */}
+                            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/75 to-transparent pt-6 pb-2 px-2">
+                              <span className="text-white text-[11px] font-medium leading-tight block truncate">
                                 {opt.label}
                               </span>
                             </div>
@@ -661,10 +660,10 @@ function StylePickerInput({
                             {/* Active checkmark */}
                             {isActive && (
                               <div
-                                className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                                className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-lg"
                                 style={{ backgroundColor: `rgb(${colorRgb})` }}
                               >
-                                <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                               </div>
                             )}
                           </button>
@@ -676,17 +675,17 @@ function StylePickerInput({
               </div>
 
               {/* ── Footer ── */}
-              <div className="px-4 py-2.5 border-t border-white/5 flex items-center justify-between flex-shrink-0">
-                <span className="text-xs text-gray-600">
-                  {filtered.length} أسلوب
-                  {search || activeCategory !== "all" ? ` (من ${allOptions.length})` : ""}
+              <div className="px-5 py-3 border-t border-white/[0.06] flex items-center justify-between flex-shrink-0 bg-white/[0.02]">
+                <span className="text-xs text-gray-600 tabular-nums">
+                  {filtered.length}
+                  {search || activeCategory !== "all" ? ` من ${allOptions.length}` : ""} أسلوب
                 </span>
                 {value && (
                   <button
                     onClick={() => { onChange(""); setOpen(false); }}
-                    className="text-xs text-gray-500 hover:text-white transition-colors"
+                    className="text-xs text-gray-500 hover:text-red-400 transition-colors flex items-center gap-1"
                   >
-                    مسح الاختيار
+                    <X className="w-3 h-3" /> مسح الاختيار
                   </button>
                 )}
               </div>
