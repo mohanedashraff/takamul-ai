@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Upload, X, Plus, Minus, Search, LayoutGrid, Check } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { STYLE_CATEGORIES } from "@/lib/data/tools";
 import type { ToolInput } from "@/lib/data/tools";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -435,19 +436,28 @@ function StylePickerInput({
   onChange: (v: string) => void;
   colorRgb: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [open, setOpen]           = useState(false);
+  const [search, setSearch]       = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const selected = input.options?.find((o) => o.value === value);
-  const filtered = (input.options ?? []).filter(
-    (o) => !search || o.label.toLowerCase().includes(search.toLowerCase())
-  );
+  const allOptions = input.options ?? [];
+  const selected   = allOptions.find((o) => o.value === value);
+
+  // Filter by category then search
+  const filtered = allOptions.filter((o) => {
+    const matchesCat =
+      activeCategory === "all" ||
+      (o.categories ?? []).includes(activeCategory);
+    const matchesSearch =
+      !search || o.label.toLowerCase().includes(search.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
 
   // Focus search when modal opens
   useEffect(() => {
     if (open) setTimeout(() => searchRef.current?.focus(), 80);
-    else setSearch("");
+    else { setSearch(""); setActiveCategory("all"); }
   }, [open]);
 
   // Close on Escape
@@ -480,13 +490,14 @@ function StylePickerInput({
             src={selected.image}
             alt={selected.label}
             className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-white/10"
+            style={{ aspectRatio: "3/4" }}
           />
         ) : (
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border border-white/10"
             style={{ backgroundColor: `rgba(${colorRgb}, 0.08)` }}
           >
-            <LayoutGrid className="w-4.5 h-4.5" style={{ color: `rgba(${colorRgb}, 0.5)` }} />
+            <LayoutGrid className="w-4 h-4" style={{ color: `rgba(${colorRgb}, 0.5)` }} />
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -501,11 +512,11 @@ function StylePickerInput({
           className="text-xs font-bold px-2.5 py-1 rounded-lg flex-shrink-0"
           style={{ color: `rgb(${colorRgb})`, backgroundColor: `rgba(${colorRgb}, 0.1)` }}
         >
-          {(input.options?.length ?? 0)} أسلوب
+          {allOptions.length} أسلوب
         </div>
       </button>
 
-      {/* If style selected: show clear button */}
+      {/* Clear button when style selected */}
       {selected && (
         <button
           type="button"
@@ -533,20 +544,20 @@ function StylePickerInput({
               exit={{ scale: 0.96, opacity: 0, y: 8 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl bg-[#0d0e10] border border-white/10 rounded-3xl flex flex-col overflow-hidden shadow-2xl"
-              style={{ maxHeight: "80vh", boxShadow: `0 0 60px rgba(${colorRgb}, 0.1)` }}
+              className="w-full max-w-3xl bg-[#0d0e10] border border-white/10 rounded-3xl flex flex-col overflow-hidden shadow-2xl"
+              style={{ maxHeight: "82vh", boxShadow: `0 0 60px rgba(${colorRgb}, 0.1)` }}
             >
-              {/* Header */}
-              <div className="flex items-center gap-3 p-4 border-b border-white/5">
+              {/* ── Header ── */}
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 flex-shrink-0">
                 <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: `rgba(${colorRgb}, 0.12)` }}
                 >
                   <LayoutGrid className="w-4 h-4" style={{ color: `rgb(${colorRgb})` }} />
                 </div>
-                <h3 className="text-white font-bold text-base flex-1">أسلوب الصورة</h3>
+                <h3 className="text-white font-bold text-sm flex-1">أسلوب الصورة</h3>
                 {/* Search */}
-                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 flex-1 max-w-xs">
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 w-48">
                   <Search className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                   <input
                     ref={searchRef}
@@ -564,75 +575,111 @@ function StylePickerInput({
                 </div>
                 <button
                   onClick={() => setOpen(false)}
-                  className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
+                  className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Grid */}
-              <div className="overflow-y-auto p-4">
-                {filtered.length === 0 ? (
-                  <div className="text-center py-12 text-gray-600 text-sm">
-                    لا توجد نتائج لـ &quot;{search}&quot;
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                    {filtered.map((opt) => {
-                      const isActive = value === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => { onChange(opt.value); setOpen(false); }}
-                          className="group relative aspect-square rounded-xl overflow-hidden focus:outline-none"
-                          style={
-                            isActive
-                              ? { boxShadow: `0 0 0 2px rgb(${colorRgb})` }
-                              : { boxShadow: "0 0 0 1px rgba(255,255,255,0.06)" }
-                          }
+              {/* ── Body: sidebar + grid ── */}
+              <div className="flex flex-1 min-h-0 overflow-hidden">
+                {/* Sidebar categories */}
+                <div className="w-44 flex-shrink-0 border-l border-white/5 overflow-y-auto p-2 flex flex-col gap-0.5">
+                  {STYLE_CATEGORIES.map((cat) => {
+                    const isActive = activeCategory === cat.key;
+                    const count = cat.key === "all"
+                      ? allOptions.length
+                      : allOptions.filter(o => (o.categories ?? []).includes(cat.key)).length;
+                    return (
+                      <button
+                        key={cat.key}
+                        type="button"
+                        onClick={() => { setActiveCategory(cat.key); setSearch(""); }}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-all duration-150 text-right",
+                          isActive
+                            ? "text-white font-semibold"
+                            : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                        )}
+                        style={isActive ? { backgroundColor: `rgba(${colorRgb}, 0.12)`, color: `rgb(${colorRgb})` } : {}}
+                      >
+                        <span className="truncate">{cat.label}</span>
+                        <span
+                          className="text-[10px] tabular-nums flex-shrink-0 ml-1"
+                          style={isActive ? { color: `rgba(${colorRgb}, 0.7)` } : { color: "rgba(255,255,255,0.2)" }}
                         >
-                          {opt.image ? (
-                            <img
-                              src={opt.image}
-                              alt={opt.label}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                              <LayoutGrid className="w-5 h-5 text-gray-600" />
-                            </div>
-                          )}
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-                          {/* Hover overlay with name */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-1.5">
-                            <span className="text-white text-[10px] font-semibold leading-tight line-clamp-2">
-                              {opt.label}
-                            </span>
-                          </div>
+                {/* Styles grid */}
+                <div className="flex-1 overflow-y-auto p-3">
+                  {filtered.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-gray-600 text-sm">
+                      {search ? `لا نتائج لـ "${search}"` : "لا توجد أساليب في هذه الفئة"}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                      {filtered.map((opt) => {
+                        const isActive = value === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => { onChange(opt.value); setOpen(false); }}
+                            className="group relative rounded-xl overflow-hidden focus:outline-none"
+                            style={{
+                              aspectRatio: "3/4",
+                              boxShadow: isActive
+                                ? `0 0 0 2px rgb(${colorRgb})`
+                                : "0 0 0 1px rgba(255,255,255,0.06)",
+                            }}
+                          >
+                            {opt.image ? (
+                              <img
+                                src={opt.image}
+                                alt={opt.label}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                                <LayoutGrid className="w-5 h-5 text-gray-600" />
+                              </div>
+                            )}
 
-                          {/* Active indicator */}
-                          {isActive && (
-                            <div
-                              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
-                              style={{ backgroundColor: `rgb(${colorRgb})` }}
-                            >
-                              <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                            {/* Hover overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-1.5">
+                              <span className="text-white text-[10px] font-semibold leading-tight line-clamp-2">
+                                {opt.label}
+                              </span>
                             </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+
+                            {/* Active checkmark */}
+                            {isActive && (
+                              <div
+                                className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                                style={{ backgroundColor: `rgb(${colorRgb})` }}
+                              >
+                                <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Footer */}
-              <div className="p-3 border-t border-white/5 flex items-center justify-between">
+              {/* ── Footer ── */}
+              <div className="px-4 py-2.5 border-t border-white/5 flex items-center justify-between flex-shrink-0">
                 <span className="text-xs text-gray-600">
                   {filtered.length} أسلوب
-                  {search ? ` (من ${input.options?.length})` : ""}
+                  {search || activeCategory !== "all" ? ` (من ${allOptions.length})` : ""}
                 </span>
                 {value && (
                   <button
