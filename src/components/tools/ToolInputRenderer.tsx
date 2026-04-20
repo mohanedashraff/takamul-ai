@@ -194,6 +194,94 @@ function ButtonGroup({
   );
 }
 
+// ── Ratio Picker ─────────────────────────────────────────────────────────────
+
+function RatioPickerInput({
+  input,
+  value,
+  onChange,
+  colorRgb,
+}: {
+  input: ToolInput;
+  value: string;
+  onChange: (v: string) => void;
+  colorRgb: string;
+}) {
+  const BOX = 24; // outer container size in px
+
+  const getRect = (aspect?: [number, number]) => {
+    if (!aspect) return null;
+    const [w, h] = aspect;
+    if (w >= h) return { w: BOX, h: Math.max(4, Math.round(BOX * h / w)) };
+    return { w: Math.max(4, Math.round(BOX * w / h)), h: BOX };
+  };
+
+  return (
+    <div className="space-y-2.5">
+      {input.label && (
+        <label className="text-sm text-gray-400 font-medium block">{input.label}</label>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {input.options?.map((opt) => {
+          const isActive = value === opt.value;
+          const rect = getRect(opt.aspect);
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(opt.value)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl border transition-all duration-200 min-w-[52px]",
+                isActive
+                  ? "border-transparent"
+                  : "border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/[0.06]"
+              )}
+              style={isActive ? {
+                backgroundColor: `rgba(${colorRgb}, 0.15)`,
+                borderColor: `rgba(${colorRgb}, 0.45)`,
+              } : {}}
+            >
+              {/* Visual rectangle */}
+              <div
+                className="flex items-center justify-center flex-shrink-0"
+                style={{ width: BOX, height: BOX }}
+              >
+                {rect ? (
+                  <div
+                    className="rounded-[2px] border-[1.5px] transition-colors"
+                    style={{
+                      width: rect.w,
+                      height: rect.h,
+                      borderColor: isActive ? `rgb(${colorRgb})` : "rgba(255,255,255,0.35)",
+                    }}
+                  />
+                ) : (
+                  /* auto — dashed square */
+                  <div
+                    className="rounded-[3px] transition-colors"
+                    style={{
+                      width: BOX - 2,
+                      height: BOX - 2,
+                      border: `1.5px dashed ${isActive ? `rgb(${colorRgb})` : "rgba(255,255,255,0.35)"}`,
+                    }}
+                  />
+                )}
+              </div>
+              {/* Label */}
+              <span
+                className="text-[11px] font-semibold tabular-nums leading-none transition-colors"
+                style={{ color: isActive ? `rgb(${colorRgb})` : "rgba(255,255,255,0.5)" }}
+              >
+                {opt.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Slider ────────────────────────────────────────────────────────────────────
 
 function SliderInput({
@@ -888,6 +976,17 @@ export function renderToolInput(
     case "button-group":
       return (
         <ButtonGroup
+          key={input.id}
+          input={input}
+          value={values[input.id] ?? input.defaultValue ?? ""}
+          onChange={(v) => setValue(input.id, v)}
+          colorRgb={colorRgb}
+        />
+      );
+
+    case "ratio-picker":
+      return (
+        <RatioPickerInput
           key={input.id}
           input={input}
           value={values[input.id] ?? input.defaultValue ?? ""}
