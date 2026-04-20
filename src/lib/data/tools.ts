@@ -55,6 +55,7 @@ export interface Tool {
   image: string | string[];
   credits: number;
   isNew?: boolean;
+  layout?: "default" | "centered"; // "centered" = single-file drop-zone page, no sidebar
   inputs: ToolInput[];
 }
 
@@ -379,6 +380,7 @@ export const IMAGE_TOOLS: Tool[] = [
     icon: Sparkles,
     image: "https://static.higgsfield.ai/explore/upscale.mp4",
     credits: 3,
+    layout: "centered",
     inputs: [
       {
         id: "media",
