@@ -55,7 +55,7 @@ export interface Tool {
   image: string | string[];
   credits: number;
   isNew?: boolean;
-  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene" | "change-clothes" | "fashion-designer";
+  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene" | "change-clothes" | "fashion-designer" | "face-swap";
   inputs: ToolInput[];
 }
 
@@ -748,6 +748,7 @@ export const IMAGE_TOOLS: Tool[] = [
   },
   {
     id: "face-swap",
+    layout: "face-swap" as const,
     title: "تغيير الوجه",
     desc: "تبديل الوجوه بلمسة واحدة بشكل واقعي ومذهل.",
     icon: Wand2,
