@@ -114,14 +114,14 @@ export function OutpaintWorkspace({ tool, config }: Props) {
     previewRef.current = url;
     setFile(f);
     setPreview(url);
-    setNat(null);
     setExpand({ top: 0, right: 0, bottom: 0, left: 0 });
-    setPhase("edit");
+    const img = new window.Image();
+    img.onload = () => {
+      setNat({ w: img.naturalWidth, h: img.naturalHeight });
+      setPhase("edit");
+    };
+    img.src = url;
   }, []);
-
-  const onImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    setNat({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight });
-  };
 
   // ── Scale calculation ──────────────────────────────────────────────────────
   const PAD = 56;
@@ -461,7 +461,6 @@ export function OutpaintWorkspace({ tool, config }: Props) {
                   <img
                     src={preview}
                     alt="صورة"
-                    onLoad={onImgLoad}
                     draggable={false}
                     className="absolute"
                     style={{ left: dLeft, top: dTop, width: dImgW, height: dImgH, display: "block" }}
