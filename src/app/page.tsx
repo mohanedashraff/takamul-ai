@@ -813,14 +813,55 @@ export default function PremiumLanding() {
 
         {/* Background Depth Effects */}
         <div className="absolute inset-0 bg-transparent opacity-20 brightness-100 contrast-150 mix-blend-overlay pointer-events-none" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')" }} />
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-600/20 rounded-full blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent-500/10 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-neon-yellow/10 rounded-full blur-[180px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-neon-yellow/6 rounded-full blur-[180px] pointer-events-none" />
 
-        {/* 3D Moving Mesh/Rings Background */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none" style={{ perspective: "1000px" }}>
-           <motion.div animate={{ rotateZ: 360 }} transition={{ duration: 60, repeat: Infinity, ease: "linear" }} style={{ transform: "rotateX(60deg)" }} className="absolute w-[120vw] h-[120vw] rounded-full border-[1.5px] border-white/10 border-dashed" />
-           <motion.div animate={{ rotateZ: -360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }} style={{ transform: "rotateX(60deg)" }} className="absolute w-[80vw] h-[80vw] rounded-full border-[2px] border-primary-500/20" />
-           <motion.div animate={{ rotateZ: 360 }} transition={{ duration: 80, repeat: Infinity, ease: "linear" }} style={{ transform: "rotateX(60deg)" }} className="absolute w-[160vw] h-[160vw] rounded-full border border-accent-400/10 border-dashed" />
+        {/* 3D Animated Rings Background */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ perspective: "1200px" }}>
+          {/* Ring 1 — innermost, solid yellow glow */}
+          <motion.div
+            animate={{ rotateZ: 360 }}
+            transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+            style={{ rotateX: 62, transformStyle: "preserve-3d" }}
+            className="absolute w-[55vw] h-[55vw] rounded-full border-[2px] border-neon-yellow/50 shadow-[0_0_30px_rgba(254,228,64,0.25),inset_0_0_30px_rgba(254,228,64,0.1)]"
+          />
+          {/* Ring 2 — medium, dashed */}
+          <motion.div
+            animate={{ rotateZ: -360 }}
+            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+            style={{ rotateX: 62, transformStyle: "preserve-3d" }}
+            className="absolute w-[80vw] h-[80vw] rounded-full border-[1.5px] border-neon-yellow/25 border-dashed"
+          />
+          {/* Ring 3 — with a glowing dot orbiting it */}
+          <motion.div
+            animate={{ rotateZ: 360 }}
+            transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
+            style={{ rotateX: 62, transformStyle: "preserve-3d" }}
+            className="absolute w-[105vw] h-[105vw] rounded-full border border-white/8"
+          >
+            {/* Orbiting bright dot */}
+            <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-neon-yellow shadow-[0_0_12px_4px_rgba(254,228,64,0.6)]" />
+          </motion.div>
+          {/* Ring 4 — large outer, slow, dashed white */}
+          <motion.div
+            animate={{ rotateZ: -360 }}
+            transition={{ duration: 70, repeat: Infinity, ease: "linear" }}
+            style={{ rotateX: 62, transformStyle: "preserve-3d" }}
+            className="absolute w-[135vw] h-[135vw] rounded-full border border-white/5 border-dashed"
+          />
+          {/* Ring 5 — outermost faint yellow */}
+          <motion.div
+            animate={{ rotateZ: 360 }}
+            transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
+            style={{ rotateX: 62, transformStyle: "preserve-3d" }}
+            className="absolute w-[170vw] h-[170vw] rounded-full border border-neon-yellow/8"
+          />
+          {/* Pulsing center glow */}
+          <motion.div
+            animate={{ scale: [1, 1.4, 1], opacity: [0.15, 0.35, 0.15] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute w-[30vw] h-[30vw] rounded-full bg-neon-yellow/10 blur-[80px]"
+          />
         </div>
 
         {/* Floating Complex Glass Widgets (Background App Mockups) - TEMPORARILY DISABLED */}
