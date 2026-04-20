@@ -70,8 +70,8 @@ function lonCircle(lonDeg: number): V3[] {
   });
 }
 
-const LATITUDES  = [-60, -30, 0, 30, 60];
-const LONGITUDES = [0, 30, 60, 90, 120, 150];
+const LATITUDES  = [-75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75];
+const LONGITUDES = [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165];
 
 const ALL_CIRCLES: V3[][] = [
   ...LATITUDES.map(latCircle),
@@ -199,7 +199,7 @@ export function AngleWorkspace({ tool, config }: Props) {
 
       {/* Back-face wireframe (behind sphere centre) */}
       {backD && (
-        <path d={backD} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.7" />
+        <path d={backD} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
       )}
 
       {/* Image thumbnail (always centered, not rotating) */}
@@ -223,7 +223,7 @@ export function AngleWorkspace({ tool, config }: Props) {
 
       {/* Front-face wireframe (in front of sphere centre) */}
       {frontD && (
-        <path d={frontD} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="0.9" />
+        <path d={frontD} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.6" />
       )}
 
       {/* Outer rim */}
