@@ -194,64 +194,90 @@ export function AngleWorkspace({ tool, config }: Props) {
       className="w-full h-full cursor-grab active:cursor-grabbing select-none"
       onMouseDown={onSphereDown}
     >
-      {/* Sphere background */}
-      <circle cx={CX} cy={CY} r={R_SVG + 2} fill="rgba(0,0,0,0.3)" />
+      <defs>
+        <clipPath id="ag-sphere-clip">
+          <circle cx={CX} cy={CY} r={R_SVG} />
+        </clipPath>
+        <radialGradient id="ag-sphere-bg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="rgba(40,40,50,0.6)" />
+          <stop offset="100%" stopColor="rgba(10,10,14,0.85)" />
+        </radialGradient>
+        {isFront && (
+          <radialGradient id="ag-cam-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stopColor={`rgb(${rgb})`} stopOpacity="0.7" />
+            <stop offset="40%"  stopColor={`rgb(${rgb})`} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={`rgb(${rgb})`} stopOpacity="0" />
+          </radialGradient>
+        )}
+        {preview && (
+          <clipPath id="ag-thumb-clip">
+            <rect x={CX - 26} y={CY - 26} width={52} height={52} rx={5} />
+          </clipPath>
+        )}
+      </defs>
 
-      {/* Back-face wireframe (behind sphere centre) */}
+      {/* Sphere background */}
+      <circle cx={CX} cy={CY} r={R_SVG} fill="url(#ag-sphere-bg)" />
+
+      {/* Back-face wireframe */}
       {backD && (
-        <path d={backD} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+        <path d={backD} fill="none" stroke="rgba(255,255,255,0.04)"
+          strokeWidth="0.6" clipPath="url(#ag-sphere-clip)" />
       )}
 
-      {/* Image thumbnail (always centered, not rotating) */}
+      {/* Image thumbnail */}
       {preview && (
         <>
-          <defs>
-            <clipPath id="thumb-clip">
-              <rect x={CX - 26} y={CY - 26} width={52} height={52} rx={5} />
-            </clipPath>
-          </defs>
           <image
             href={preview}
             x={CX - 26} y={CY - 26} width={52} height={52}
-            clipPath="url(#thumb-clip)"
+            clipPath="url(#ag-thumb-clip)"
             preserveAspectRatio="xMidYMid slice"
           />
           <rect x={CX - 26} y={CY - 26} width={52} height={52} rx={5}
-            fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+            fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
         </>
       )}
 
-      {/* Front-face wireframe (in front of sphere centre) */}
-      {frontD && (
-        <path d={frontD} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.6" />
-      )}
-
-      {/* Outer rim */}
+      {/* Sphere border */}
       <circle cx={CX} cy={CY} r={R_SVG} fill="none"
-        stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+        stroke="rgba(255,255,255,0.18)" strokeWidth="0.8" />
+
+      {/* Front-face wireframe */}
+      {frontD && (
+        <path d={frontD} fill="none" stroke="rgba(255,255,255,0.14)"
+          strokeWidth="0.6" clipPath="url(#ag-sphere-clip)" />
+      )}
 
       {/* Camera indicator */}
       {isFront ? (
-        <g transform={`translate(${indX.toFixed(1)},${indY.toFixed(1)})`}>
-          {/* line to center */}
-          <line x1={0} y1={0}
-            x2={(CX - indX).toFixed(1)} y2={(CY - indY).toFixed(1)}
-            stroke={`rgba(${rgb},0.5)`} strokeWidth="1" strokeDasharray="3 2" />
-          {/* camera body */}
-          <rect x={-12} y={-8} width={24} height={15} rx={3.5}
-            fill={`rgb(${rgb})`} />
-          {/* lens */}
-          <circle cx={0} cy={-1} r={5}
-            fill="rgba(0,0,0,0.55)" stroke="rgba(255,255,255,0.55)" strokeWidth="0.9" />
-          <circle cx={0} cy={-1} r={2.5} fill={`rgba(${rgb},0.7)`} />
-          {/* viewfinder */}
-          <rect x={9} y={-6} width={5} height={4} rx={1.5}
-            fill={`rgb(${rgb})`} stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
-        </g>
+        <>
+          {/* Diffuse glow */}
+          <circle cx={indX} cy={indY} r={30}
+            fill="url(#ag-cam-glow)" clipPath="url(#ag-sphere-clip)" />
+          {/* Dashed line to center */}
+          <line x1={indX.toFixed(1)} y1={indY.toFixed(1)}
+            x2={CX} y2={CY}
+            stroke={`rgba(${rgb},0.4)`} strokeWidth="0.8" strokeDasharray="3 2"
+            clipPath="url(#ag-sphere-clip)" />
+          {/* Outer ring */}
+          <circle cx={indX} cy={indY} r={12}
+            fill="none" stroke={`rgb(${rgb})`} strokeWidth="1"
+            opacity={0.5} clipPath="url(#ag-sphere-clip)" />
+          {/* Camera body */}
+          <g transform={`translate(${indX.toFixed(1)},${indY.toFixed(1)})`}>
+            <rect x={-10} y={-7} width={20} height={13} rx={3}
+              fill={`rgb(${rgb})`} />
+            <circle cx={0} cy={-1} r={4.5}
+              fill="rgba(0,0,0,0.55)" stroke="rgba(255,255,255,0.55)" strokeWidth="0.9" />
+            <circle cx={0} cy={-1} r={2} fill={`rgba(${rgb},0.8)`} />
+            <rect x={8} y={-6} width={4} height={3} rx={1}
+              fill={`rgb(${rgb})`} stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+          </g>
+        </>
       ) : (
-        /* Back-face indicator — dim ghost */
         <circle cx={indX.toFixed(1)} cy={indY.toFixed(1)} r={5}
-          fill={`rgba(${rgb},0.2)`} stroke={`rgba(${rgb},0.4)`}
+          fill={`rgba(${rgb},0.15)`} stroke={`rgba(${rgb},0.35)`}
           strokeWidth="1" strokeDasharray="2 2" />
       )}
     </svg>
