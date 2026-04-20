@@ -4,6 +4,7 @@ import React, { use, useCallback, useEffect, useRef, useState } from "react";
 import { MediaRenderer } from "@/components/tools/MediaRenderer";
 import { notFound, useRouter } from "next/navigation";
 import { STUDIO_CATEGORIES, ToolCategory, Tool } from "@/lib/data/tools";
+import { InpaintWorkspace } from "@/components/tools/InpaintWorkspace";
 import {
   renderToolInput,
   isFormValid,
@@ -36,6 +37,9 @@ export default function WorkspacePage({ params }: { params: Promise<{ toolId: st
 
   if (tool.layout === "centered") {
     return <CenteredWorkspace tool={tool} config={config} />;
+  }
+  if (tool.layout === "inpaint") {
+    return <InpaintWorkspace tool={tool} config={config} />;
   }
   return <WorkspaceInterface tool={tool} config={config} />;
 }

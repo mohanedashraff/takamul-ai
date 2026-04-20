@@ -55,7 +55,7 @@ export interface Tool {
   image: string | string[];
   credits: number;
   isNew?: boolean;
-  layout?: "default" | "centered"; // "centered" = single-file drop-zone page, no sidebar
+  layout?: "default" | "centered" | "inpaint"; // "centered" = drop-zone; "inpaint" = canvas editor
   inputs: ToolInput[];
 }
 
@@ -400,6 +400,7 @@ export const IMAGE_TOOLS: Tool[] = [
     image: "https://static.higgsfield.ai/explore/Edit-image-video-inpaint.mp4",
     credits: 4,
     isNew: true,
+    layout: "inpaint",
     inputs: [
       {
         id: "image",
