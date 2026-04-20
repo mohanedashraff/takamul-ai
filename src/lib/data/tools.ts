@@ -55,7 +55,7 @@ export interface Tool {
   image: string | string[];
   credits: number;
   isNew?: boolean;
-  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene" | "change-clothes" | "fashion-designer" | "face-swap" | "whats-next";
+  layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene" | "change-clothes" | "fashion-designer" | "face-swap" | "whats-next" | "sketch-to-video" | "video-transitions";
   inputs: ToolInput[];
 }
 
@@ -860,6 +860,7 @@ export const VIDEO_TOOLS: Tool[] = [
     image: "https://static.higgsfield.ai/draw/sora/web-sketch-low.mp4",
     credits: 15,
     isNew: true,
+    layout: "sketch-to-video" as const,
     inputs: [
       {
         id: "sketch",
@@ -943,6 +944,7 @@ export const VIDEO_TOOLS: Tool[] = [
         label: "التعديل المطلوب",
         placeholder: "صف التعديل الذي تريد إجراؤه على الفيديو...",
         required: true,
+        attachments: { accept: "image/*", max: 5 },
       },
     ],
   },
@@ -1075,6 +1077,7 @@ export const VIDEO_TOOLS: Tool[] = [
     image: "https://static.higgsfield.ai/feed/step-3.mp4",
     credits: 6,
     isNew: true,
+    layout: "video-transitions" as const,
     inputs: [
       {
         id: "startFrame",
