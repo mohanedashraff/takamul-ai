@@ -816,53 +816,96 @@ export default function PremiumLanding() {
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-neon-yellow/10 rounded-full blur-[180px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-neon-yellow/6 rounded-full blur-[180px] pointer-events-none" />
 
-        {/* 3D Animated Rings Background */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ perspective: "1200px" }}>
-          {/* Ring 1 — innermost, solid yellow glow */}
-          <motion.div
-            animate={{ rotateZ: 360 }}
-            transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-            style={{ rotateX: 62, transformStyle: "preserve-3d" }}
-            className="absolute w-[55vw] h-[55vw] rounded-full border-[2px] border-neon-yellow/50 shadow-[0_0_30px_rgba(254,228,64,0.25),inset_0_0_30px_rgba(254,228,64,0.1)]"
-          />
-          {/* Ring 2 — medium, dashed */}
-          <motion.div
-            animate={{ rotateZ: -360 }}
-            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-            style={{ rotateX: 62, transformStyle: "preserve-3d" }}
-            className="absolute w-[80vw] h-[80vw] rounded-full border-[1.5px] border-neon-yellow/25 border-dashed"
-          />
-          {/* Ring 3 — with a glowing dot orbiting it */}
-          <motion.div
-            animate={{ rotateZ: 360 }}
-            transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
-            style={{ rotateX: 62, transformStyle: "preserve-3d" }}
-            className="absolute w-[105vw] h-[105vw] rounded-full border border-white/8"
+        {/* SVG Orbital Rings */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          viewBox="-960 -540 1920 1080"
+          preserveAspectRatio="xMidYMid slice"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <filter id="rg" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="5" result="b" />
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="dg" x="-150%" y="-150%" width="400%" height="400%">
+              <feGaussianBlur stdDeviation="7" result="b" />
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          {/* Ring 1 — inner, bright yellow glow */}
+          <motion.g
+            animate={{ rotate: 360 }}
+            transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
+            style={{ transformBox: "fill-box", transformOrigin: "center" }}
           >
-            {/* Orbiting bright dot */}
-            <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-neon-yellow shadow-[0_0_12px_4px_rgba(254,228,64,0.6)]" />
-          </motion.div>
-          {/* Ring 4 — large outer, slow, dashed white */}
-          <motion.div
-            animate={{ rotateZ: -360 }}
+            <ellipse cx="0" cy="0" rx="290" ry="108" fill="none"
+              stroke="#fee440" strokeWidth="1.8" strokeOpacity="0.55"
+              filter="url(#rg)" />
+          </motion.g>
+
+          {/* Ring 2 — medium, dashed yellow */}
+          <motion.g
+            animate={{ rotate: -360 }}
+            transition={{ duration: 38, repeat: Infinity, ease: "linear" }}
+            style={{ transformBox: "fill-box", transformOrigin: "center" }}
+          >
+            <ellipse cx="0" cy="0" rx="450" ry="168" fill="none"
+              stroke="#fee440" strokeWidth="1.2" strokeOpacity="0.28"
+              strokeDasharray="10 16" />
+          </motion.g>
+
+          {/* Ring 3 — orbiting dot ring */}
+          <motion.g
+            animate={{ rotate: 360 }}
+            transition={{ duration: 55, repeat: Infinity, ease: "linear" }}
+            style={{ transformBox: "fill-box", transformOrigin: "center" }}
+          >
+            <ellipse cx="0" cy="0" rx="600" ry="224" fill="none"
+              stroke="white" strokeWidth="0.8" strokeOpacity="0.1" />
+            <circle cx="0" cy="-224" r="4.5" fill="#fee440" filter="url(#dg)" />
+          </motion.g>
+
+          {/* Ring 4 — very flat/tilted, dashed */}
+          <motion.g
+            animate={{ rotate: -360 }}
+            transition={{ duration: 48, repeat: Infinity, ease: "linear" }}
+            style={{ transformBox: "fill-box", transformOrigin: "center" }}
+          >
+            <ellipse cx="0" cy="0" rx="740" ry="74" fill="none"
+              stroke="#fee440" strokeWidth="1" strokeOpacity="0.18"
+              strokeDasharray="5 22" />
+          </motion.g>
+
+          {/* Ring 5 — outer slow */}
+          <motion.g
+            animate={{ rotate: 360 }}
+            transition={{ duration: 88, repeat: Infinity, ease: "linear" }}
+            style={{ transformBox: "fill-box", transformOrigin: "center" }}
+          >
+            <ellipse cx="0" cy="0" rx="880" ry="348" fill="none"
+              stroke="white" strokeWidth="0.7" strokeOpacity="0.07" />
+          </motion.g>
+
+          {/* Ring 6 — second orbiting dot, opposite direction */}
+          <motion.g
+            animate={{ rotate: -360 }}
             transition={{ duration: 70, repeat: Infinity, ease: "linear" }}
-            style={{ rotateX: 62, transformStyle: "preserve-3d" }}
-            className="absolute w-[135vw] h-[135vw] rounded-full border border-white/5 border-dashed"
-          />
-          {/* Ring 5 — outermost faint yellow */}
-          <motion.div
-            animate={{ rotateZ: 360 }}
-            transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
-            style={{ rotateX: 62, transformStyle: "preserve-3d" }}
-            className="absolute w-[170vw] h-[170vw] rounded-full border border-neon-yellow/8"
-          />
-          {/* Pulsing center glow */}
-          <motion.div
-            animate={{ scale: [1, 1.4, 1], opacity: [0.15, 0.35, 0.15] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute w-[30vw] h-[30vw] rounded-full bg-neon-yellow/10 blur-[80px]"
-          />
-        </div>
+            style={{ transformBox: "fill-box", transformOrigin: "center" }}
+          >
+            <ellipse cx="0" cy="0" rx="450" ry="168" fill="none"
+              stroke="none" />
+            <circle cx="450" cy="0" r="3" fill="#fee440" opacity="0.7" filter="url(#dg)" />
+          </motion.g>
+        </svg>
+
+        {/* Pulsing center glow */}
+        <motion.div
+          animate={{ scale: [1, 1.5, 1], opacity: [0.12, 0.28, 0.12] }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28vw] h-[28vw] rounded-full bg-neon-yellow/10 blur-[90px] pointer-events-none"
+        />
 
         {/* Floating Complex Glass Widgets (Background App Mockups) - TEMPORARILY DISABLED */}
         {/*
