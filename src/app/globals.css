@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-400: #9d4edd;
+  --color-primary-500: #7a00cc;
+  --color-primary-600: #5a189a;
+
+  --color-accent-400: #00f5d4;
+  --color-accent-500: #00bbf9;
+  
+  --color-neon-pink: #f15bb5;
+  --color-neon-yellow: #fee440;
+
+  --color-bg-primary: #030305;
+  --color-bg-secondary: rgba(20, 20, 25, 0.4);
+  --color-bg-tertiary: rgba(30, 30, 40, 0.5);
+
+  --color-border-glass: rgba(255, 255, 255, 0.05);
+  --color-border-glow: rgba(157, 78, 221, 0.3);
+
+  --font-alexandria: var(--font-alexandria), sans-serif;
+}
+
+:root {
+  --background: #030305;
+  --foreground: #ffffff;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-alexandria);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Luxury Utilities ── */
+@layer utilities {
+  /* Site-wide horizontal container. No max-width by design — the site is full-width.
+     If we ever want to cap content on ultra-wide screens, add `max-width` here only. */
+  .site-container {
+    width: 100%;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 768px) {
+    .site-container {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(157, 78, 221, 0.5);
+  }
+
+  .text-gradient-cosmic {
+    background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-gradient-neon {
+    background: linear-gradient(to right, #00f5d4, #00bbf9, #9d4edd);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .glass-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-button {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.1);
+  }
+
+  .grid-pattern {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
+
+  @keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(100%); } /* RTL so it moves right to left */
+  }
+
+  .bento-card {
+    background: linear-gradient(180deg, rgba(30, 30, 40, 0.4) 0%, rgba(20, 20, 25, 0.4) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border-radius: 2rem;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .bento-card:hover {
+    border-color: var(--hover-border, rgba(157, 78, 221, 1));
+    box-shadow: 0 0 40px var(--hover-shadow, rgba(157, 78, 221, 0.3));
+  }
+
+  .hide-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ── Premium Scrollbar (Dashboard) ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 100px;
+  transition: background 0.3s;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(157, 78, 221, 0.4);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
