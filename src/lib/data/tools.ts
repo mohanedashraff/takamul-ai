@@ -1194,7 +1194,6 @@ export const AUDIO_TOOLS: Tool[] = [
     id: "text-to-speech",
     title: "كلام واقعي بصوت بشري",
     desc: "استمع فوراً لما تكتبه بصوت طبيعي وواضح.",
-    layout: "centered",
     icon: Music,
     image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=600&auto=format&fit=crop",
     credits: 3,
