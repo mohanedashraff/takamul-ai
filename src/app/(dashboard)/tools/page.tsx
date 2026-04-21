@@ -60,7 +60,7 @@ function ToolsContent() {
   const activeConfig = activeCategory !== "all" ? STUDIO_CATEGORIES[activeCategory] : null;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+    <div className="site-container py-8 space-y-8 pb-12">
       
       {/* ── HEADER ── */}
       <div>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function DashboardOverview() {
   return (
-    <div className="space-y-10 max-w-7xl mx-auto pb-20 mt-4">
+    <div className="site-container py-8 space-y-10 pb-20">
       
       {/* ── ALIEN GLOW BACKGROUND FOR DASHBOARD ── */}
       <div className="fixed top-0 right-0 w-full h-[500px] bg-gradient-to-b from-primary-600/10 to-transparent pointer-events-none -z-10" />

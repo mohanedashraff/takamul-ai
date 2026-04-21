@@ -9,6 +9,18 @@ import {
   Clock, ArrowUpLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import dynamic from "next/dynamic";
+import { ElasticModelsTicker } from "@/components/home/ElasticModelsTicker";
+
+// Lazy-load the Spaces live preview (React Flow adds ~100KB of JS)
+const SpacesLivePreview = dynamic(() => import("@/components/home/SpacesLivePreview"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-accent-400 animate-spin" />
+    </div>
+  ),
+});
 
 // Animations
 const fadeUpVar: Variants = {
@@ -263,154 +275,25 @@ const SpacesSection = () => {
           أربط أدوات الذكاء الاصطناعي وصمم مسارات عمل حرة لا متناهية.
         </p>
 
-        {/* Main Interface Live Nodes - Borderless Free Flow */}
-        <div className="relative w-full mt-4 aspect-square md:aspect-video lg:aspect-[21/9] flex items-center justify-center overflow-visible group">
-          
-          {/* Background Ambient Grid */}
-          <div 
-            className="absolute inset-0 opacity-10 pointer-events-none" 
-            style={{ 
-              backgroundImage: 'radial-gradient(circle at center, rgba(255,255,255,0.8) 1.5px, transparent 1.5px)', 
-              backgroundSize: '40px 40px',
-              WebkitMaskImage: 'radial-gradient(circle, black 30%, transparent 80%)'
-            }} 
-          />
-
-          {/* Fixed Canvas Origin - Scale Protection */}
-          <div className="relative w-[1300px] h-[650px] scale-[0.35] sm:scale-[0.5] md:scale-[0.65] lg:scale-90 xl:scale-100 origin-center pointer-events-none flex-shrink-0 group-hover:scale-[0.38] sm:group-hover:scale-[0.53] md:group-hover:scale-[0.68] lg:group-hover:scale-[0.93] xl:group-hover:scale-[1.03] transition-transform duration-[2s] ease-out">
-            
-            {/* SVG Bezier Curves Network */}
-            <svg className="absolute inset-0 w-full h-full z-0 opacity-80" viewBox="0 0 1300 650">
-              <defs>
-                <linearGradient id="line-grad-1" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#fee440" />
-                  <stop offset="100%" stopColor="#fee440" />
-                </linearGradient>
-                <linearGradient id="line-grad-2" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#4ade80" />
-                  <stop offset="100%" stopColor="#fee440" />
-                </linearGradient>
-              </defs>
-
-              {/* Node 1 -> Node 4 */}
-              <path d="M 340 200 C 600 200, 650 270, 920 270" fill="none" stroke="url(#line-grad-1)" strokeWidth="3" className="animate-pulse" />
-              {/* Node 2 -> Node 3 */}
-              <path d="M 320 450 C 400 450, 400 350, 480 350" fill="none" stroke="#6b7280" strokeWidth="2" strokeDasharray="4 4" />
-              {/* Node 3 -> Node 4 */}
-              <path d="M 820 350 C 870 350, 870 450, 920 450" fill="none" stroke="url(#line-grad-2)" strokeWidth="3" />
-            </svg>
-
-            {/* NODE 1: Multi Image Input */}
-            <motion.div 
-              animate={{ y: [-5, 5, -5] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute w-[280px] bg-[#141419] border border-white/10 p-4 rounded-[1.5rem] shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col gap-3 group z-10"
-              style={{ left: "60px", top: "60px" }}
-            >
-               <div className="flex items-center gap-2 text-white font-bold text-sm px-2">
-                 <ImageIcon className="w-4 h-4 text-neon-pink" /> <span>المدخلات (المرجع)</span>
-               </div>
-               <div className="grid grid-cols-2 gap-2 bg-white/5 p-2 rounded-2xl border border-white/5">
-                 <img src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&q=80" className="w-full h-20 object-cover rounded-xl border border-white/5" />
-                 <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80" className="w-full h-20 object-cover rounded-xl border border-white/5" />
-                 <img src="https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=400&q=80" className="w-full h-20 object-cover rounded-xl border border-white/5" />
-                 <img src="https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=400&q=80" className="w-full h-20 object-cover rounded-xl border border-white/5" />
-               </div>
-               
-               {/* Output Port */}
-               <div className="absolute right-[-14px] top-[140px] w-7 h-7 bg-[#141419] rounded-full border border-[rgba(255,255,255,0.2)] flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 bg-primary-500 rounded-full" />
-               </div>
-            </motion.div>
-
-            {/* NODE 2: Note Card */}
-            <motion.div 
-              animate={{ y: [5, -5, 5] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              className="absolute w-[260px] bg-[#1a1a24] border border-white/10 p-5 rounded-[1.5rem] shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col gap-3 z-10"
-              style={{ left: "60px", top: "380px" }}
-            >
-               <div className="flex items-center gap-2 text-gray-300 font-bold text-sm mb-1">
-                 <AlignLeft className="w-4 h-4 text-gray-400" /> <span>ملاحظة العمل</span>
-               </div>
-               <p className="text-gray-400 text-[13px] leading-relaxed">
-                 أريد شخصية تجلس على حافة حاوية ضخمة زرقاء، التصوير من الأسفل لإعطاء زاوية ملحمية مع سماء زرقاء صافية.
-               </p>
-
-               {/* Output Port */}
-               <div className="absolute right-[-14px] top-[70px] w-7 h-7 bg-[#1a1a24] rounded-full border border-[rgba(255,255,255,0.2)] flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full" />
-               </div>
-            </motion.div>
-
-            {/* NODE 3: Prompt Textarea */}
-            <motion.div 
-              animate={{ y: [-5, 5, -5] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-              className="absolute w-[340px] bg-[#141419] border border-accent-400/30 p-5 rounded-[1.5rem] shadow-[0_0_40px_rgba(254,228,64,0.15)] flex flex-col gap-3 z-10"
-              style={{ left: "480px", top: "250px" }}
-            >
-               {/* Input Port */}
-               <div className="absolute left-[-14px] top-[100px] w-7 h-7 bg-[#141419] rounded-full border border-[rgba(255,255,255,0.2)] flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full" />
-               </div>
-
-               <div className="flex items-center justify-between mb-1">
-                 <div className="flex items-center gap-2 text-white font-bold text-sm">
-                   <Sparkles className="w-4 h-4 text-accent-400" /> <span>التعليمات المبنية</span>
-                 </div>
-               </div>
-               <div className="bg-black/50 border border-white/5 rounded-xl p-4 text-[13px] text-gray-300 leading-loose h-[120px]">
-                 A detailed cinematic shot from an extreme nadir angle. A relaxed person sitting on the edge of a container gazing at the sky...
-               </div>
-
-               {/* Output Port */}
-               <div className="absolute right-[-14px] top-[100px] w-7 h-7 bg-[#141419] rounded-full border border-[rgba(255,255,255,0.2)] flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_10px_#4ade80]" />
-               </div>
-            </motion.div>
-
-            {/* NODE 4: Final Image Result */}
-            <motion.div 
-              animate={{ y: [8, -8, 8] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-              className="absolute w-[340px] bg-[#141419] border border-white/10 p-5 rounded-[2rem] shadow-[0_0_50px_rgba(254,228,64,0.2)] flex flex-col gap-4 z-10"
-              style={{ left: "920px", top: "120px" }}
-            >
-               {/* Input Port 1 (Top) */}
-               <div className="absolute left-[-14px] top-[150px] w-7 h-7 bg-[#141419] rounded-full border border-[rgba(255,255,255,0.2)] flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 bg-accent-500 rounded-full" />
-               </div>
-
-               {/* Input Port 2 (Bottom) */}
-               <div className="absolute left-[-14px] top-[330px] w-7 h-7 bg-[#141419] rounded-full border border-[rgba(255,255,255,0.2)] flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 bg-green-500 rounded-full" />
-               </div>
-
-               <div className="flex items-center gap-2 text-white font-bold text-sm px-2">
-                 <ImageIcon className="w-4 h-4 text-accent-500" /> <span>الصورة المستخرجة</span>
-               </div>
-               <div className="w-full h-[320px] rounded-2xl overflow-hidden border border-white/5 relative bg-[#0a0a0f] shadow-inner">
-                 <img src="https://images.unsplash.com/photo-1549490349-8643362247b5?w=800&q=80" className="w-full h-full object-cover" alt="Result Space Image" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-               </div>
-            </motion.div>
-
-            {/* Floating Cursors inside App */}
-            <div className="absolute left-[360px] top-[160px] flex items-center gap-1 z-30 drop-shadow-xl">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="#fee440"><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.42c.45 0 .67-.54.35-.85L6.35 3.35a.5.5 0 0 0-.85.35Z"/></svg>
-              <div className="bg-[#fee440] text-white text-[12px] font-bold px-3 py-1 rounded-full shadow-[0_0_10px_rgba(254,228,64,0.5)]">Jeremy</div>
-            </div>
-            <div className="absolute left-[880px] top-[460px] flex items-center gap-1 z-30 drop-shadow-xl">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="#fee440" className="rotate-[-60deg]"><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.42c.45 0 .67-.54.35-.85L6.35 3.35a.5.5 0 0 0-.85.35Z"/></svg>
-              <div className="bg-[#fee440] text-black text-[12px] font-bold px-3 py-1 rounded-full shadow-[0_0_10px_rgba(254,228,64,0.5)]">Edward</div>
-            </div>
-
+        {/* Main Interface — Live Spaces Preview (real nodes, draggable, no wrapper) */}
+        <div className="relative w-full mt-4 h-[500px] md:h-[580px] lg:h-[640px]">
+          {/* Floating "Try" badge */}
+          <div className="absolute top-5 right-5 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 border border-accent-400/30 backdrop-blur-md shadow-[0_0_20px_rgba(254,228,64,0.2)]">
+            <span className="w-2 h-2 rounded-full bg-accent-400 animate-pulse shadow-[0_0_8px_rgba(254,228,64,0.8)]" />
+            <span className="text-xs font-bold text-white tracking-wide">تجربة حية — اسحب العقد</span>
           </div>
 
-          {/* Removed Gradients to allow Nodes to shine uninterrupted */}
+          <SpacesLivePreview />
         </div>
+
 
         {/* Floating Call to Action */}
         <div className="mt-8 z-20 z-relative">
-          <Button variant="cosmic" className="h-[64px] px-14 text-xl font-bold rounded-full shadow-[0_0_60px_rgba(254,228,64,0.4)] hover:scale-110 transition-transform duration-300 relative z-20">
-            اطلب الوصول المبكر للمساحات
-          </Button>
+          <Link href="/spaces/canvas">
+            <Button variant="cosmic" className="h-[64px] px-14 text-xl font-bold rounded-full shadow-[0_0_60px_rgba(254,228,64,0.4)] hover:scale-110 transition-transform duration-300 relative z-20">
+              جرّب التجربة الكاملة ←
+            </Button>
+          </Link>
         </div>
 
       </div>
@@ -793,6 +676,257 @@ const SeedancePromoWidget = () => {
         </section>
     );
 };
+// ─── Hero Ambient Background ─────────────────────────────────────────────────
+// Soft colored blur blobs + 3-tier particle system: dust (small drifting),
+// stars (4-point twinkle), hero-stars (8-point with rotation). Creates depth.
+const HeroAmbientBackground = () => {
+  const [dust, setDust] = useState<
+    Array<{ left: number; top: number; size: number; delay: number; duration: number; driftX: number; driftY: number }>
+  >([]);
+  const [stars, setStars] = useState<
+    Array<{ left: number; top: number; size: number; delay: number; duration: number }>
+  >([]);
+  const [heroStars, setHeroStars] = useState<
+    Array<{ left: number; top: number; delay: number; duration: number }>
+  >([]);
+
+  useEffect(() => {
+    // Dust: tiny drifting particles (atmospheric)
+    setDust(
+      Array.from({ length: 30 }, () => ({
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        size: 0.5 + Math.random() * 1.2,
+        delay: Math.random() * 6,
+        duration: 7 + Math.random() * 8,
+        driftX: (Math.random() - 0.5) * 40,
+        driftY: -(20 + Math.random() * 60),
+      }))
+    );
+    // Medium stars: 4-point cross glare, twinkle
+    setStars(
+      Array.from({ length: 12 }, () => ({
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        size: 1.5 + Math.random() * 2.5,
+        delay: Math.random() * 4,
+        duration: 2.5 + Math.random() * 3,
+      }))
+    );
+    // Hero stars: 8-point with subtle rotation, few but prominent
+    setHeroStars(
+      Array.from({ length: 5 }, () => ({
+        left: 12 + Math.random() * 76,
+        top: 12 + Math.random() * 76,
+        delay: Math.random() * 3,
+        duration: 4 + Math.random() * 3,
+      }))
+    );
+  }, []);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+      {/* Blur blob 1 — top-left, bright yellow, big and slow */}
+      <motion.div
+        animate={{ x: [0, 40, -10, 0], y: [0, 30, 10, 0], scale: [1, 1.15, 1] }}
+        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-[5%] left-[5%] w-[42vw] h-[42vh] rounded-full blur-[110px]"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(254,228,64,0.25) 0%, rgba(254,228,64,0) 70%)",
+        }}
+      />
+
+      {/* Blur blob 2 — top-right, warm gold */}
+      <motion.div
+        animate={{ x: [0, -35, 15, 0], y: [0, 25, -10, 0], scale: [1, 1.2, 1] }}
+        transition={{ duration: 28, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        className="absolute top-[10%] right-[5%] w-[38vw] h-[38vh] rounded-full blur-[120px]"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(244,196,48,0.22) 0%, rgba(244,196,48,0) 70%)",
+        }}
+      />
+
+      {/* Blur blob 3 — bottom-left, amber, deep color */}
+      <motion.div
+        animate={{ x: [0, 30, -15, 0], y: [0, -20, 15, 0], scale: [1.05, 0.95, 1.05] }}
+        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+        className="absolute bottom-[8%] left-[10%] w-[35vw] h-[35vh] rounded-full blur-[100px]"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(255,180,0,0.2) 0%, rgba(255,180,0,0) 70%)",
+        }}
+      />
+
+      {/* Blur blob 4 — bottom-right, cream highlight */}
+      <motion.div
+        animate={{ x: [0, -25, 10, 0], y: [0, -30, 15, 0], scale: [1, 1.25, 1] }}
+        transition={{ duration: 30, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        className="absolute bottom-[10%] right-[8%] w-[40vw] h-[40vh] rounded-full blur-[115px]"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(255,243,163,0.2) 0%, rgba(255,243,163,0) 70%)",
+        }}
+      />
+
+      {/* Blur blob 5 — center core, pulsing breath */}
+      <motion.div
+        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.9, 0.5] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[25vw] h-[25vh] rounded-full blur-[70px]"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(254,228,64,0.3) 0%, rgba(254,228,64,0) 70%)",
+        }}
+      />
+
+      {/* ── TIER 1: DUST — tiny drifting particles (atmospheric) ── */}
+      {dust.map((p, i) => (
+        <motion.div
+          key={`dust-${i}`}
+          animate={{
+            y: [0, p.driftY, 0],
+            x: [0, p.driftX, 0],
+            opacity: [0.15, 0.7, 0.15],
+          }}
+          transition={{
+            duration: p.duration,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: p.delay,
+          }}
+          className="absolute rounded-full bg-neon-yellow"
+          style={{
+            left: `${p.left}%`,
+            top: `${p.top}%`,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            boxShadow: `0 0 ${p.size * 3}px rgba(254,228,64,0.7)`,
+          }}
+        />
+      ))}
+
+      {/* ── TIER 2: STARS — 4-point cross glare, twinkle ── */}
+      {stars.map((s, i) => (
+        <motion.div
+          key={`star-${i}`}
+          animate={{
+            scale: [0.6, 1.2, 0.6],
+            opacity: [0.3, 1, 0.3],
+          }}
+          transition={{
+            duration: s.duration,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: s.delay,
+          }}
+          className="absolute"
+          style={{ left: `${s.left}%`, top: `${s.top}%`, width: 0, height: 0 }}
+        >
+          {/* Horizontal glare */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-px"
+            style={{
+              width: `${s.size * 8}px`,
+              background:
+                "linear-gradient(to right, transparent, rgba(254,228,64,0.9), transparent)",
+            }}
+          />
+          {/* Vertical glare */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px"
+            style={{
+              height: `${s.size * 8}px`,
+              background:
+                "linear-gradient(to bottom, transparent, rgba(254,228,64,0.9), transparent)",
+            }}
+          />
+          {/* Bright core */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
+            style={{
+              width: `${s.size}px`,
+              height: `${s.size}px`,
+              boxShadow: `0 0 ${s.size * 3}px rgba(254,228,64,1), 0 0 ${s.size * 6}px rgba(254,228,64,0.5)`,
+            }}
+          />
+        </motion.div>
+      ))}
+
+      {/* ── TIER 3: HERO STARS — 8-point glare with slow rotation ── */}
+      {heroStars.map((h, i) => (
+        <motion.div
+          key={`hero-${i}`}
+          animate={{
+            scale: [0.7, 1.3, 0.7],
+            opacity: [0.5, 1, 0.5],
+            rotate: [0, 45, 0],
+          }}
+          transition={{
+            duration: h.duration,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: h.delay,
+          }}
+          className="absolute"
+          style={{ left: `${h.left}%`, top: `${h.top}%`, width: 0, height: 0 }}
+        >
+          {/* Main cross — horizontal */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            style={{
+              width: "44px",
+              height: "1.5px",
+              background:
+                "linear-gradient(to right, transparent, rgba(254,228,64,1) 50%, transparent)",
+            }}
+          />
+          {/* Main cross — vertical */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            style={{
+              width: "1.5px",
+              height: "44px",
+              background:
+                "linear-gradient(to bottom, transparent, rgba(254,228,64,1) 50%, transparent)",
+            }}
+          />
+          {/* Diagonal cross — 45° */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45"
+            style={{
+              width: "26px",
+              height: "1px",
+              background:
+                "linear-gradient(to right, transparent, rgba(254,228,64,0.6) 50%, transparent)",
+            }}
+          />
+          {/* Diagonal cross — -45° */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-45"
+            style={{
+              width: "26px",
+              height: "1px",
+              background:
+                "linear-gradient(to right, transparent, rgba(254,228,64,0.6) 50%, transparent)",
+            }}
+          />
+          {/* Bright core */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
+            style={{
+              width: "4px",
+              height: "4px",
+              boxShadow:
+                "0 0 6px rgba(255,255,255,1), 0 0 14px rgba(254,228,64,1), 0 0 26px rgba(254,228,64,0.6)",
+            }}
+          />
+        </motion.div>
+      ))}
+    </div>
+  );
+};
 
 export default function PremiumLanding() {
   const containerRef = useRef(null);
@@ -806,7 +940,7 @@ export default function PremiumLanding() {
       <Navbar />
 
       {/* ── 1. THE SINGULARITY HERO SECTION (MILLION DOLLAR LOOK) ── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-4 overflow-hidden">
+      <section className="relative min-h-screen flex flex-col items-center justify-start px-6 pt-36 md:pt-44 pb-4 overflow-hidden">
         
         {/* Bottom Fade Gradient for smooth transition */}
         <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-bg-primary via-bg-primary/80 to-transparent z-20 pointer-events-none" />
@@ -816,96 +950,8 @@ export default function PremiumLanding() {
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-neon-yellow/10 rounded-full blur-[180px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-neon-yellow/6 rounded-full blur-[180px] pointer-events-none" />
 
-        {/* SVG Orbital Rings */}
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="-960 -540 1920 1080"
-          preserveAspectRatio="xMidYMid slice"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <filter id="rg" x="-40%" y="-40%" width="180%" height="180%">
-              <feGaussianBlur stdDeviation="5" result="b" />
-              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-            <filter id="dg" x="-150%" y="-150%" width="400%" height="400%">
-              <feGaussianBlur stdDeviation="7" result="b" />
-              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-
-          {/* Ring 1 — inner, bright yellow glow */}
-          <motion.g
-            animate={{ rotate: 360 }}
-            transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-            style={{ transformBox: "fill-box", transformOrigin: "center" }}
-          >
-            <ellipse cx="0" cy="0" rx="290" ry="108" fill="none"
-              stroke="#fee440" strokeWidth="1.8" strokeOpacity="0.55"
-              filter="url(#rg)" />
-          </motion.g>
-
-          {/* Ring 2 — medium, dashed yellow */}
-          <motion.g
-            animate={{ rotate: -360 }}
-            transition={{ duration: 38, repeat: Infinity, ease: "linear" }}
-            style={{ transformBox: "fill-box", transformOrigin: "center" }}
-          >
-            <ellipse cx="0" cy="0" rx="450" ry="168" fill="none"
-              stroke="#fee440" strokeWidth="1.2" strokeOpacity="0.28"
-              strokeDasharray="10 16" />
-          </motion.g>
-
-          {/* Ring 3 — orbiting dot ring */}
-          <motion.g
-            animate={{ rotate: 360 }}
-            transition={{ duration: 55, repeat: Infinity, ease: "linear" }}
-            style={{ transformBox: "fill-box", transformOrigin: "center" }}
-          >
-            <ellipse cx="0" cy="0" rx="600" ry="224" fill="none"
-              stroke="white" strokeWidth="0.8" strokeOpacity="0.1" />
-            <circle cx="0" cy="-224" r="4.5" fill="#fee440" filter="url(#dg)" />
-          </motion.g>
-
-          {/* Ring 4 — very flat/tilted, dashed */}
-          <motion.g
-            animate={{ rotate: -360 }}
-            transition={{ duration: 48, repeat: Infinity, ease: "linear" }}
-            style={{ transformBox: "fill-box", transformOrigin: "center" }}
-          >
-            <ellipse cx="0" cy="0" rx="740" ry="74" fill="none"
-              stroke="#fee440" strokeWidth="1" strokeOpacity="0.18"
-              strokeDasharray="5 22" />
-          </motion.g>
-
-          {/* Ring 5 — outer slow */}
-          <motion.g
-            animate={{ rotate: 360 }}
-            transition={{ duration: 88, repeat: Infinity, ease: "linear" }}
-            style={{ transformBox: "fill-box", transformOrigin: "center" }}
-          >
-            <ellipse cx="0" cy="0" rx="880" ry="348" fill="none"
-              stroke="white" strokeWidth="0.7" strokeOpacity="0.07" />
-          </motion.g>
-
-          {/* Ring 6 — second orbiting dot, opposite direction */}
-          <motion.g
-            animate={{ rotate: -360 }}
-            transition={{ duration: 70, repeat: Infinity, ease: "linear" }}
-            style={{ transformBox: "fill-box", transformOrigin: "center" }}
-          >
-            <ellipse cx="0" cy="0" rx="450" ry="168" fill="none"
-              stroke="none" />
-            <circle cx="450" cy="0" r="3" fill="#fee440" opacity="0.7" filter="url(#dg)" />
-          </motion.g>
-        </svg>
-
-        {/* Pulsing center glow */}
-        <motion.div
-          animate={{ scale: [1, 1.5, 1], opacity: [0.12, 0.28, 0.12] }}
-          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28vw] h-[28vw] rounded-full bg-neon-yellow/10 blur-[90px] pointer-events-none"
-        />
+        {/* Ambient background — blur blobs + particles */}
+        <HeroAmbientBackground />
 
         {/* Floating Complex Glass Widgets (Background App Mockups) - TEMPORARILY DISABLED */}
         {/*
@@ -953,7 +999,7 @@ export default function PremiumLanding() {
         */}
 
         {/* Hero Content (Foreground) */}
-        <motion.div variants={staggerVar} initial="hidden" animate="show" className="relative z-10 text-center max-w-[1000px] mx-auto w-full flex flex-col items-center">
+        <motion.div variants={staggerVar} initial="hidden" animate="show" className="relative z-10 text-center max-w-[1000px] mx-auto w-full flex flex-col items-center mt-10 md:mt-16">
           
           <motion.div variants={fadeUpVar} className="mb-8">
              <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl shadow-inner hover:scale-105 transition-transform cursor-pointer">
@@ -1009,31 +1055,42 @@ export default function PremiumLanding() {
 
         </motion.div>
 
-        {/* ── 2. AI MODELS ANIMATED TICKER (Inside Hero) ── */}
-        <div className="w-full mt-0 relative z-20 flex flex-col items-center justify-center overflow-hidden">
-          <p className="text-gray-500 text-xs font-bold tracking-[0.2em] uppercase mb-8 text-center px-4">
-             التقنيات والنماذج المتوفرة في غرفة المحركات
-          </p>
-          
-          <div className="w-full relative flex items-center [mask-image:linear-gradient(to_right,transparent_0%,black_20%,black_80%,transparent_100%)]" dir="ltr">
-             <motion.div 
-               className="flex w-max items-center opacity-40 hover:opacity-100 transition-opacity duration-500"
-               animate={{ x: ["0%", "-50%"] }}
-               transition={{ duration: 70, repeat: Infinity, ease: "linear" }}
-             >
-                {/* Loop the array exactly twice. -50% translation perfectly snaps this container for seamless infinity */}
-                {[...Array(2)].map((_, groupIdx) => (
-                   <div key={groupIdx} className="flex gap-16 md:gap-24 items-center pr-16 md:pr-24">
-                     {[...AI_MODELS_LOGOS, ...AI_MODELS_LOGOS].map((model, idx) => (
-                       <div key={`${groupIdx}-${idx}`} className="flex items-center gap-4 hover:scale-110 transition-transform duration-300 cursor-pointer drop-shadow-md">
-                         {model.svg}
-                         <span className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase">{model.name}</span>
-                       </div>
-                     ))}
-                   </div>
-                ))}
-             </motion.div>
-          </div>
+        {/* ── 2. HERO CTA BUTTONS ── */}
+        <motion.div
+          variants={fadeUpVar}
+          initial="hidden"
+          animate="show"
+          className="relative z-20 flex flex-wrap items-center justify-center gap-4 mb-10 md:mb-14"
+        >
+          <Link href="/dashboard">
+            <Button
+              variant="cosmic"
+              size="lg"
+              className="rounded-full shadow-[0_0_40px_rgba(254,228,64,0.35)] hover:scale-105 transition-transform"
+            >
+              <Sparkles className="w-5 h-5" />
+              ابدأ مجاناً
+            </Button>
+          </Link>
+          <Link href="/tools">
+            <Button
+              variant="cyber"
+              size="lg"
+              className="rounded-full hover:scale-105 transition-transform"
+            >
+              استكشف الأدوات
+              <ArrowDown className="w-4 h-4 rotate-[-90deg]" />
+            </Button>
+          </Link>
+        </motion.div>
+
+        {/* ── 3. AI MODELS ELASTIC FILM-STRIP TICKER (break out of section padding) ── */}
+        <div className="w-screen -mx-6 mt-auto mb-28 md:mb-36 relative z-30 flex flex-col items-center justify-center overflow-visible">
+          <ElasticModelsTicker logos={AI_MODELS_LOGOS} />
+          {/* Left fade — sits above both strips */}
+          <div className="absolute top-[-250px] bottom-[-250px] left-0 w-28 md:w-40 pointer-events-none" style={{ zIndex: 50, background: "linear-gradient(to right, #030305 35%, transparent)" }} />
+          {/* Right fade */}
+          <div className="absolute top-[-250px] bottom-[-250px] right-0 w-28 md:w-40 pointer-events-none" style={{ zIndex: 50, background: "linear-gradient(to left, #030305 35%, transparent)" }} />
         </div>
       </section>
       

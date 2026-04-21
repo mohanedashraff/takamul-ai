@@ -41,13 +41,8 @@ function findToolById(toolId: string): { tool: Tool; categoryKey: ToolCategory }
 
 const ToolDotsBackground = () => (
   <div
-    className="fixed inset-0 pointer-events-none"
-    style={{
-      backgroundImage:
-        "radial-gradient(circle at center, rgba(255,255,255,0.12) 1.5px, transparent 1.5px)",
-      backgroundSize: "40px 40px",
-      zIndex: 0,
-    }}
+    className="fixed inset-0 pointer-events-none tool-dots-bg"
+    style={{ zIndex: 0 }}
   />
 );
 

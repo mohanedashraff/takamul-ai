@@ -118,6 +118,18 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Tool pages dot pattern — smaller/denser on mobile */
+  .tool-dots-bg {
+    background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  @media (min-width: 768px) {
+    .tool-dots-bg {
+      background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.12) 1.5px, transparent 1.5px);
+      background-size: 40px 40px;
+    }
+  }
 }
 
 /* ── Premium Scrollbar (Dashboard) ── */
