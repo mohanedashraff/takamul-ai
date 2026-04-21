@@ -240,80 +240,107 @@ export function InpaintWorkspace({ tool, config }: Props) {
     <div className="flex flex-col min-h-screen bg-bg-primary">
       <Navbar />
 
-      <div className="flex flex-col flex-1 overflow-hidden pt-16 md:pt-20">
+      <div className="flex flex-1 overflow-hidden pt-16 md:pt-20">
 
-        {/* ── TOP BAR ──────────────────────────────────────────────────── */}
-        <div className="h-14 shrink-0 flex items-center px-5 gap-3 border-b border-white/5 bg-black/20 backdrop-blur-sm">
-          <button
-            onClick={() => router.back()}
-            className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <ArrowRight className="w-4 h-4" />
-          </button>
-          <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center border border-white/10 shrink-0"
-            style={{ backgroundColor: `rgba(${rgb}, 0.12)` }}
-          >
-            <tool.icon className={cn("w-4 h-4", config.colorClass)} />
-          </div>
-          <span className="text-white font-bold text-sm">{tool.title}</span>
-          <span className="text-gray-700 text-xs hidden md:inline">·</span>
-          <span className="text-gray-500 text-xs hidden md:inline">{tool.desc}</span>
-        </div>
+        {/* ── RIGHT SIDEBAR ────────────────────────────────────────────── */}
+        <aside className="w-[340px] shrink-0 border-l border-white/5 bg-black/50 backdrop-blur-3xl flex flex-col z-10">
+          <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5 hide-scroll">
 
-        {/* ── PROMPT + CONTROLS BAR ────────────────────────────────────── */}
-        <div className="shrink-0 flex items-start gap-3 px-5 py-3 border-b border-white/5 bg-black/30">
-          {/* Textarea */}
-          <textarea
-            rows={2}
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            placeholder="صف التغيير أو الإضافة التي تريدها في المنطقة المحددة..."
-            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-white text-sm placeholder-gray-600 resize-none focus:outline-none focus:border-white/25 transition-colors leading-relaxed"
-            style={{ direction: "rtl" }}
-          />
+            {/* Prompt */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                التعديل المطلوب
+                <span className="text-red-500 mr-1.5">*</span>
+              </label>
+              <textarea
+                value={prompt}
+                onChange={e => setPrompt(e.target.value)}
+                placeholder="صف التغيير أو الإضافة التي تريدها في المنطقة المحددة..."
+                rows={5}
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm placeholder-gray-600 resize-none focus:outline-none focus:border-white/25 transition-colors leading-relaxed"
+                style={{ direction: "rtl" }}
+              />
+            </div>
 
-          {/* Ref image button */}
-          <div className="shrink-0 flex flex-col gap-1">
-            {refPreview ? (
-              <div className="relative rounded-xl overflow-hidden border border-white/10 w-16 h-16">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={refPreview} alt="مرجع" className="w-full h-full object-cover" />
-                <button
-                  onClick={removeRef}
-                  className="absolute top-0.5 left-0.5 w-5 h-5 rounded-md bg-black/70 text-white flex items-center justify-center hover:bg-black/90 transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ) : (
-              <>
-                <input
-                  ref={refInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) pickRefFile(f); e.target.value = ""; }}
-                />
-                <button
-                  onClick={() => refInputRef.current?.click()}
-                  className="w-16 h-16 rounded-xl border border-dashed border-white/15 flex flex-col items-center justify-center gap-1 text-gray-600 hover:text-gray-400 hover:border-white/25 transition-colors"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span className="text-[9px] leading-tight text-center">صورة مرجعية</span>
-                </button>
-              </>
+            {/* Reference image */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                صورة مرجعية
+                <span className="text-gray-600 text-xs font-normal mr-2">(اختياري)</span>
+              </label>
+              {refPreview ? (
+                <div className="relative rounded-2xl overflow-hidden border border-white/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={refPreview} alt="مرجع" className="w-full h-28 object-cover" />
+                  <button
+                    onClick={removeRef}
+                    className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/70 text-white flex items-center justify-center hover:bg-black/90 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    ref={refInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) pickRefFile(f); e.target.value = ""; }}
+                  />
+                  <button
+                    onClick={() => refInputRef.current?.click()}
+                    className="w-full h-20 rounded-2xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-1.5 text-gray-600 hover:text-gray-400 hover:border-white/20 transition-colors"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span className="text-xs">أضف منتجاً أو صورة كمرجع للتعديل</span>
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Inpaint hint */}
+            {file && !hasStrokes && phase === "edit" && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl p-4 text-xs leading-relaxed text-center"
+                style={{
+                  backgroundColor: `rgba(${rgb}, 0.06)`,
+                  color: `rgba(255,255,255,0.45)`,
+                  border: `1px solid rgba(${rgb}, 0.15)`,
+                }}
+              >
+                <Paintbrush className="w-4 h-4 mx-auto mb-2 opacity-60" style={{ color: `rgb(${rgb})` }} />
+                ارسم على الصورة في المنطقة التي تريد تعديلها، ثم اكتب التعديل المطلوب واضغط &quot;ابدأ التعديل&quot;
+              </motion.div>
             )}
+
+            {/* Active strokes indicator */}
+            {hasStrokes && phase === "edit" && (
+              <div
+                className="flex items-center gap-2 text-xs rounded-xl px-3 py-2"
+                style={{ backgroundColor: `rgba(${rgb}, 0.08)`, color: `rgb(${rgb})` }}
+              >
+                <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: `rgb(${rgb})` }} />
+                منطقة التعديل محددة — يمكنك إضافة المزيد أو الكتابة وبدء التعديل
+              </div>
+            )}
+
           </div>
 
-          {/* Credits + generate */}
-          <div className="shrink-0 flex flex-col items-end gap-1.5">
-            <span
-              className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
-              style={{ color: `rgb(${rgb})`, backgroundColor: `rgba(${rgb}, 0.1)` }}
-            >
-              <Zap className="w-3 h-3" /> {tool.credits} كريديت
-            </span>
+          {/* Generate button */}
+          <div className="shrink-0 p-5 border-t border-white/5 bg-black/60 space-y-3">
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>التكلفة</span>
+              <span
+                className="flex items-center gap-1 font-bold px-2.5 py-1 rounded-full"
+                style={{ color: `rgb(${rgb})`, backgroundColor: `rgba(${rgb}, 0.1)` }}
+              >
+                <Zap className="w-3 h-3" /> {tool.credits} كريديت
+              </span>
+            </div>
+
             <button
               onClick={() => {
                 if (!valid || phase === "processing") return;
@@ -322,30 +349,49 @@ export function InpaintWorkspace({ tool, config }: Props) {
               }}
               disabled={!valid || phase === "processing"}
               className={cn(
-                "h-10 px-5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 whitespace-nowrap",
+                "w-full rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all duration-300",
                 valid && phase !== "processing"
-                  ? "text-white hover:brightness-110 cursor-pointer"
+                  ? "text-white hover:scale-[1.02] hover:brightness-110 cursor-pointer"
                   : "bg-white/5 text-gray-600 cursor-not-allowed"
               )}
               style={{
+                height: "52px",
                 ...(valid && phase !== "processing" ? {
                   backgroundColor: `rgba(${rgb}, 0.2)`,
                   border: `1px solid rgba(${rgb}, 0.45)`,
-                  boxShadow: `0 0 20px rgba(${rgb}, 0.2)`,
+                  boxShadow: `0 0 25px rgba(${rgb}, 0.2)`,
                 } : {}),
               }}
             >
               {phase === "processing" ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> جاري التعديل...</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> جاري التعديل...</>
               ) : (
-                <><Sparkles className="w-4 h-4" /> ابدأ التعديل</>
+                <><Sparkles className="w-5 h-5" /> ابدأ التعديل</>
               )}
             </button>
           </div>
-        </div>
+        </aside>
 
-        {/* ── CANVAS AREA ──────────────────────────────────────────────── */}
-        <main className="flex flex-col flex-1 overflow-hidden bg-[#020204]">
+        {/* ── EDITOR MAIN AREA ─────────────────────────────────────────── */}
+        <main className="flex-1 flex flex-col overflow-hidden bg-[#020204]">
+          {/* Top bar */}
+          <div className="h-14 shrink-0 flex items-center px-5 gap-3 border-b border-white/5 bg-black/20 backdrop-blur-sm">
+            <button
+              onClick={() => router.back()}
+              className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center border border-white/10 shrink-0"
+              style={{ backgroundColor: `rgba(${rgb}, 0.12)` }}
+            >
+              <tool.icon className={cn("w-4 h-4", config.colorClass)} />
+            </div>
+            <span className="text-white font-bold text-sm">{tool.title}</span>
+            <span className="text-gray-700 text-xs hidden md:inline">·</span>
+            <span className="text-gray-500 text-xs hidden md:inline">{tool.desc}</span>
+          </div>
 
           {/* Canvas / upload area */}
           <div className="flex-1 flex items-center justify-center overflow-hidden p-4 relative">

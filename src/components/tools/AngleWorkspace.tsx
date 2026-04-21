@@ -187,7 +187,7 @@ export function AngleWorkspace({ tool, config }: Props) {
   const indY    = CY - R_SVG * indFY;
   const isFront = indFZ >= 0;
 
-  // ── Globe SVG (compact size) ───────────────────────────────────────────────
+  // ── Globe SVG ──────────────────────────────────────────────────────────────
   const Globe = (
     <svg
       viewBox="0 0 240 240"
@@ -287,251 +287,268 @@ export function AngleWorkspace({ tool, config }: Props) {
   return (
     <div className="flex flex-col min-h-screen bg-bg-primary">
       <Navbar />
+      <div className="flex flex-1 overflow-hidden pt-16 md:pt-20">
 
-      <div className="flex flex-col flex-1 overflow-hidden pt-16 md:pt-20">
+        {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
+        <aside className="w-[300px] shrink-0 border-l border-white/5 bg-black/50 backdrop-blur-3xl flex flex-col z-10">
+          <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5 hide-scroll">
 
-        {/* ── TOP BAR ──────────────────────────────────────────────────── */}
-        <div className="h-14 shrink-0 flex items-center gap-3 px-5 border-b border-white/5 bg-black/20 backdrop-blur-sm">
-          <button onClick={() => router.back()}
-            className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
-            <ArrowRight className="w-4 h-4" />
-          </button>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-white/10"
-            style={{ backgroundColor: `rgba(${rgb}, 0.12)` }}>
-            <tool.icon className={cn("w-4 h-4", config.colorClass)} />
-          </div>
-          <span className="text-white font-bold text-sm">{tool.title}</span>
-          <span className="text-xs text-gray-600 font-mono">
-            {azimuth}° / {elevation > 0 ? "+" : ""}{elevation}°
-          </span>
-          {phase === "edit" && preview && (
-            <button onClick={() => fileInputRef.current?.click()}
-              className="mr-auto flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors px-3 py-1.5 rounded-xl hover:bg-white/8">
-              <ImageIcon className="w-3.5 h-3.5" /> تغيير الصورة
-            </button>
-          )}
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) pickFile(f); e.target.value = ""; }} />
-        </div>
+            {/* Globe picker */}
+            <div>
+              <p className="text-sm font-semibold text-gray-300 mb-3">زاوية الكاميرا</p>
+              <div className="rounded-2xl bg-white/4 border border-white/8 p-3 space-y-2">
+                <p className="text-xs text-gray-500 text-center">اسحب الكرة لتدويرها وتحديد الزاوية</p>
 
-        {/* ── IMAGE AREA ───────────────────────────────────────────────── */}
-        <div className="flex-1 flex items-center justify-center overflow-hidden p-8 bg-[#060608]">
-          <AnimatePresence mode="wait">
-
-            {/* Upload zone */}
-            {phase === "idle" && (
-              <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="w-full max-w-lg">
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) pickFile(f); }}
-                  onDragOver={e => e.preventDefault()}
-                  className="rounded-3xl border-2 border-dashed cursor-pointer transition-all hover:scale-[1.005] flex flex-col items-center justify-center gap-5 py-20 px-8 text-center select-none"
-                  style={{ borderColor: `rgba(${rgb}, 0.25)`, backgroundColor: "rgba(255,255,255,0.015)" }}
-                >
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center border-2"
-                    style={{ borderColor: `rgba(${rgb}, 0.3)`, backgroundColor: `rgba(${rgb}, 0.07)` }}>
-                    <Upload className="w-9 h-9" style={{ color: `rgb(${rgb})` }} />
-                  </div>
-                  <div>
-                    <p className="text-white font-bold text-xl mb-1">ارفع الصورة</p>
-                    <p className="text-gray-500 text-sm">
-                      أو <span style={{ color: `rgb(${rgb})` }} className="font-semibold">انقر للاختيار</span>
-                    </p>
-                  </div>
-                  <span className="text-xs text-gray-600 flex items-center gap-2 bg-white/4 rounded-full px-4 py-2 border border-white/8">
-                    <ImageIcon className="w-3.5 h-3.5" /> PNG أو JPG
-                  </span>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Preview + processing */}
-            {(phase === "edit" || phase === "processing") && preview && (
-              <motion.div key="edit"
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="relative w-full h-full flex items-center justify-center"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview} alt="الصورة"
-                  className="max-w-full max-h-full object-contain rounded-2xl"
-                  style={{
-                    boxShadow: `0 0 60px rgba(${rgb}, 0.15)`,
-                    filter: phase === "processing" ? "blur(4px) brightness(0.5)" : undefined,
-                  }}
-                />
-                <div className="absolute top-4 left-4 flex gap-2">
-                  <span className="text-xs font-mono bg-black/70 backdrop-blur-sm border border-white/10 px-3 py-1.5 rounded-xl text-white">
-                    {azimuth}°
-                  </span>
-                  <span className="text-xs font-mono bg-black/70 backdrop-blur-sm border border-white/10 px-3 py-1.5 rounded-xl text-white">
-                    {elevation > 0 ? "+" : ""}{elevation}°
-                  </span>
-                </div>
-                {phase === "processing" && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-5">
-                    <div className="relative w-16 h-16">
-                      <div className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
-                        style={{ borderTopColor: `rgb(${rgb})`, borderRightColor: `rgba(${rgb},0.3)` }} />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <tool.icon className={cn("w-6 h-6 animate-pulse", config.colorClass)} />
-                      </div>
-                    </div>
-                    <p className="text-white font-bold text-lg">جاري تغيير الزاوية...</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {/* Result */}
-            {phase === "result" && (
-              <motion.div key="result"
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col items-center gap-4 w-full max-w-2xl"
-              >
-                <div className="rounded-3xl overflow-hidden border border-white/10 w-full"
-                  style={{ boxShadow: `0 0 50px rgba(${rgb}, 0.15)` }}>
-                  <div className="flex items-center justify-between px-5 py-3 border-b border-white/8 bg-black/30">
-                    <span className="text-sm font-bold px-3 py-1 rounded-full"
-                      style={{ color: `rgb(${rgb})`, backgroundColor: `rgba(${rgb}, 0.1)` }}>
-                      ✨ تم تغيير الزاوية
-                    </span>
-                    <span className="text-xs text-gray-600 font-mono">
-                      {azimuth}° / {elevation > 0 ? "+" : ""}{elevation}°
-                    </span>
-                  </div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preview} alt="نتيجة"
-                    className="w-full object-contain bg-black/40" style={{ maxHeight: "60vh" }} />
-                </div>
-                <div className="flex gap-3 w-full">
-                  <button className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
-                    <Download className="w-4 h-4" /> تحميل النتيجة
+                {/* Globe + arrows */}
+                <div className="relative flex items-center justify-center py-3">
+                  <button onClick={() => nudge(0, 10)}
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white transition-colors z-10">
+                    <ChevronUp className="w-5 h-5" />
                   </button>
-                  <button onClick={() => setPhase("edit")}
-                    className="h-12 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors">
-                    <RefreshCw className="w-4 h-4" /> تجربة زاوية أخرى
+                  <button onClick={() => nudge(0, -10)}
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white transition-colors z-10">
+                    <ChevronDown className="w-5 h-5" />
                   </button>
+                  <button onClick={() => nudge(-10, 0)}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white transition-colors z-10">
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => nudge(10, 0)}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white transition-colors z-10">
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <div className="w-[200px] h-[200px]">{Globe}</div>
                 </div>
-              </motion.div>
-            )}
 
-          </AnimatePresence>
-        </div>
-
-        {/* ── BOTTOM CONTROLS BAR ──────────────────────────────────────── */}
-        {(phase === "edit" || phase === "processing") && (
-          <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-t border-white/5 bg-black/50 backdrop-blur-sm">
-
-            {/* Globe compact */}
-            <div className="shrink-0 rounded-xl bg-white/4 border border-white/8 p-1.5">
-              <div className="relative flex items-center justify-center" style={{ width: 80, height: 80 }}>
-                <button onClick={() => nudge(0, 10)}
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-white transition-colors z-10">
-                  <ChevronUp className="w-3.5 h-3.5" />
-                </button>
-                <button onClick={() => nudge(0, -10)}
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-white transition-colors z-10">
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </button>
-                <button onClick={() => nudge(-10, 0)}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-white transition-colors z-10">
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-                <button onClick={() => nudge(10, 0)}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-white transition-colors z-10">
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-                <div style={{ width: 56, height: 56 }}>{Globe}</div>
+                {/* Generate 12 */}
+                <label className="flex items-center gap-2 px-1 cursor-pointer select-none">
+                  <input type="checkbox" checked={gen12}
+                    onChange={e => setGen12(e.target.checked)}
+                    className="rounded"
+                    style={{ accentColor: `rgb(${rgb})` }} />
+                  <span className="text-xs text-gray-400">توليد من أفضل 12 زاوية</span>
+                </label>
               </div>
             </div>
 
-            <div className="w-px h-10 bg-white/10 shrink-0" />
-
-            {/* Azimuth slider */}
-            <div className="shrink-0 flex items-center gap-2 min-w-[110px]">
-              <span className="text-xs text-gray-500 whitespace-nowrap">الدوران</span>
-              <input type="range" min={0} max={360} value={azimuth}
-                onChange={e => setAzEl(Number(e.target.value), elevation)}
-                className="w-20 h-1.5 rounded-full"
-                style={{ accentColor: `rgb(${rgb})` }} />
-              <span className="text-xs font-mono font-bold w-10" style={{ color: `rgb(${rgb})` }}>{azimuth}°</span>
+            {/* Sliders */}
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-400">الدوران</span>
+                  <span className="text-sm font-mono font-bold" style={{ color: `rgb(${rgb})` }}>
+                    {azimuth}°
+                  </span>
+                </div>
+                <input type="range" min={0} max={360} value={azimuth}
+                  onChange={e => setAzEl(Number(e.target.value), elevation)}
+                  className="w-full h-1.5 rounded-full"
+                  style={{ accentColor: `rgb(${rgb})` }} />
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-400">الإمالة</span>
+                  <span className="text-sm font-mono font-bold" style={{ color: `rgb(${rgb})` }}>
+                    {elevation > 0 ? "+" : ""}{elevation}°
+                  </span>
+                </div>
+                <input type="range" min={-85} max={85} value={elevation}
+                  onChange={e => setAzEl(azimuth, Number(e.target.value))}
+                  className="w-full h-1.5 rounded-full"
+                  style={{ accentColor: `rgb(${rgb})` }} />
+              </div>
             </div>
-
-            {/* Elevation slider */}
-            <div className="shrink-0 flex items-center gap-2 min-w-[110px]">
-              <span className="text-xs text-gray-500 whitespace-nowrap">الإمالة</span>
-              <input type="range" min={-85} max={85} value={elevation}
-                onChange={e => setAzEl(azimuth, Number(e.target.value))}
-                className="w-20 h-1.5 rounded-full"
-                style={{ accentColor: `rgb(${rgb})` }} />
-              <span className="text-xs font-mono font-bold w-10" style={{ color: `rgb(${rgb})` }}>
-                {elevation > 0 ? "+" : ""}{elevation}°
-              </span>
-            </div>
-
-            <div className="w-px h-10 bg-white/10 shrink-0" />
-
-            {/* Generate 12 checkbox */}
-            <label className="shrink-0 flex items-center gap-2 cursor-pointer select-none">
-              <input type="checkbox" checked={gen12}
-                onChange={e => setGen12(e.target.checked)}
-                className="rounded"
-                style={{ accentColor: `rgb(${rgb})` }} />
-              <span className="text-xs text-gray-400 whitespace-nowrap">12 زاوية</span>
-            </label>
 
             {/* Prompt */}
-            <textarea
-              rows={2}
-              value={prompt}
-              onChange={e => setPrompt(e.target.value)}
-              placeholder="أي تفاصيل إضافية عن المشهد..."
-              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs placeholder-gray-600 resize-none focus:outline-none focus:border-white/25 transition-colors leading-relaxed"
-              style={{ direction: "rtl" }}
-            />
-
-            {/* Credits + generate */}
-            <div className="shrink-0 flex flex-col items-end gap-1.5">
-              <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
-                style={{ color: `rgb(${rgb})`, backgroundColor: `rgba(${rgb}, 0.1)` }}>
-                <Zap className="w-3 h-3" /> {tool.credits} كريديت
-              </span>
-              <button
-                onClick={() => {
-                  if (!preview || phase === "processing") return;
-                  setPhase("processing");
-                  setTimeout(() => setPhase("result"), 3500);
-                }}
-                disabled={!preview || phase === "processing"}
-                className={cn(
-                  "h-10 px-5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 whitespace-nowrap",
-                  preview && phase !== "processing"
-                    ? "text-white hover:brightness-110 cursor-pointer"
-                    : "bg-white/5 text-gray-600 cursor-not-allowed"
-                )}
-                style={{
-                  ...(preview && phase !== "processing" ? {
-                    backgroundColor: `rgba(${rgb}, 0.2)`,
-                    border: `1px solid rgba(${rgb}, 0.45)`,
-                    boxShadow: `0 0 20px rgba(${rgb}, 0.2)`,
-                  } : {}),
-                }}
-              >
-                {phase === "processing"
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> جاري التوليد...</>
-                  : <><Sparkles className="w-4 h-4" /> توليد الزاوية الجديدة</>}
-              </button>
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">وصف إضافي
+                <span className="text-gray-600 text-xs font-normal mr-2">(اختياري)</span>
+              </label>
+              <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
+                placeholder="أي تفاصيل إضافية عن المشهد..."
+                rows={3}
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm placeholder-gray-600 resize-none focus:outline-none focus:border-white/25 transition-colors leading-relaxed"
+                style={{ direction: "rtl" }} />
             </div>
 
           </div>
-        )}
+
+          {/* Generate */}
+          <div className="shrink-0 p-5 border-t border-white/5 bg-black/60 space-y-3">
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>التكلفة</span>
+              <span className="flex items-center gap-1 font-bold px-2.5 py-1 rounded-full"
+                style={{ color: `rgb(${rgb})`, backgroundColor: `rgba(${rgb}, 0.1)` }}>
+                <Zap className="w-3 h-3" /> {tool.credits} كريديت
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                if (!preview || phase === "processing") return;
+                setPhase("processing");
+                setTimeout(() => setPhase("result"), 3500);
+              }}
+              disabled={!preview || phase === "processing"}
+              className={cn(
+                "w-full rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all duration-300",
+                preview && phase !== "processing"
+                  ? "text-white hover:scale-[1.02] hover:brightness-110 cursor-pointer"
+                  : "bg-white/5 text-gray-600 cursor-not-allowed"
+              )}
+              style={{
+                height: "52px",
+                ...(preview && phase !== "processing" ? {
+                  backgroundColor: `rgba(${rgb}, 0.2)`,
+                  border: `1px solid rgba(${rgb}, 0.45)`,
+                  boxShadow: `0 0 25px rgba(${rgb}, 0.2)`,
+                } : {}),
+              }}
+            >
+              {phase === "processing"
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> جاري التوليد...</>
+                : <><Sparkles className="w-5 h-5" /> توليد الزاوية الجديدة</>}
+            </button>
+          </div>
+        </aside>
+
+        {/* ── MAIN ─────────────────────────────────────────────────────────── */}
+        <main className="flex-1 flex flex-col overflow-hidden bg-[#060608]">
+
+          {/* Top bar */}
+          <div className="h-14 shrink-0 flex items-center gap-3 px-5 border-b border-white/5 bg-black/20 backdrop-blur-sm">
+            <button onClick={() => router.back()}
+              className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-white/10"
+              style={{ backgroundColor: `rgba(${rgb}, 0.12)` }}>
+              <tool.icon className={cn("w-4 h-4", config.colorClass)} />
+            </div>
+            <span className="text-white font-bold text-sm">{tool.title}</span>
+            <span className="text-xs text-gray-600 font-mono">
+              {azimuth}° / {elevation > 0 ? "+" : ""}{elevation}°
+            </span>
+            {phase === "edit" && preview && (
+              <button onClick={() => fileInputRef.current?.click()}
+                className="mr-auto flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors px-3 py-1.5 rounded-xl hover:bg-white/8">
+                <ImageIcon className="w-3.5 h-3.5" /> تغيير الصورة
+              </button>
+            )}
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) pickFile(f); e.target.value = ""; }} />
+          </div>
+
+          {/* Editor area */}
+          <div className="flex-1 flex items-center justify-center overflow-hidden p-8">
+            <AnimatePresence mode="wait">
+
+              {/* Upload zone */}
+              {phase === "idle" && (
+                <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="w-full max-w-lg">
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) pickFile(f); }}
+                    onDragOver={e => e.preventDefault()}
+                    className="rounded-3xl border-2 border-dashed cursor-pointer transition-all hover:scale-[1.005] flex flex-col items-center justify-center gap-5 py-20 px-8 text-center select-none"
+                    style={{ borderColor: `rgba(${rgb}, 0.25)`, backgroundColor: "rgba(255,255,255,0.015)" }}
+                  >
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center border-2"
+                      style={{ borderColor: `rgba(${rgb}, 0.3)`, backgroundColor: `rgba(${rgb}, 0.07)` }}>
+                      <Upload className="w-9 h-9" style={{ color: `rgb(${rgb})` }} />
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-xl mb-1">ارفع الصورة</p>
+                      <p className="text-gray-500 text-sm">
+                        أو <span style={{ color: `rgb(${rgb})` }} className="font-semibold">انقر للاختيار</span>
+                      </p>
+                    </div>
+                    <span className="text-xs text-gray-600 flex items-center gap-2 bg-white/4 rounded-full px-4 py-2 border border-white/8">
+                      <ImageIcon className="w-3.5 h-3.5" /> PNG أو JPG
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Preview + processing */}
+              {(phase === "edit" || phase === "processing") && preview && (
+                <motion.div key="edit"
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="relative w-full h-full flex items-center justify-center"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={preview} alt="الصورة"
+                    className="max-w-full max-h-full object-contain rounded-2xl"
+                    style={{
+                      boxShadow: `0 0 60px rgba(${rgb}, 0.15)`,
+                      filter: phase === "processing" ? "blur(4px) brightness(0.5)" : undefined,
+                    }}
+                  />
+                  <div className="absolute top-4 left-4 flex gap-2">
+                    <span className="text-xs font-mono bg-black/70 backdrop-blur-sm border border-white/10 px-3 py-1.5 rounded-xl text-white">
+                      {azimuth}°
+                    </span>
+                    <span className="text-xs font-mono bg-black/70 backdrop-blur-sm border border-white/10 px-3 py-1.5 rounded-xl text-white">
+                      {elevation > 0 ? "+" : ""}{elevation}°
+                    </span>
+                  </div>
+                  {phase === "processing" && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-5">
+                      <div className="relative w-16 h-16">
+                        <div className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
+                          style={{ borderTopColor: `rgb(${rgb})`, borderRightColor: `rgba(${rgb},0.3)` }} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <tool.icon className={cn("w-6 h-6 animate-pulse", config.colorClass)} />
+                        </div>
+                      </div>
+                      <p className="text-white font-bold text-lg">جاري تغيير الزاوية...</p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* Result */}
+              {phase === "result" && (
+                <motion.div key="result"
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex flex-col items-center gap-4 w-full max-w-2xl"
+                >
+                  <div className="rounded-3xl overflow-hidden border border-white/10 w-full"
+                    style={{ boxShadow: `0 0 50px rgba(${rgb}, 0.15)` }}>
+                    <div className="flex items-center justify-between px-5 py-3 border-b border-white/8 bg-black/30">
+                      <span className="text-sm font-bold px-3 py-1 rounded-full"
+                        style={{ color: `rgb(${rgb})`, backgroundColor: `rgba(${rgb}, 0.1)` }}>
+                        ✨ تم تغيير الزاوية
+                      </span>
+                      <span className="text-xs text-gray-600 font-mono">
+                        {azimuth}° / {elevation > 0 ? "+" : ""}{elevation}°
+                      </span>
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={preview} alt="نتيجة"
+                      className="w-full object-contain bg-black/40" style={{ maxHeight: "60vh" }} />
+                  </div>
+                  <div className="flex gap-3 w-full">
+                    <button className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
+                      <Download className="w-4 h-4" /> تحميل النتيجة
+                    </button>
+                    <button onClick={() => setPhase("edit")}
+                      className="h-12 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors">
+                      <RefreshCw className="w-4 h-4" /> تجربة زاوية أخرى
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+            </AnimatePresence>
+          </div>
+        </main>
 
       </div>
     </div>
