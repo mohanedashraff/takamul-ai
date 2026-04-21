@@ -92,7 +92,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { MediaRenderer } from "@/components/tools/MediaRenderer";
 
-import { IMAGE_TOOLS, VIDEO_TOOLS, AUDIO_TOOLS, CODE_TOOLS } from "@/lib/data/tools";
+import { IMAGE_TOOLS, VIDEO_TOOLS, AUDIO_TOOLS } from "@/lib/data/tools";
 import { AGENTS_LIST } from "@/lib/data/agents";
 
 const IMAGE_VIDEOS = [
@@ -1274,15 +1274,6 @@ export default function PremiumLanding() {
           items={AUDIO_TOOLS}
         />
 
-        <AdvancedLineDivider colorHex="#fee440" />
-
-        <ToolSliderSection
-          title="محرك الأكواد المتقدم"
-          desc="مساعدك البرمجي الخاص، دع الذكاء الاصطناعي يبني وينقح نظامك بكفاءة عالية."
-          colorClass="text-neon-yellow"
-          shadowColor="254, 228, 64"
-          items={CODE_TOOLS}
-        />
       </div>
 
       {/* ── TRANSITION DIVIDER ── */}

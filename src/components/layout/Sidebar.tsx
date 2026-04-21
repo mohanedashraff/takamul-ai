@@ -37,7 +37,6 @@ export const Sidebar = () => {
     { name: "ترسانة الصور", tab: "image", icon: ImageIcon },
     { name: "استوديو الفيديو", tab: "video", icon: Video },
     { name: "الهندسة الصوتية", tab: "audio", icon: Music },
-    { name: "محرك الأكواد", tab: "code", icon: Code },
   ];
 
   const bottomLinks = [

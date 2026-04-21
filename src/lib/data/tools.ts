@@ -1,6 +1,6 @@
 import {
-  Sparkles, Terminal, Zap, Frame, Radio, Layers,
-  Wand2, Image as ImageIcon, Video, Music, Code, AlignLeft, Database
+  Sparkles, Zap, Frame, Radio, Layers,
+  Wand2, Image as ImageIcon, Video, Music,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -926,7 +926,7 @@ export const VIDEO_TOOLS: Tool[] = [
     id: "video-editor",
     title: "تعديل الفيديو",
     desc: "حرّر فيديوهاتك باحتراف مع تأثيرات مذهلة.",
-    icon: Terminal,
+    icon: Zap,
     image: "https://static.higgsfield.ai/explore/edit-video.mp4",
     credits: 10,
     inputs: [
@@ -1073,7 +1073,7 @@ export const VIDEO_TOOLS: Tool[] = [
     id: "video-transitions",
     title: "انتقالات سلسة",
     desc: "انتقالات ذكية وسلسة تربط مشاهدك بإبداع.",
-    icon: Terminal,
+    icon: Zap,
     image: "https://static.higgsfield.ai/feed/step-3.mp4",
     credits: 6,
     isNew: true,
@@ -1135,6 +1135,7 @@ export const VIDEO_TOOLS: Tool[] = [
     id: "product-video",
     title: "فيديو منتج",
     desc: "شاهد منتجك في بيئة واقعية بفيديو احترافي.",
+    layout: "centered",
     icon: Frame,
     image: [
       "https://cdn.higgsfield.ai/application_main/c75be66a-b6a9-4cfb-add1-d2a98fa78080.mp4",
@@ -1163,6 +1164,7 @@ export const VIDEO_TOOLS: Tool[] = [
     id: "billboard-video",
     title: "لوحة إعلانية",
     desc: "ضع شعارك وإعلانك على أكبر لوحات العالم الافتراضية.",
+    layout: "centered",
     icon: Frame,
     image: "https://cdn.higgsfield.ai/application_main/a5928bf1-8cca-4f11-80c1-d48602facf5a.mp4",
     credits: 8,
@@ -1192,6 +1194,7 @@ export const AUDIO_TOOLS: Tool[] = [
     id: "text-to-speech",
     title: "كلام واقعي بصوت بشري",
     desc: "استمع فوراً لما تكتبه بصوت طبيعي وواضح.",
+    layout: "centered",
     icon: Music,
     image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=600&auto=format&fit=crop",
     credits: 3,
@@ -1205,13 +1208,33 @@ export const AUDIO_TOOLS: Tool[] = [
       },
       {
         id: "voice",
-        type: "button-group",
-        label: "نوع الصوت",
+        type: "select",
+        label: "الصوت",
         options: [
-          { value: "male",   label: "ذكر"  },
-          { value: "female", label: "أنثى" },
+          { value: "adam",    label: "Adam — وثائقي عميق 🇺🇸"      },
+          { value: "sarah",   label: "سارة — قصصي ومرح 🇪🇬"         },
+          { value: "fahad",   label: "فهد — إخباري رسمي 🇸🇦"        },
+          { value: "yuki",    label: "Yuki — أنمي حماسي 🇯🇵"        },
+          { value: "james",   label: "James — هادئ ومحترف 🇬🇧"      },
+          { value: "lina",    label: "لينا — ناعم ودافئ 🇦🇪"         },
+          { value: "marcus",  label: "Marcus — درامي قوي 🇺🇸"       },
+          { value: "nour",    label: "نور — شبابي وعصري 🇲🇦"         },
         ],
-        defaultValue: "male",
+        defaultValue: "adam",
+      },
+      {
+        id: "mood",
+        type: "button-group",
+        label: "أسلوب الأداء",
+        options: [
+          { value: "neutral",   label: "محايد"    },
+          { value: "happy",     label: "مبهج"     },
+          { value: "sad",       label: "حزين"     },
+          { value: "excited",   label: "متحمس"    },
+          { value: "serious",   label: "جدي"      },
+          { value: "whispering",label: "همس"      },
+        ],
+        defaultValue: "neutral",
       },
       {
         id: "speed",
@@ -1239,6 +1262,7 @@ export const AUDIO_TOOLS: Tool[] = [
     id: "audio-separate",
     title: "فصل الصوت",
     desc: "افصل الكلام عن الموسيقى بسهولة ودقة عالية.",
+    layout: "centered",
     icon: Layers,
     image: "https://images.unsplash.com/photo-1516280440502-3c66f6517170?q=80&w=600&auto=format&fit=crop",
     credits: 3,
@@ -1257,6 +1281,7 @@ export const AUDIO_TOOLS: Tool[] = [
     id: "audio-enhance",
     title: "تحسين الصوت",
     desc: "نقي صوتك من الضوضاء واجعله أكثر وضوحاً.",
+    layout: "centered",
     icon: Sparkles,
     image: "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=600&auto=format&fit=crop",
     credits: 2,
@@ -1271,125 +1296,11 @@ export const AUDIO_TOOLS: Tool[] = [
       },
     ],
   },
-  {
-    id: "sfx-generator",
-    title: "إنشاء تأثيرات صوتية",
-    desc: "حوّل النصوص إلى مؤثرات صوتية ساحرة.",
-    icon: Radio,
-    image: "https://images.unsplash.com/photo-1614149162883-504ce4d13909?q=80&w=600&auto=format&fit=crop",
-    credits: 4,
-    isNew: true,
-    inputs: [
-      {
-        id: "prompt",
-        type: "prompt",
-        label: "صف المؤثر الصوتي",
-        placeholder: "مثال: صوت رعد ومطر في غابة استوائية...",
-        required: true,
-      },
-      {
-        id: "duration",
-        type: "button-group",
-        label: "المدة",
-        options: [
-          { value: "5",  label: "5 ث"  },
-          { value: "10", label: "10 ث" },
-          { value: "30", label: "30 ث" },
-        ],
-        defaultValue: "10",
-      },
-    ],
-  },
-];
-
-// ── Code Tools ────────────────────────────────────────────────────────────────
-
-export const CODE_TOOLS: Tool[] = [
-  {
-    id: "ui-builder",
-    title: "صانع الواجهات",
-    desc: "ولد واجهات وتطبيقات React كاملة من الأوامر النصية.",
-    icon: Code,
-    image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600&auto=format&fit=crop",
-    credits: 10,
-    isNew: true,
-    inputs: [
-      {
-        id: "prompt",
-        type: "prompt",
-        label: "صف الواجهة المطلوبة",
-        placeholder: "مثال: لوحة تحكم إدارية بها جداول وإحصائيات ورسوم بيانية...",
-        required: true,
-      },
-      {
-        id: "framework",
-        type: "button-group",
-        label: "الإطار البرمجي",
-        options: [
-          { value: "react", label: "React"    },
-          { value: "next",  label: "Next.js"  },
-          { value: "html",  label: "HTML/CSS" },
-        ],
-        defaultValue: "react",
-      },
-    ],
-  },
-  {
-    id: "bug-finder",
-    title: "مكتشف الأخطاء",
-    desc: "دع الذكاء الاصطناعي يصلح ثغرات الكود المعقدة.",
-    icon: Terminal,
-    image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=600&auto=format&fit=crop",
-    credits: 5,
-    inputs: [
-      {
-        id: "prompt",
-        type: "prompt",
-        label: "الكود الذي يحتوي على خطأ",
-        placeholder: "الصق الكود هنا أو صف المشكلة التي تواجهها...",
-        required: true,
-      },
-    ],
-  },
-  {
-    id: "sql-generator",
-    title: "مبرمج قواعد البيانات",
-    desc: "سيقوم المحرك بتوليد جداول وأوامر SQL مباشرة.",
-    icon: Database,
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=600&auto=format&fit=crop",
-    credits: 5,
-    inputs: [
-      {
-        id: "prompt",
-        type: "prompt",
-        label: "صف ما تحتاجه",
-        placeholder: "مثال: جدول لقاعدة بيانات مستخدمين مع علاقة بجدول الطلبات...",
-        required: true,
-      },
-    ],
-  },
-  {
-    id: "code-explainer",
-    title: "مترجم الأكواد",
-    desc: "اشرح الأكواد المعقدة لسطور سهلة الفهم.",
-    icon: AlignLeft,
-    image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=600&auto=format&fit=crop",
-    credits: 2,
-    inputs: [
-      {
-        id: "prompt",
-        type: "prompt",
-        label: "الكود المراد شرحه",
-        placeholder: "الصق الكود هنا وسيشرحه لك الذكاء الاصطناعي بالعربية...",
-        required: true,
-      },
-    ],
-  },
 ];
 
 // ── Category Config ───────────────────────────────────────────────────────────
 
-export type ToolCategory = "image" | "video" | "audio" | "code";
+export type ToolCategory = "image" | "video" | "audio";
 
 export interface CategoryConfig {
   name: string;
@@ -1424,14 +1335,6 @@ export const STUDIO_CATEGORIES: Record<ToolCategory, CategoryConfig> = {
     shadowColor: "254, 228, 64",
     icon: Music,
     tools: AUDIO_TOOLS,
-  },
-  code: {
-    name: "الأكواد",
-    title: "محرك الأكواد المتقدم",
-    colorClass: "text-neon-yellow",
-    shadowColor: "254, 228, 64",
-    icon: Code,
-    tools: CODE_TOOLS,
   },
 };
 
