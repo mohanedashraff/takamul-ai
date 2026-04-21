@@ -91,21 +91,65 @@ const CAT_ICONS: Record<string, React.ReactNode> = {
   utility: <Wrench className="w-3.5 h-3.5" />,
 };
 
-// ---- Local Storage ----
-const STORAGE_KEY = "yilow-spaces-canvas";
+// ---- Backend persistence ----
+// Each user has one "default" canvas stored server-side. We cache only the
+// space id locally so reloading doesn't create a new one.
+const SPACE_ID_KEY = "yilow-default-space-id";
 
-function loadCanvas(): { nodes: Node[]; edges: Edge[] } | null {
+function getCachedSpaceId(): string | null {
   if (typeof window === "undefined") return null;
+  return localStorage.getItem(SPACE_ID_KEY);
+}
+
+function setCachedSpaceId(id: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(SPACE_ID_KEY, id);
+}
+
+async function loadOrCreateSpace(): Promise<{
+  spaceId: string;
+  nodes: Node[];
+  edges: Edge[];
+} | null> {
+  if (typeof window === "undefined") return null;
+
+  const cached = getCachedSpaceId();
+  if (cached) {
+    try {
+      const res = await fetch(`/api/spaces/${cached}`, { cache: "no-store" });
+      if (res.ok) {
+        const { space } = await res.json();
+        return {
+          spaceId: space.id,
+          nodes: (space.nodes as Node[]) ?? [],
+          edges: (space.edges as Edge[]) ?? [],
+        };
+      }
+      // 404 → fall through and create a new one
+    } catch { /* fall through */ }
+  }
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    const res = await fetch("/api/spaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "مساحة العمل", nodes: [], edges: [] }),
+    });
+    if (!res.ok) return null;
+    const { space } = await res.json();
+    setCachedSpaceId(space.id);
+    return { spaceId: space.id, nodes: [], edges: [] };
   } catch { return null; }
 }
 
-function saveCanvas(nodes: Node[], edges: Edge[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes, edges }));
+async function saveCanvasToBackend(spaceId: string, nodes: Node[], edges: Edge[]) {
+  try {
+    await fetch(`/api/spaces/${spaceId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nodes, edges }),
+    });
+  } catch { /* silent — will retry on next change */ }
 }
 
 // ============================================================
@@ -119,6 +163,7 @@ function SpacesCanvasInner() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [spaceId, setSpaceId] = useState<string | null>(null);
   const [spotlightOpen, setSpotlightOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -126,26 +171,29 @@ function SpacesCanvasInner() {
   const historyRef = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
   const historyIndexRef = useRef(-1);
 
-  // Load from localStorage
+  // Load from backend (creates a default space on first visit)
   useEffect(() => {
-    const stored = loadCanvas();
-    if (stored) {
-      setNodes(stored.nodes);
-      setEdges(stored.edges);
-    }
-    setLoaded(true);
+    let cancelled = false;
+    loadOrCreateSpace().then((result) => {
+      if (cancelled || !result) { setLoaded(true); return; }
+      setSpaceId(result.spaceId);
+      setNodes(result.nodes);
+      setEdges(result.edges);
+      setLoaded(true);
+    });
+    return () => { cancelled = true; };
   }, []);
 
-  // Auto-save on changes (debounced)
+  // Auto-save on changes (debounced → backend PUT)
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || !spaceId) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveCanvas(nodes, edges);
-    }, 500);
+      saveCanvasToBackend(spaceId, nodes, edges);
+    }, 800);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [nodes, edges, loaded]);
+  }, [nodes, edges, loaded, spaceId]);
 
   // Push history snapshot
   const pushHistory = useCallback(() => {
