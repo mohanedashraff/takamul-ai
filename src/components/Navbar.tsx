@@ -11,12 +11,12 @@ const Navbar = () => (
           <div className="absolute inset-0 bg-gradient-to-tr from-primary-400 to-accent-400 opacity-20 group-hover:opacity-100 transition-opacity duration-500" />
           <Terminal className="w-4 h-4 md:w-5 md:h-5 text-white relative z-10" />
         </div>
-        <span className="text-xl md:text-2xl font-black text-white tracking-tighter">تكامل<span className="text-accent-400">.</span></span>
+        <span className="text-xl md:text-2xl font-black text-white tracking-tighter">Yilow<span className="text-accent-400">.ai</span></span>
       </Link>
       <div className="hidden lg:flex items-center gap-10">
         <Link href="/" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">الرئيسية</Link>
         <Link href="/tools" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">الأدوات</Link>
-        <Link href="/chat" className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-l from-primary-400 to-accent-400 hover:opacity-80 transition-opacity drop-shadow-[0_0_10px_rgba(157,78,221,0.5)]">تكامل AI</Link>
+        <Link href="/chat" className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-l from-primary-400 to-accent-400 hover:opacity-80 transition-opacity drop-shadow-[0_0_10px_rgba(157,78,221,0.5)]">Yilow AI</Link>
         <Link href="/dashboard" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">لوحة التحكم</Link>
         <Link href="/spaces" className="text-sm font-bold text-gray-400 hover:text-white transition-colors uppercase tracking-wider">Spaces</Link>
       </div>

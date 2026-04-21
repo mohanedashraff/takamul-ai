@@ -57,7 +57,7 @@ export const Sidebar = () => {
       <div className="h-20 flex items-center justify-between px-6 shrink-0 relative">
         <Link href="/dashboard" className={cn("flex items-center gap-3 transition-opacity duration-300", collapsed && "opacity-0 pointer-events-none")}>
           <TerminalSquare className="w-6 h-6 text-white" strokeWidth={2} />
-          <span className="text-lg font-bold text-white tracking-wide">تكامل</span>
+          <span className="text-lg font-bold text-white tracking-wide">Yilow</span>
         </Link>
         
         {collapsed && (

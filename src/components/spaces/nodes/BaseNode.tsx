@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Takamul Spaces — Base Node Component
+// Yilow Spaces — Base Node Component
 // Shared layout for all node types: header, body, handles, actions
 // ============================================================
 

@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Takamul Spaces — Animated Edge
+// Yilow Spaces — Animated Edge
 // Color-coded animated connection lines between nodes
 // ============================================================
 

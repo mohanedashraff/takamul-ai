@@ -1,5 +1,5 @@
 // ============================================================
-// Takamul Spaces — Node Validation
+// Yilow Spaces — Node Validation
 // Validates connections between nodes based on port types
 // ============================================================
 

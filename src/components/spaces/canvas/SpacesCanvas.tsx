@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Takamul Spaces — Main Canvas Component
+// Yilow Spaces — Main Canvas Component
 // The core infinite canvas with all node types, edges, and interactions
 // ============================================================
 
@@ -92,7 +92,7 @@ const CAT_ICONS: Record<string, React.ReactNode> = {
 };
 
 // ---- Local Storage ----
-const STORAGE_KEY = "takamul-spaces-canvas";
+const STORAGE_KEY = "yilow-spaces-canvas";
 
 function loadCanvas(): { nodes: Node[]; edges: Edge[] } | null {
   if (typeof window === "undefined") return null;

@@ -9,7 +9,7 @@ const alexandria = Alexandria({
 });
 
 export const metadata: Metadata = {
-  title: "Takamul AI | تكامل",
+  title: "Yilow.ai",
   description: "The Ultimate AI Platform. Create, generate, and explore without limits.",
 };
 

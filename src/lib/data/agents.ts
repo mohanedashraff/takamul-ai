@@ -34,7 +34,7 @@ export const AGENTS_LIST: Agent[] = [
     shadowColor: "254, 228, 64",
     price: 299,
     rating: 4.8,
-    platform: "Takamul Native"
+    platform: "Yilow Native"
   },
   { 
     id: "seo-expert-agent",
@@ -74,7 +74,7 @@ export const AGENTS_LIST: Agent[] = [
     shadowColor: "254, 228, 64",
     price: 499,
     rating: 4.7,
-    platform: "Takamul Native"
+    platform: "Yilow Native"
   },
   { 
     id: "content-creator-agent",
@@ -127,6 +127,6 @@ export const AGENTS_LIST: Agent[] = [
     shadowColor: "254, 228, 64",
     price: 299,
     rating: 4.6,
-    platform: "Takamul Native"
+    platform: "Yilow Native"
   }
 ];

@@ -24,7 +24,7 @@ export default function RegisterPage() {
               <div className="absolute inset-0 bg-gradient-to-tr from-accent-400 to-neon-pink opacity-20" />
               <Terminal className="w-5 h-5 text-white relative z-10" />
             </div>
-            <span className="text-xl font-black text-white tracking-tighter">تكامل<span className="text-neon-pink">.</span></span>
+            <span className="text-xl font-black text-white tracking-tighter">Yilow<span className="text-neon-pink">.ai</span></span>
           </Link>
         </div>
 

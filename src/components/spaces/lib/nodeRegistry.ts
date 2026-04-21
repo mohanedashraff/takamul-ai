@@ -1,5 +1,5 @@
 // ============================================================
-// Takamul Spaces — Node Registry
+// Yilow Spaces — Node Registry
 // Central registry for all node types, their metadata, and port types
 // ============================================================
 

@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Takamul Spaces — Spotlight Search (Command Palette)
+// Yilow Spaces — Spotlight Search (Command Palette)
 // Press Space or / to quickly search and add nodes
 // ============================================================
 

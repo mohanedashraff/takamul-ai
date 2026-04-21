@@ -24,7 +24,7 @@ export default function LoginPage() {
               <div className="absolute inset-0 bg-gradient-to-tr from-primary-400 to-accent-400 opacity-20" />
               <Terminal className="w-5 h-5 text-white relative z-10" />
             </div>
-            <span className="text-xl font-black text-white tracking-tighter">تكامل<span className="text-accent-400">.</span></span>
+            <span className="text-xl font-black text-white tracking-tighter">Yilow<span className="text-accent-400">.ai</span></span>
           </Link>
         </div>
 
@@ -175,7 +175,7 @@ export default function LoginPage() {
               </div>
             </div>
             <div className="space-y-2 text-left font-mono text-xs text-gray-400 leading-relaxed" dir="ltr">
-              <p><span className="text-purple-400">def</span> <span className="text-blue-400">generate_takamul_response</span>(prompt):</p>
+              <p><span className="text-purple-400">def</span> <span className="text-blue-400">generate_yilow_response</span>(prompt):</p>
               <p className="ml-4">context = retrieve_db()</p>
               <p className="ml-4">model = AI.load_weights()</p>
               <p className="ml-4 text-green-400 border-l-2 border-green-400 pl-2">return model.predict(prompt, context)</p>

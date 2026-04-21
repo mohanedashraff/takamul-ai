@@ -19,7 +19,7 @@ const Footer = () => (
     </div>
 
     <div className="site-container mt-40 flex flex-col md:flex-row justify-between items-center pt-8 border-t border-white/10 text-gray-500 text-sm">
-      <p>© 2026 منصة تكامل للذكاء الاصطناعي. جميع الحقوق محفوظة.</p>
+      <p>© 2026 Yilow.ai. جميع الحقوق محفوظة.</p>
       <div className="flex gap-6 mt-4 md:mt-0">
         <a href="#" className="hover:text-white transition-colors">عن المنصة</a>
         <a href="#" className="hover:text-white transition-colors">شروط الاستخدام</a>

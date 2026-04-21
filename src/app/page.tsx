@@ -546,7 +546,7 @@ const PromotionalBanner = () => {
           {/* Center: Text Content */}
           <div className="flex-1 text-center md:text-right relative z-10" dir="rtl">
             <h3 className="text-white font-black text-lg sm:text-xl lg:text-2xl mb-1 flex items-center justify-center md:justify-start flex-wrap gap-x-2">
-              <span className="text-neon-pink tracking-wide uppercase drop-shadow-[0_0_10px_rgba(254,228,64,0.5)]">تكامل اللامحدودة</span> 
+              <span className="text-neon-pink tracking-wide uppercase drop-shadow-[0_0_10px_rgba(254,228,64,0.5)]">Yilow اللامحدودة</span> 
               <span>— متاح الآن للجميع! خصم أكثر من 70% 🚀</span>
             </h3>
             <p className="text-gray-400 text-xs sm:text-sm font-medium">
@@ -976,7 +976,7 @@ export default function PremiumLanding() {
                  <span className="text-gray-500 text-[10px] font-mono font-bold tracking-widest">engine.ts</span>
               </div>
               <div className="font-mono text-[11px] text-primary-400 opacity-90 leading-loose font-bold" dir="ltr">
-                 <span><span className="text-pink-500">import</span> {`{ Core }`} <span className="text-pink-500">from</span> 'takamul';</span><br/>
+                 <span><span className="text-pink-500">import</span> {`{ Core }`} <span className="text-pink-500">from</span> 'yilow';</span><br/>
                  <motion.span animate={{ opacity: [0, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>$ Initializing neurolink...</motion.span><br/>
                  <motion.span animate={{ opacity: [0, 1] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.7 }}>$ Generating components...</motion.span><br/>
               </div>
@@ -1017,7 +1017,7 @@ export default function PremiumLanding() {
           </motion.h1>
 
           <motion.p variants={fadeUpVar} className="text-base md:text-lg text-gray-400 font-light max-w-2xl leading-relaxed mb-10 mx-auto">
-            منصة "تكامل" تضع قوة 40 نموذج ذكاء اصطناعي عالمي بين يديك. اكتب أوامرك، ودع المحرك يتولى <strong className="text-white font-bold tracking-wide">البرمجة، التصميم، الكتابة، وصناعة الفيديو</strong> في ثوانٍ.
+            منصة "Yilow.ai" تضع قوة 40 نموذج ذكاء اصطناعي عالمي بين يديك. اكتب أوامرك، ودع المحرك يتولى <strong className="text-white font-bold tracking-wide">البرمجة، التصميم، الكتابة، وصناعة الفيديو</strong> في ثوانٍ.
           </motion.p>
 
           {/* Interactive Core: The Majestic Prompt Bar - TEMPORARILY DISABLED */}

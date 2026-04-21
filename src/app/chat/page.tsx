@@ -135,7 +135,7 @@ export default function ChatPage() {
                </div>
                <div className="text-center">
                  <h2 className="text-3xl font-black text-white mb-2">كيف يمكنني مساعدتك اليوم؟</h2>
-                 <p className="text-gray-400">أنا <strong className="text-white">{activeModel.name}</strong>، مساعدك الذكي عبر منصة تكامل.</p>
+                 <p className="text-gray-400">أنا <strong className="text-white">{activeModel.name}</strong>، مساعدك الذكي عبر منصة Yilow.ai.</p>
                </div>
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl mt-4">
