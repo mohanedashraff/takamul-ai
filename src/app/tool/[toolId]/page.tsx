@@ -78,7 +78,7 @@ export default function WorkspacePage({ params }: { params: Promise<{ toolId: st
   );
 }
 
-// ─── Centered workspace — split layout (form left | preview video right) ────────
+// ─── Centered workspace (single-upload tools like enhance-image) ──────────────
 
 type Phase = "idle" | "ready" | "processing" | "result";
 
@@ -90,62 +90,65 @@ function CenteredWorkspace({
   config: (typeof STUDIO_CATEGORIES)[ToolCategory];
 }) {
   const router = useRouter();
+  const uploadInput = tool.inputs[0];
+  const accept = uploadInput?.accept ?? "image/*";
   const colorRgb = config.shadowColor;
 
-  // Collect all upload inputs + extra non-upload inputs
-  const uploadInputs = tool.inputs.filter((i) => i.type === "upload");
-  const extraInputs  = tool.inputs.filter((i) => i.type !== "upload");
-
-  // Per-slot file state
-  const [files,    setFiles]    = useState<Record<string, File | null>>({});
-  const [previews, setPreviews] = useState<Record<string, string>>({});
-  const [dragging, setDragging] = useState<string | null>(null);
-  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  const previewUrls = useRef<Record<string, string>>({});
-
-  const [phase,      setPhase]      = useState<Phase>("idle");
-  const [extraVals,  setExtraVals]  = useState<Record<string, string>>({});
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string>("");
+  const [isDragging, setIsDragging] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const previewRef = useRef<string>("");
 
   useEffect(() => {
-    return () => {
-      Object.values(previewUrls.current).forEach((u) => URL.revokeObjectURL(u));
-    };
+    return () => { if (previewRef.current) URL.revokeObjectURL(previewRef.current); };
   }, []);
 
-  const pickFile = useCallback((id: string, f: File) => {
-    if (previewUrls.current[id]) URL.revokeObjectURL(previewUrls.current[id]);
+  const pickFile = useCallback((f: File) => {
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
     const url = URL.createObjectURL(f);
-    previewUrls.current[id] = url;
-    setFiles((prev)    => ({ ...prev, [id]: f }));
-    setPreviews((prev) => ({ ...prev, [id]: url }));
+    previewRef.current = url;
+    setFile(f);
+    setPreview(url);
+    setPhase("ready");
   }, []);
 
-  const allFilled = uploadInputs.every((i) => files[i.id]);
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) pickFile(f);
+    e.target.value = "";
+  };
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) pickFile(f);
+  }, [pickFile]);
+
+  const onDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const onDragLeave = () => setIsDragging(false);
 
   const handleGenerate = () => {
-    if (!allFilled || phase === "processing") return;
+    if (phase !== "ready") return;
     setPhase("processing");
     setTimeout(() => setPhase("result"), 3000);
   };
 
   const handleReset = () => {
-    Object.values(previewUrls.current).forEach((u) => URL.revokeObjectURL(u));
-    previewUrls.current = {};
-    setFiles({});
-    setPreviews({});
+    if (previewRef.current) { URL.revokeObjectURL(previewRef.current); previewRef.current = ""; }
+    setFile(null);
+    setPreview("");
     setPhase("idle");
   };
-
-  // Video src from tool.image (pick first if array)
-  const demoSrc = Array.isArray(tool.image) ? tool.image[0] : tool.image;
-  const isVideo = typeof demoSrc === "string" && demoSrc.endsWith(".mp4");
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-primary">
       <Navbar />
 
-      <div className="flex-1 flex flex-col pt-16 md:pt-20">
-        {/* ── Top bar ── */}
+      <div className="flex-1 flex flex-col pt-16 md:pt-20 overflow-y-auto">
+        {/* Top bar */}
         <div className="h-14 shrink-0 flex items-center justify-between px-6 border-b border-white/5 bg-black/20 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <button
@@ -162,320 +165,267 @@ function CenteredWorkspace({
             </div>
             <div>
               <span className="text-white font-bold text-sm">{tool.title}</span>
-              <span className="text-gray-600 text-xs mx-2">·</span>
+              <span className="text-gray-600 text-xs mr-2">·</span>
               <span className="text-gray-500 text-xs">{config.name}</span>
             </div>
           </div>
-          <span
-            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
-            style={{ color: `rgb(${colorRgb})`, backgroundColor: `rgba(${colorRgb}, 0.1)` }}
-          >
-            <Zap className="w-3 h-3" /> {tool.credits} كريديت
-          </span>
+          <div className="flex items-center gap-3">
+            <span
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
+              style={{ color: `rgb(${colorRgb})`, backgroundColor: `rgba(${colorRgb}, 0.1)` }}
+            >
+              <Zap className="w-3 h-3" /> {tool.credits} كريديت
+            </span>
+          </div>
         </div>
 
-        {/* ── Split body ── */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-hidden">
+        {/* Centered content */}
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-xl">
+            <AnimatePresence mode="wait">
 
-          {/* ── LEFT: Form ── */}
-          <div className="flex flex-col overflow-y-auto border-l border-white/5 bg-black/30" dir="rtl">
-            <div className="flex-1 px-8 py-8 space-y-6">
+              {/* ── idle: drop zone ── */}
+              {phase === "idle" && (
+                <motion.div
+                  key="idle"
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept={accept}
+                    className="hidden"
+                    onChange={onInputChange}
+                  />
 
-              {/* Title */}
-              <div>
-                <h1 className="text-2xl font-black text-white uppercase leading-tight tracking-tight">
-                  {tool.title}
-                </h1>
-                <p className="text-gray-400 text-sm mt-1 leading-relaxed">{tool.desc}</p>
-              </div>
+                  {/* Tool heading */}
+                  <div className="text-center mb-8">
+                    <div
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center border border-white/10 mx-auto mb-4"
+                      style={{ backgroundColor: `rgba(${colorRgb}, 0.1)` }}
+                    >
+                      <tool.icon className={cn("w-8 h-8", config.colorClass)} />
+                    </div>
+                    <h1 className="text-2xl font-black text-white mb-1">{tool.title}</h1>
+                    <p className="text-gray-500 text-sm">{tool.desc}</p>
+                  </div>
 
-              {/* Upload slots */}
-              {uploadInputs.length > 0 && (
-                <div className={cn(
-                  "grid gap-4",
-                  uploadInputs.length === 1 ? "grid-cols-1" : "grid-cols-2"
-                )}>
-                  {uploadInputs.map((inp) => {
-                    const hasFile = !!files[inp.id];
-                    const isDrag  = dragging === inp.id;
-                    return (
-                      <div key={inp.id}>
-                        <input
-                          ref={(el) => { fileRefs.current[inp.id] = el; }}
-                          type="file"
-                          accept={inp.accept ?? "image/*"}
-                          className="hidden"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) pickFile(inp.id, f);
-                            e.target.value = "";
-                          }}
-                        />
-                        <div
-                          onClick={() => fileRefs.current[inp.id]?.click()}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            setDragging(null);
-                            const f = e.dataTransfer.files?.[0];
-                            if (f) pickFile(inp.id, f);
-                          }}
-                          onDragOver={(e) => { e.preventDefault(); setDragging(inp.id); }}
-                          onDragLeave={() => setDragging(null)}
-                          className={cn(
-                            "relative rounded-2xl border border-dashed cursor-pointer transition-all duration-200 select-none overflow-hidden",
-                            "flex flex-col items-center justify-center gap-2 text-center",
-                            hasFile ? "aspect-square" : "aspect-square",
-                            isDrag && "scale-[1.02]"
-                          )}
-                          style={{
-                            borderColor: isDrag
-                              ? `rgba(${colorRgb}, 0.7)`
-                              : hasFile
-                                ? `rgba(${colorRgb}, 0.4)`
-                                : `rgba(255,255,255,0.12)`,
-                            backgroundColor: isDrag
-                              ? `rgba(${colorRgb}, 0.06)`
-                              : "rgba(255,255,255,0.02)",
-                          }}
-                        >
-                          {hasFile && previews[inp.id] ? (
-                            <>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={previews[inp.id]}
-                                alt={inp.label}
-                                className="absolute inset-0 w-full h-full object-cover"
-                              />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <span className="text-white text-xs font-bold bg-black/60 px-3 py-1 rounded-full">
-                                  تغيير
-                                </span>
-                              </div>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (previewUrls.current[inp.id]) URL.revokeObjectURL(previewUrls.current[inp.id]);
-                                  setFiles((prev) => ({ ...prev, [inp.id]: null }));
-                                  setPreviews((prev) => ({ ...prev, [inp.id]: "" }));
-                                }}
-                                className="absolute top-2 left-2 w-6 h-6 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-white hover:bg-red-500/70 transition-colors z-10"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </>
-                          ) : (
-                            <div className="py-6 px-3 flex flex-col items-center gap-2">
-                              <div
-                                className="w-10 h-10 rounded-xl flex items-center justify-center mb-1"
-                                style={{ backgroundColor: `rgba(${colorRgb}, 0.1)` }}
-                              >
-                                <Upload className="w-5 h-5" style={{ color: `rgb(${colorRgb})` }} />
-                              </div>
-                              <p className="text-white/80 font-semibold text-sm leading-tight">{inp.label}</p>
-                              <p className="text-gray-600 text-xs">{inp.hint ?? "PNG, JPG أو Paste"}</p>
-                            </div>
-                          )}
-                        </div>
+                  {/* Drop zone */}
+                  <div
+                    onClick={() => fileRef.current?.click()}
+                    onDrop={onDrop}
+                    onDragOver={onDragOver}
+                    onDragLeave={onDragLeave}
+                    className={cn(
+                      "rounded-3xl border-2 border-dashed cursor-pointer transition-all duration-300 select-none",
+                      "flex flex-col items-center justify-center gap-5 py-16 px-8 text-center",
+                      isDragging ? "scale-[1.01]" : "hover:scale-[1.005]"
+                    )}
+                    style={{
+                      borderColor: isDragging ? `rgba(${colorRgb}, 0.7)` : `rgba(${colorRgb}, 0.25)`,
+                      backgroundColor: isDragging ? `rgba(${colorRgb}, 0.04)` : `rgba(255,255,255,0.02)`,
+                      boxShadow: isDragging ? `0 0 40px rgba(${colorRgb}, 0.12), inset 0 0 40px rgba(${colorRgb}, 0.04)` : undefined,
+                    }}
+                  >
+                    <div className="relative">
+                      <div
+                        className="w-20 h-20 rounded-full flex items-center justify-center border-2"
+                        style={{
+                          borderColor: `rgba(${colorRgb}, 0.3)`,
+                          backgroundColor: `rgba(${colorRgb}, 0.07)`,
+                        }}
+                      >
+                        <Upload className="w-8 h-8" style={{ color: `rgb(${colorRgb})` }} />
                       </div>
-                    );
-                  })}
-                </div>
+                      {isDragging && (
+                        <div
+                          className="absolute inset-0 rounded-full animate-ping opacity-20"
+                          style={{ backgroundColor: `rgb(${colorRgb})` }}
+                        />
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="text-white font-bold text-lg mb-1">
+                        {isDragging ? "أفلت الملف هنا" : "اسحب ملفك هنا"}
+                      </p>
+                      <p className="text-gray-500 text-sm">
+                        أو{" "}
+                        <span style={{ color: `rgb(${colorRgb})` }} className="font-semibold">
+                          انقر للاختيار
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs text-gray-600 bg-white/4 rounded-full px-4 py-2 border border-white/8">
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>{uploadInput?.hint ?? "PNG، JPG، MP4 — بحد أقصى 50MB"}</span>
+                    </div>
+                  </div>
+                </motion.div>
               )}
 
-              {/* Extra inputs (text, select, etc.) */}
-              {extraInputs.map((inp) => (
-                <div key={inp.id} className="space-y-2">
-                  <label className="text-sm font-semibold text-white/70">{inp.label}</label>
-                  {inp.type === "prompt" ? (
-                    <textarea
-                      value={extraVals[inp.id] ?? ""}
-                      onChange={(e) => setExtraVals((p) => ({ ...p, [inp.id]: e.target.value }))}
-                      placeholder={inp.placeholder}
-                      rows={3}
-                      dir="auto"
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white/80 placeholder-white/20 resize-none focus:outline-none focus:border-white/20 transition-all"
-                    />
-                  ) : null}
-                </div>
-              ))}
-
-            </div>
-
-            {/* Generate button — sticky bottom */}
-            <div className="shrink-0 px-8 py-6 border-t border-white/5 bg-black/40">
-              <AnimatePresence mode="wait">
-                {phase === "result" ? (
-                  <motion.div
-                    key="result-actions"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="flex gap-3"
+              {/* ── ready: preview + generate ── */}
+              {phase === "ready" && (
+                <motion.div
+                  key="ready"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex flex-col gap-4"
+                >
+                  <div
+                    className="rounded-3xl overflow-hidden border border-white/10"
+                    style={{ boxShadow: `0 0 40px rgba(${colorRgb}, 0.08)` }}
                   >
+                    <div className="w-full max-h-[55vh] flex items-center justify-center bg-black/50 overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={preview} alt="معاينة" className="max-w-full max-h-[55vh] object-contain" />
+                    </div>
+                    <div className="flex items-center justify-between px-5 py-3 border-t border-white/8 bg-black/30">
+                      <div className="flex items-center gap-2 text-sm text-gray-400 truncate">
+                        <ImageIcon className="w-4 h-4 shrink-0" style={{ color: `rgb(${colorRgb})` }} />
+                        <span className="truncate">{file?.name}</span>
+                        <span className="text-gray-600 shrink-0 text-xs">
+                          {file ? `(${(file.size / 1024 / 1024).toFixed(1)} MB)` : ""}
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleReset}
+                        className="shrink-0 w-8 h-8 rounded-xl border border-white/10 flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/8 transition-all"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleGenerate}
+                    className="w-full rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:brightness-110 text-white"
+                    style={{
+                      height: "56px",
+                      backgroundColor: `rgba(${colorRgb}, 0.2)`,
+                      border: `1px solid rgba(${colorRgb}, 0.45)`,
+                      boxShadow: `0 0 30px rgba(${colorRgb}, 0.2)`,
+                    }}
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    ابدأ التحسين
+                  </button>
+                </motion.div>
+              )}
+
+              {/* ── processing ── */}
+              {phase === "processing" && (
+                <motion.div
+                  key="processing"
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.3 }}
+                  className="rounded-3xl overflow-hidden border border-white/10"
+                  style={{ boxShadow: `0 0 40px rgba(${colorRgb}, 0.1)` }}
+                >
+                  <div className="relative w-full max-h-[55vh] flex items-center justify-center bg-black/50 overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={preview} alt="معاينة" className="max-w-full max-h-[55vh] object-contain blur-sm opacity-40 scale-105" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-5">
+                      <div className="relative w-20 h-20">
+                        <div
+                          className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
+                          style={{ borderTopColor: `rgb(${colorRgb})`, borderRightColor: `rgba(${colorRgb}, 0.3)` }}
+                        />
+                        <div
+                          className="absolute inset-2 rounded-full border-2 border-transparent animate-spin"
+                          style={{ borderBottomColor: `rgb(${colorRgb})`, animationDirection: "reverse", animationDuration: "1.8s", opacity: 0.5 }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <tool.icon className={cn("w-7 h-7 animate-pulse", config.colorClass)} />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-white font-bold text-lg mb-1">جاري التحسين...</p>
+                        <p className="text-gray-400 text-sm">يتم رفع جودة الصورة بالذكاء الاصطناعي</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-5 bg-black/30 border-t border-white/5">
+                    <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{ backgroundColor: `rgb(${colorRgb})` }}
+                        initial={{ width: "0%" }}
+                        animate={{ width: "100%" }}
+                        transition={{ duration: 3, ease: "linear" }}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── result ── */}
+              {phase === "result" && (
+                <motion.div
+                  key="result"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex flex-col gap-4"
+                >
+                  <div
+                    className="rounded-3xl overflow-hidden border border-white/10"
+                    style={{ boxShadow: `0 0 50px rgba(${colorRgb}, 0.12)` }}
+                  >
+                    <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8 bg-black/30">
+                      <span className="text-sm font-bold px-3 py-1 rounded-full"
+                        style={{ color: `rgb(${colorRgb})`, backgroundColor: `rgba(${colorRgb}, 0.1)` }}>
+                        ✨ تم التحسين بنجاح
+                      </span>
+                      <span className="text-xs text-gray-600">قبل / بعد</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-px bg-white/8">
+                      <div className="relative bg-black/50 overflow-hidden">
+                        <div className="absolute top-2 right-2 z-10 text-[10px] font-bold px-2 py-0.5 rounded bg-black/70 text-gray-400 border border-white/10">قبل</div>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={preview} alt="قبل" className="w-full max-h-[45vh] object-cover" />
+                      </div>
+                      <div className="relative bg-black/50 overflow-hidden">
+                        <div className="absolute top-2 right-2 z-10 text-[10px] font-bold px-2 py-0.5 rounded border"
+                          style={{ color: `rgb(${colorRgb})`, backgroundColor: `rgba(${colorRgb}, 0.15)`, borderColor: `rgba(${colorRgb}, 0.3)` }}>
+                          بعد
+                        </div>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={preview} alt="بعد" className="w-full max-h-[45vh] object-cover"
+                          style={{ filter: "brightness(1.06) contrast(1.08) saturate(1.1)" }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
                     <button
-                      className="flex-1 h-14 rounded-2xl bg-white text-black font-black text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-xl"
+                      className="flex-1 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-xl"
+                      style={{ height: "52px" }}
                     >
-                      <Download className="w-4 h-4" /> تحميل النتيجة
+                      <Download className="w-4 h-4" /> تحميل الصورة المحسّنة
                     </button>
                     <button
                       onClick={handleReset}
-                      className="h-14 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors"
+                      className="px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors"
+                      style={{ height: "52px" }}
                     >
-                      <RefreshCw className="w-4 h-4" />
+                      <RefreshCw className="w-4 h-4" /> صورة جديدة
                     </button>
-                  </motion.div>
-                ) : (
-                  <motion.button
-                    key="generate"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    onClick={handleGenerate}
-                    disabled={!allFilled || phase === "processing"}
-                    className={cn(
-                      "w-full h-14 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all duration-300",
-                      allFilled && phase !== "processing"
-                        ? "text-black hover:scale-[1.02] hover:brightness-110 cursor-pointer"
-                        : "text-gray-600 cursor-not-allowed"
-                    )}
-                    style={
-                      allFilled && phase !== "processing"
-                        ? {
-                            backgroundColor: `rgb(${colorRgb})`,
-                            boxShadow: `0 0 40px rgba(${colorRgb}, 0.4)`,
-                          }
-                        : { backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
-                    }
-                  >
-                    {phase === "processing" ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> جاري المعالجة...</>
-                    ) : (
-                      <><Sparkles className="w-5 h-5" /> توليد الآن · {tool.credits} كريديت</>
-                    )}
-                  </motion.button>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* ── RIGHT: Demo video or result ── */}
-          <div className="relative flex items-center justify-center bg-[#020204] overflow-hidden">
-            {/* grid dot bg */}
-            <div className="absolute inset-0 grid-pattern opacity-10 pointer-events-none" />
-
-            <AnimatePresence mode="wait">
-              {phase === "result" ? (
-                /* Result state — show uploaded file as "result" */
-                <motion.div
-                  key="result"
-                  initial={{ opacity: 0, scale: 0.96 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.5 }}
-                  className="relative w-full h-full flex items-center justify-center p-8"
-                >
-                  <div
-                    className="relative rounded-3xl overflow-hidden border border-white/10 w-full max-h-full"
-                    style={{ boxShadow: `0 0 80px rgba(${colorRgb}, 0.2)` }}
-                  >
-                    {/* Result badge */}
-                    <div className="absolute top-4 right-4 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold"
-                      style={{ backgroundColor: `rgba(${colorRgb}, 0.9)`, color: "#000" }}>
-                      ✨ تم بنجاح
-                    </div>
-                    {previews[uploadInputs[0]?.id] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={previews[uploadInputs[0].id]}
-                        alt="نتيجة"
-                        className="w-full h-full object-contain max-h-[75vh]"
-                        style={{ filter: "brightness(1.06) contrast(1.08) saturate(1.1)" }}
-                      />
-                    ) : (
-                      <div className="aspect-video bg-black/50 flex items-center justify-center">
-                        <tool.icon className={cn("w-16 h-16 opacity-20", config.colorClass)} />
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              ) : phase === "processing" ? (
-                /* Processing state */
-                <motion.div
-                  key="processing"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center gap-6 p-8"
-                >
-                  <div className="relative w-24 h-24">
-                    <div
-                      className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
-                      style={{ borderTopColor: `rgb(${colorRgb})`, borderRightColor: `rgba(${colorRgb}, 0.3)` }}
-                    />
-                    <div
-                      className="absolute inset-3 rounded-full border-2 border-transparent animate-spin"
-                      style={{ borderBottomColor: `rgb(${colorRgb})`, animationDirection: "reverse", animationDuration: "2s", opacity: 0.5 }}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <tool.icon className={cn("w-8 h-8 animate-pulse", config.colorClass)} />
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-white font-bold text-lg mb-1">جاري المعالجة...</p>
-                    <p className="text-gray-500 text-sm">محرك الذكاء الاصطناعي يعمل على طلبك</p>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="w-64 h-1.5 rounded-full bg-white/8 overflow-hidden">
-                    <motion.div
-                      className="h-full rounded-full"
-                      style={{ backgroundColor: `rgb(${colorRgb})` }}
-                      initial={{ width: "0%" }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 3, ease: "linear" }}
-                    />
-                  </div>
-                </motion.div>
-              ) : (
-                /* Idle / ready state — show demo preview */
-                <motion.div
-                  key="demo"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="relative w-full h-full flex items-center justify-center p-8"
-                >
-                  <div
-                    className="relative rounded-3xl overflow-hidden border border-white/10 w-full"
-                    style={{ boxShadow: `0 0 60px rgba(${colorRgb}, 0.12)` }}
-                  >
-                    {isVideo ? (
-                      <video
-                        src={demoSrc}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        className="w-full h-full object-cover max-h-[75vh]"
-                      />
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={demoSrc}
-                        alt={tool.title}
-                        className="w-full h-full object-cover max-h-[75vh]"
-                      />
-                    )}
-                    {/* Subtle overlay label */}
-                    <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 border border-white/10 backdrop-blur-sm">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                      <span className="text-xs font-medium text-white/70">معاينة النتائج</span>
-                    </div>
                   </div>
                 </motion.div>
               )}
+
             </AnimatePresence>
           </div>
-
         </div>
       </div>
     </div>
