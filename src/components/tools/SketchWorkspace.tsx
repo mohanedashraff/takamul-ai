@@ -329,394 +329,352 @@ export function SketchWorkspace({ tool, config }: Props) {
     <div className="flex flex-col min-h-screen bg-bg-primary">
       <Navbar />
 
-      <div className="flex flex-1 overflow-hidden pt-16 md:pt-20">
+      <div className="flex flex-col flex-1 overflow-hidden pt-16 md:pt-20">
 
-        {/* ── RIGHT SIDEBAR ────────────────────────────────────────────── */}
-        <aside className="w-[300px] shrink-0 border-l border-white/5 bg-black/50 backdrop-blur-3xl flex flex-col z-10">
-          <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5 hide-scroll">
+        {/* ── TOP BAR ──────────────────────────────────────────────────── */}
+        <div className="h-14 shrink-0 flex items-center gap-3 px-5 border-b border-white/5 bg-black/20 backdrop-blur-sm">
+          <button
+            onClick={() => router.back()}
+            className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </button>
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center border border-white/10"
+            style={{ backgroundColor: `rgba(${rgb}, 0.12)` }}
+          >
+            <tool.icon className={cn("w-4 h-4", config.colorClass)} />
+          </div>
+          <span className="text-white font-bold text-sm">{tool.title}</span>
+        </div>
 
-            {/* Prompt */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">
-                وصف الأسلوب الفني
-                <span className="text-red-500 mr-1.5">*</span>
-              </label>
-              <textarea
-                value={prompt}
-                onChange={e => setPrompt(e.target.value)}
-                placeholder="مثال: رسم زيتي، أنمي ياباني، واقعي فوتوغرافي، ألوان مائية..."
-                rows={5}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm placeholder-gray-600 resize-none focus:outline-none focus:border-white/25 transition-colors leading-relaxed"
-                style={{ direction: "rtl" }}
-              />
-            </div>
+        {/* ── PROMPT + SETTINGS BAR ────────────────────────────────────── */}
+        <div className="shrink-0 flex items-center gap-3 px-5 py-3 border-b border-white/5 bg-black/30">
 
-            {/* Aspect ratio */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">نسبة الأبعاد</label>
-              <div className="grid grid-cols-1 gap-1.5">
-                {ASPECTS.map(a => (
-                  <button
-                    key={a.key}
-                    onClick={() => changeAspect(a.key)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-all",
-                      aspect === a.key
-                        ? "text-white"
-                        : "bg-white/4 text-gray-500 hover:text-gray-300 hover:bg-white/6"
-                    )}
-                    style={aspect === a.key ? {
-                      backgroundColor: `rgba(${rgb}, 0.15)`,
-                      border: `1px solid rgba(${rgb}, 0.3)`,
-                      color: `rgb(${rgb})`,
-                    } : { border: "1px solid transparent" }}
-                  >
-                    <span className="font-medium">{a.label}</span>
-                    {/* Visual rectangle */}
-                    <div className="flex items-center justify-center w-8 h-8">
-                      <div
-                        className="border rounded-sm opacity-60"
-                        style={{
-                          borderColor: aspect === a.key ? `rgb(${rgb})` : "#6b7280",
-                          width: Math.round(20 * Math.min(1, a.w / a.h)),
-                          height: Math.round(20 * Math.min(1, a.h / a.w)),
-                        }}
-                      />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Tips */}
-            <div
-              className="rounded-2xl p-3 text-xs leading-relaxed space-y-1"
-              style={{ backgroundColor: `rgba(${rgb}, 0.05)`, border: `1px solid rgba(${rgb}, 0.12)` }}
-            >
-              <p className="text-gray-400 font-semibold mb-2">نصائح للرسم</p>
-              <p className="text-gray-600">• ارسم الخطوط الأساسية فقط</p>
-              <p className="text-gray-600">• استخدم ألواناً مختلفة لأجزاء مختلفة</p>
-              <p className="text-gray-600">• أداة التعبئة مفيدة للمساحات الكبيرة</p>
-            </div>
+          {/* Ratio picker — compact horizontal */}
+          <div className="shrink-0 flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-1">
+            {ASPECTS.map(a => (
+              <button
+                key={a.key}
+                onClick={() => changeAspect(a.key)}
+                className={cn(
+                  "h-7 px-2.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap",
+                  aspect === a.key
+                    ? "text-white"
+                    : "text-gray-500 hover:text-gray-300"
+                )}
+                style={aspect === a.key ? {
+                  backgroundColor: `rgba(${rgb}, 0.2)`,
+                  color: `rgb(${rgb})`,
+                } : {}}
+              >
+                {a.key}
+              </button>
+            ))}
           </div>
 
-          {/* Generate */}
-          <div className="shrink-0 p-5 border-t border-white/5 bg-black/60 space-y-3">
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span>التكلفة</span>
-              <span
-                className="flex items-center gap-1 font-bold px-2.5 py-1 rounded-full"
-                style={{ color: `rgb(${rgb})`, backgroundColor: `rgba(${rgb}, 0.1)` }}
-              >
-                <Zap className="w-3 h-3" /> {tool.credits} كريديت
-              </span>
-            </div>
+          {/* Prompt textarea */}
+          <textarea
+            rows={2}
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            placeholder="مثال: رسم زيتي، أنمي ياباني، واقعي فوتوغرافي، ألوان مائية..."
+            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-white text-sm placeholder-gray-600 resize-none focus:outline-none focus:border-white/25 transition-colors leading-relaxed"
+            style={{ direction: "rtl" }}
+          />
+
+          {/* Credits + generate */}
+          <div className="shrink-0 flex flex-col items-end gap-1.5">
+            <span
+              className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
+              style={{ color: `rgb(${rgb})`, backgroundColor: `rgba(${rgb}, 0.1)` }}
+            >
+              <Zap className="w-3 h-3" /> {tool.credits} كريديت
+            </span>
             <button
               onClick={handleGenerate}
               disabled={!valid || phase === "processing"}
               className={cn(
-                "w-full rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all duration-300",
+                "h-10 px-5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 whitespace-nowrap",
                 valid && phase !== "processing"
-                  ? "text-white hover:scale-[1.02] hover:brightness-110 cursor-pointer"
+                  ? "text-white hover:brightness-110 cursor-pointer"
                   : "bg-white/5 text-gray-600 cursor-not-allowed"
               )}
               style={{
-                height: "52px",
                 ...(valid && phase !== "processing" ? {
                   backgroundColor: `rgba(${rgb}, 0.2)`,
                   border: `1px solid rgba(${rgb}, 0.45)`,
-                  boxShadow: `0 0 25px rgba(${rgb}, 0.2)`,
+                  boxShadow: `0 0 20px rgba(${rgb}, 0.2)`,
                 } : {}),
               }}
             >
               {phase === "processing"
-                ? <><Loader2 className="w-5 h-5 animate-spin" /> جاري التحويل...</>
-                : <><Sparkles className="w-5 h-5" /> حوّل إلى صورة</>}
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> جاري التحويل...</>
+                : <><Sparkles className="w-4 h-4" /> حوّل إلى صورة</>}
             </button>
           </div>
-        </aside>
+        </div>
 
-        {/* ── MAIN CANVAS AREA ─────────────────────────────────────────── */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-[#020204]">
+        {/* ── DRAWING TOOLBAR ──────────────────────────────────────────── */}
+        <div className="shrink-0 h-14 flex items-center justify-between gap-2 px-5 border-b border-white/5 bg-black/30">
 
-          {/* Top bar */}
-          <div className="h-14 shrink-0 flex items-center gap-3 px-5 border-b border-white/5 bg-black/20 backdrop-blur-sm">
+          {/* Left: tools */}
+          <div className="flex items-center gap-2">
+
+            {/* Tool toggle */}
+            <div className="flex items-center gap-0.5 bg-white/6 rounded-xl p-1">
+              {([
+                { id: "brush" as DrawTool, Icon: Paintbrush,  title: "فرشاة" },
+                { id: "eraser" as DrawTool, Icon: Eraser,      title: "ممحاة" },
+                { id: "fill"  as DrawTool, Icon: PaintBucket, title: "تعبئة" },
+              ] as const).map(({ id, Icon, title }) => (
+                <button
+                  key={id}
+                  onClick={() => setDrawTool(id)}
+                  title={title}
+                  className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                    drawTool === id ? "bg-white/15 text-white" : "text-gray-500 hover:text-white"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                </button>
+              ))}
+            </div>
+
+            <div className="w-px h-5 bg-white/10" />
+
+            {/* Color picker */}
+            <div className="relative" onMouseDown={e => e.stopPropagation()}>
+              <button
+                onClick={() => setColorPickerOpen(o => !o)}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white/6 hover:bg-white/10 transition-colors"
+                title="اختر اللون"
+              >
+                <div
+                  className="w-5 h-5 rounded-full border-2 border-white/30 shadow-sm"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="text-xs text-gray-400 font-mono">{color}</span>
+              </button>
+
+              {/* Color palette popup */}
+              <AnimatePresence>
+                {colorPickerOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full mt-2 right-0 z-50 p-3 rounded-2xl border border-white/10 shadow-2xl"
+                    style={{ backgroundColor: "#0d0d12" }}
+                  >
+                    {/* Grid 5×5 */}
+                    <div className="grid grid-cols-5 gap-1.5 mb-2">
+                      {PALETTE.map(c => (
+                        <button
+                          key={c}
+                          onClick={() => { setColor(c); setDrawTool("brush"); setColorPickerOpen(false); }}
+                          className="w-7 h-7 rounded-lg border transition-transform hover:scale-110"
+                          style={{
+                            backgroundColor: c,
+                            borderColor: color === c ? "white" : "rgba(255,255,255,0.1)",
+                            boxShadow: color === c ? `0 0 0 2px ${c}` : "none",
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {/* Custom hex input */}
+                    <div className="flex items-center gap-2 border-t border-white/8 pt-2">
+                      <div className="w-6 h-6 rounded-lg border border-white/20" style={{ backgroundColor: color }} />
+                      <input
+                        type="color"
+                        value={color}
+                        onChange={e => setColor(e.target.value)}
+                        className="w-full h-7 rounded-lg cursor-pointer bg-transparent border border-white/10 px-1"
+                        title="لون مخصص"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="w-px h-5 bg-white/10" />
+
+            {/* Brush size */}
+            <div className="flex items-center gap-1.5 bg-white/6 rounded-xl px-2.5 py-1.5">
+              <button
+                onClick={() => setBrushSize(s => Math.max(1, s - 2))}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-white text-xs font-mono w-5 text-center">{brushSize}</span>
+              <button
+                onClick={() => setBrushSize(s => Math.min(80, s + 2))}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Right: history actions */}
+          <div className="flex items-center gap-1">
             <button
-              onClick={() => router.back()}
-              className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+              onClick={undo}
+              disabled={!canUndo}
+              title="تراجع"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/8 transition-all disabled:opacity-25 disabled:cursor-not-allowed"
             >
-              <ArrowRight className="w-4 h-4" />
+              <Undo2 className="w-4 h-4" />
             </button>
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center border border-white/10"
-              style={{ backgroundColor: `rgba(${rgb}, 0.12)` }}
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              title="إعادة"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/8 transition-all disabled:opacity-25 disabled:cursor-not-allowed"
             >
-              <tool.icon className={cn("w-4 h-4", config.colorClass)} />
-            </div>
-            <span className="text-white font-bold text-sm">{tool.title}</span>
+              <Redo2 className="w-4 h-4" />
+            </button>
+            <div className="w-px h-5 bg-white/10 mx-1" />
+            <button
+              onClick={clearCanvas}
+              title="مسح الكل"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-white/8 transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
+        </div>
 
-          {/* Drawing toolbar */}
-          <div className="shrink-0 h-14 flex items-center justify-between gap-2 px-5 border-b border-white/5 bg-black/30">
+        {/* ── CANVAS AREA ──────────────────────────────────────────────── */}
+        <main className="flex-1 flex items-center justify-center overflow-hidden p-4 bg-[#060608]">
+          <AnimatePresence mode="wait">
 
-            {/* Left: tools */}
-            <div className="flex items-center gap-2">
-
-              {/* Tool toggle */}
-              <div className="flex items-center gap-0.5 bg-white/6 rounded-xl p-1">
-                {([
-                  { id: "brush" as DrawTool, Icon: Paintbrush,  title: "فرشاة" },
-                  { id: "eraser" as DrawTool, Icon: Eraser,      title: "ممحاة" },
-                  { id: "fill"  as DrawTool, Icon: PaintBucket, title: "تعبئة" },
-                ] as const).map(({ id, Icon, title }) => (
+            {/* ── Result view ── */}
+            {phase === "result" && resultUrl && (
+              <motion.div
+                key="result"
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center gap-4 w-full max-w-2xl"
+              >
+                <div
+                  className="rounded-3xl overflow-hidden border border-white/10 w-full"
+                  style={{ boxShadow: `0 0 50px rgba(${rgb}, 0.15)` }}
+                >
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-white/8 bg-black/30">
+                    <span
+                      className="text-sm font-bold px-3 py-1 rounded-full"
+                      style={{ color: `rgb(${rgb})`, backgroundColor: `rgba(${rgb}, 0.1)` }}
+                    >
+                      ✨ تم التحويل بنجاح
+                    </span>
+                    <span className="text-xs text-gray-600">{prompt.slice(0, 40)}{prompt.length > 40 ? "..." : ""}</span>
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={resultUrl}
+                    alt="نتيجة"
+                    className="w-full object-contain bg-black/50"
+                    style={{ maxHeight: "60vh" }}
+                  />
+                </div>
+                <div className="flex gap-3 w-full">
+                  <a
+                    href={resultUrl}
+                    download="sketch-result.png"
+                    className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-xl"
+                  >
+                    <Download className="w-4 h-4" /> تحميل النتيجة
+                  </a>
                   <button
-                    key={id}
-                    onClick={() => setDrawTool(id)}
-                    title={title}
-                    className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
-                      drawTool === id ? "bg-white/15 text-white" : "text-gray-500 hover:text-white"
-                    )}
+                    onClick={() => setPhase("draw")}
+                    className="h-12 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors"
                   >
-                    <Icon className="w-4 h-4" />
+                    <RefreshCw className="w-4 h-4" /> رسم جديد
                   </button>
-                ))}
-              </div>
+                </div>
+              </motion.div>
+            )}
 
-              <div className="w-px h-5 bg-white/10" />
-
-              {/* Color picker */}
-              <div className="relative" onMouseDown={e => e.stopPropagation()}>
-                <button
-                  onClick={() => setColorPickerOpen(o => !o)}
-                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white/6 hover:bg-white/10 transition-colors"
-                  title="اختر اللون"
-                >
-                  <div
-                    className="w-5 h-5 rounded-full border-2 border-white/30 shadow-sm"
-                    style={{ backgroundColor: color }}
-                  />
-                  <span className="text-xs text-gray-400 font-mono">{color}</span>
-                </button>
-
-                {/* Color palette popup */}
-                <AnimatePresence>
-                  {colorPickerOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full mt-2 right-0 z-50 p-3 rounded-2xl border border-white/10 shadow-2xl"
-                      style={{ backgroundColor: "#0d0d12" }}
-                    >
-                      {/* Grid 5×5 */}
-                      <div className="grid grid-cols-5 gap-1.5 mb-2">
-                        {PALETTE.map(c => (
-                          <button
-                            key={c}
-                            onClick={() => { setColor(c); setDrawTool("brush"); setColorPickerOpen(false); }}
-                            className="w-7 h-7 rounded-lg border transition-transform hover:scale-110"
-                            style={{
-                              backgroundColor: c,
-                              borderColor: color === c ? "white" : "rgba(255,255,255,0.1)",
-                              boxShadow: color === c ? `0 0 0 2px ${c}` : "none",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      {/* Custom hex input */}
-                      <div className="flex items-center gap-2 border-t border-white/8 pt-2">
-                        <div className="w-6 h-6 rounded-lg border border-white/20" style={{ backgroundColor: color }} />
-                        <input
-                          type="color"
-                          value={color}
-                          onChange={e => setColor(e.target.value)}
-                          className="w-full h-7 rounded-lg cursor-pointer bg-transparent border border-white/10 px-1"
-                          title="لون مخصص"
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <div className="w-px h-5 bg-white/10" />
-
-              {/* Brush size */}
-              <div className="flex items-center gap-1.5 bg-white/6 rounded-xl px-2.5 py-1.5">
-                <button
-                  onClick={() => setBrushSize(s => Math.max(1, s - 2))}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-white text-xs font-mono w-5 text-center">{brushSize}</span>
-                <button
-                  onClick={() => setBrushSize(s => Math.min(80, s + 2))}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Right: history actions */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={undo}
-                disabled={!canUndo}
-                title="تراجع"
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/8 transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+            {/* ── Drawing canvas ── */}
+            {phase !== "result" && (
+              <motion.div
+                key="canvas"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="relative shadow-2xl"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "calc(100vh - 200px)",
+                  aspectRatio: `${currentAspect.w} / ${currentAspect.h}`,
+                  boxShadow: `0 0 0 1px rgba(255,255,255,0.08), 0 25px 60px rgba(0,0,0,0.5)`,
+                }}
               >
-                <Undo2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={redo}
-                disabled={!canRedo}
-                title="إعادة"
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/8 transition-all disabled:opacity-25 disabled:cursor-not-allowed"
-              >
-                <Redo2 className="w-4 h-4" />
-              </button>
-              <div className="w-px h-5 bg-white/10 mx-1" />
-              <button
-                onClick={clearCanvas}
-                title="مسح الكل"
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-white/8 transition-all"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Canvas area */}
-          <div className="flex-1 flex items-center justify-center overflow-hidden p-4 bg-[#060608]">
-            <AnimatePresence mode="wait">
-
-              {/* ── Result view ── */}
-              {phase === "result" && resultUrl && (
-                <motion.div
-                  key="result"
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="flex flex-col items-center gap-4 w-full max-w-2xl"
-                >
-                  <div
-                    className="rounded-3xl overflow-hidden border border-white/10 w-full"
-                    style={{ boxShadow: `0 0 50px rgba(${rgb}, 0.15)` }}
-                  >
-                    <div className="flex items-center justify-between px-5 py-3 border-b border-white/8 bg-black/30">
-                      <span
-                        className="text-sm font-bold px-3 py-1 rounded-full"
-                        style={{ color: `rgb(${rgb})`, backgroundColor: `rgba(${rgb}, 0.1)` }}
-                      >
-                        ✨ تم التحويل بنجاح
-                      </span>
-                      <span className="text-xs text-gray-600">{prompt.slice(0, 40)}{prompt.length > 40 ? "..." : ""}</span>
-                    </div>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={resultUrl}
-                      alt="نتيجة"
-                      className="w-full object-contain bg-black/50"
-                      style={{ maxHeight: "60vh" }}
-                    />
-                  </div>
-                  <div className="flex gap-3 w-full">
-                    <a
-                      href={resultUrl}
-                      download="sketch-result.png"
-                      className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-xl"
-                    >
-                      <Download className="w-4 h-4" /> تحميل النتيجة
-                    </a>
-                    <button
-                      onClick={() => setPhase("draw")}
-                      className="h-12 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors"
-                    >
-                      <RefreshCw className="w-4 h-4" /> رسم جديد
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* ── Drawing canvas ── */}
-              {phase !== "result" && (
-                <motion.div
-                  key="canvas"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="relative shadow-2xl"
+                <canvas
+                  ref={canvasRef}
+                  className="block w-full h-full rounded-lg"
                   style={{
-                    maxWidth: "100%",
-                    maxHeight: "calc(100vh - 200px)",
-                    aspectRatio: `${currentAspect.w} / ${currentAspect.h}`,
-                    boxShadow: `0 0 0 1px rgba(255,255,255,0.08), 0 25px 60px rgba(0,0,0,0.5)`,
+                    cursor: "none",
+                    touchAction: "none",
+                    imageRendering: "pixelated",
                   }}
-                >
-                  <canvas
-                    ref={canvasRef}
-                    className="block w-full h-full rounded-lg"
+                  onMouseDown={onMouseDown}
+                  onMouseMove={onMouseMove}
+                  onMouseUp={stopDraw}
+                  onMouseLeave={() => { stopDraw(); setCursor(null); }}
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={stopDraw}
+                />
+
+                {/* Brush cursor */}
+                {cursor && phase === "draw" && (
+                  <div
+                    className="absolute pointer-events-none rounded-full border-2 mix-blend-difference"
                     style={{
-                      cursor: "none",
-                      touchAction: "none",
-                      imageRendering: "pixelated",
+                      width: drawTool === "fill" ? 20 : brushSize,
+                      height: drawTool === "fill" ? 20 : brushSize,
+                      left: cursor.x - (drawTool === "fill" ? 10 : brushSize / 2),
+                      top:  cursor.y - (drawTool === "fill" ? 10 : brushSize / 2),
+                      borderColor: drawTool === "eraser" ? "#888" : color,
+                      backgroundColor: drawTool === "fill" ? `${color}40` : "transparent",
                     }}
-                    onMouseDown={onMouseDown}
-                    onMouseMove={onMouseMove}
-                    onMouseUp={stopDraw}
-                    onMouseLeave={() => { stopDraw(); setCursor(null); }}
-                    onTouchStart={onTouchStart}
-                    onTouchMove={onTouchMove}
-                    onTouchEnd={stopDraw}
                   />
+                )}
 
-                  {/* Brush cursor */}
-                  {cursor && phase === "draw" && (
-                    <div
-                      className="absolute pointer-events-none rounded-full border-2 mix-blend-difference"
-                      style={{
-                        width: drawTool === "fill" ? 20 : brushSize,
-                        height: drawTool === "fill" ? 20 : brushSize,
-                        left: cursor.x - (drawTool === "fill" ? 10 : brushSize / 2),
-                        top:  cursor.y - (drawTool === "fill" ? 10 : brushSize / 2),
-                        borderColor: drawTool === "eraser" ? "#888" : color,
-                        backgroundColor: drawTool === "fill" ? `${color}40` : "transparent",
-                      }}
-                    />
-                  )}
-
-                  {/* Processing overlay */}
-                  {phase === "processing" && (
-                    <div className="absolute inset-0 bg-black/60 rounded-lg flex flex-col items-center justify-center gap-5 backdrop-blur-sm">
-                      <div className="relative w-16 h-16">
-                        <div
-                          className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
-                          style={{ borderTopColor: `rgb(${rgb})`, borderRightColor: `rgba(${rgb},0.3)` }}
-                        />
-                        <div
-                          className="absolute inset-2 rounded-full border-2 border-transparent animate-spin"
-                          style={{ borderBottomColor: `rgb(${rgb})`, animationDirection: "reverse", animationDuration: "1.8s", opacity: 0.5 }}
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <tool.icon className={cn("w-6 h-6 animate-pulse", config.colorClass)} />
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-white font-bold text-lg mb-1">جاري تحويل الرسم...</p>
-                        <p className="text-gray-400 text-sm">الذكاء الاصطناعي يفسّر رسمك</p>
+                {/* Processing overlay */}
+                {phase === "processing" && (
+                  <div className="absolute inset-0 bg-black/60 rounded-lg flex flex-col items-center justify-center gap-5 backdrop-blur-sm">
+                    <div className="relative w-16 h-16">
+                      <div
+                        className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
+                        style={{ borderTopColor: `rgb(${rgb})`, borderRightColor: `rgba(${rgb},0.3)` }}
+                      />
+                      <div
+                        className="absolute inset-2 rounded-full border-2 border-transparent animate-spin"
+                        style={{ borderBottomColor: `rgb(${rgb})`, animationDirection: "reverse", animationDuration: "1.8s", opacity: 0.5 }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <tool.icon className={cn("w-6 h-6 animate-pulse", config.colorClass)} />
                       </div>
                     </div>
-                  )}
-                </motion.div>
-              )}
+                    <div className="text-center">
+                      <p className="text-white font-bold text-lg mb-1">جاري تحويل الرسم...</p>
+                      <p className="text-gray-400 text-sm">الذكاء الاصطناعي يفسّر رسمك</p>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
 
-            </AnimatePresence>
-          </div>
+          </AnimatePresence>
         </main>
 
       </div>
