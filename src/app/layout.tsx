@@ -3,6 +3,7 @@ import { Alexandria } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { Toaster } from "react-hot-toast";
+import { BackToTop } from "@/components/ui/BackToTop";
 
 const alexandria = Alexandria({
   subsets: ["arabic", "latin"],
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className="antialiased min-h-screen flex flex-col bg-bg-primary text-white overflow-x-hidden relative">
         <SessionProvider>
           {children}
+          <BackToTop />
           <Toaster
             position="top-center"
             toastOptions={{

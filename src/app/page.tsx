@@ -677,17 +677,10 @@ const SeedancePromoWidget = () => {
     );
 };
 // ─── Hero Ambient Background ─────────────────────────────────────────────────
-// Soft colored blur blobs + 3-tier particle system: dust (small drifting),
-// stars (4-point twinkle), hero-stars (8-point with rotation). Creates depth.
+// Soft colored blur blobs + drifting dust particles. Stars removed per request.
 const HeroAmbientBackground = () => {
   const [dust, setDust] = useState<
     Array<{ left: number; top: number; size: number; delay: number; duration: number; driftX: number; driftY: number }>
-  >([]);
-  const [stars, setStars] = useState<
-    Array<{ left: number; top: number; size: number; delay: number; duration: number }>
-  >([]);
-  const [heroStars, setHeroStars] = useState<
-    Array<{ left: number; top: number; delay: number; duration: number }>
   >([]);
 
   useEffect(() => {
@@ -701,25 +694,6 @@ const HeroAmbientBackground = () => {
         duration: 7 + Math.random() * 8,
         driftX: (Math.random() - 0.5) * 40,
         driftY: -(20 + Math.random() * 60),
-      }))
-    );
-    // Medium stars: 4-point cross glare, twinkle
-    setStars(
-      Array.from({ length: 12 }, () => ({
-        left: Math.random() * 100,
-        top: Math.random() * 100,
-        size: 1.5 + Math.random() * 2.5,
-        delay: Math.random() * 4,
-        duration: 2.5 + Math.random() * 3,
-      }))
-    );
-    // Hero stars: 8-point with subtle rotation, few but prominent
-    setHeroStars(
-      Array.from({ length: 5 }, () => ({
-        left: 12 + Math.random() * 76,
-        top: 12 + Math.random() * 76,
-        delay: Math.random() * 3,
-        duration: 4 + Math.random() * 3,
       }))
     );
   }, []);
@@ -807,123 +781,6 @@ const HeroAmbientBackground = () => {
         />
       ))}
 
-      {/* ── TIER 2: STARS — 4-point cross glare, twinkle ── */}
-      {stars.map((s, i) => (
-        <motion.div
-          key={`star-${i}`}
-          animate={{
-            scale: [0.6, 1.2, 0.6],
-            opacity: [0.3, 1, 0.3],
-          }}
-          transition={{
-            duration: s.duration,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: s.delay,
-          }}
-          className="absolute"
-          style={{ left: `${s.left}%`, top: `${s.top}%`, width: 0, height: 0 }}
-        >
-          {/* Horizontal glare */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-px"
-            style={{
-              width: `${s.size * 8}px`,
-              background:
-                "linear-gradient(to right, transparent, rgba(254,228,64,0.9), transparent)",
-            }}
-          />
-          {/* Vertical glare */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px"
-            style={{
-              height: `${s.size * 8}px`,
-              background:
-                "linear-gradient(to bottom, transparent, rgba(254,228,64,0.9), transparent)",
-            }}
-          />
-          {/* Bright core */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
-            style={{
-              width: `${s.size}px`,
-              height: `${s.size}px`,
-              boxShadow: `0 0 ${s.size * 3}px rgba(254,228,64,1), 0 0 ${s.size * 6}px rgba(254,228,64,0.5)`,
-            }}
-          />
-        </motion.div>
-      ))}
-
-      {/* ── TIER 3: HERO STARS — 8-point glare with slow rotation ── */}
-      {heroStars.map((h, i) => (
-        <motion.div
-          key={`hero-${i}`}
-          animate={{
-            scale: [0.7, 1.3, 0.7],
-            opacity: [0.5, 1, 0.5],
-            rotate: [0, 45, 0],
-          }}
-          transition={{
-            duration: h.duration,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: h.delay,
-          }}
-          className="absolute"
-          style={{ left: `${h.left}%`, top: `${h.top}%`, width: 0, height: 0 }}
-        >
-          {/* Main cross — horizontal */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-            style={{
-              width: "44px",
-              height: "1.5px",
-              background:
-                "linear-gradient(to right, transparent, rgba(254,228,64,1) 50%, transparent)",
-            }}
-          />
-          {/* Main cross — vertical */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-            style={{
-              width: "1.5px",
-              height: "44px",
-              background:
-                "linear-gradient(to bottom, transparent, rgba(254,228,64,1) 50%, transparent)",
-            }}
-          />
-          {/* Diagonal cross — 45° */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45"
-            style={{
-              width: "26px",
-              height: "1px",
-              background:
-                "linear-gradient(to right, transparent, rgba(254,228,64,0.6) 50%, transparent)",
-            }}
-          />
-          {/* Diagonal cross — -45° */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-45"
-            style={{
-              width: "26px",
-              height: "1px",
-              background:
-                "linear-gradient(to right, transparent, rgba(254,228,64,0.6) 50%, transparent)",
-            }}
-          />
-          {/* Bright core */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
-            style={{
-              width: "4px",
-              height: "4px",
-              boxShadow:
-                "0 0 6px rgba(255,255,255,1), 0 0 14px rgba(254,228,64,1), 0 0 26px rgba(254,228,64,0.6)",
-            }}
-          />
-        </motion.div>
-      ))}
     </div>
   );
 };
