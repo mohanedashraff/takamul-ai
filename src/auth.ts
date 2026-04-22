@@ -11,13 +11,14 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import type { Plan } from "@/generated/prisma/client";
+import type { Plan, UserRole } from "@/generated/prisma/client";
 
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
       plan: Plan;
+      role: UserRole;
       creditsBalance: number;
     } & DefaultSession["user"];
   }
@@ -39,6 +40,7 @@ const providers: NextAuthConfig["providers"] = [
 
       const user = await prisma.user.findUnique({ where: { email } });
       if (!user || !user.passwordHash) return null;
+      if (user.isBanned) throw new Error("account_banned");
 
       const ok = await bcrypt.compare(password, user.passwordHash);
       if (!ok) return null;
@@ -49,6 +51,7 @@ const providers: NextAuthConfig["providers"] = [
         name: user.name,
         image: user.image,
         plan: user.plan,
+        role: user.role,
         creditsBalance: user.creditsBalance,
       };
     },
@@ -96,11 +99,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user?.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email },
-          select: { id: true, plan: true, creditsBalance: true },
+          select: { id: true, plan: true, role: true, creditsBalance: true },
         });
         if (dbUser) {
           token.id = dbUser.id;
           token.plan = dbUser.plan;
+          token.role = dbUser.role;
           token.creditsBalance = dbUser.creditsBalance;
         }
       }
@@ -109,10 +113,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (trigger === "update" && token.id) {
         const fresh = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { plan: true, creditsBalance: true },
+          select: { plan: true, role: true, creditsBalance: true },
         });
         if (fresh) {
           token.plan = fresh.plan;
+          token.role = fresh.role;
           token.creditsBalance = fresh.creditsBalance;
         }
       }
@@ -124,6 +129,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.id && session.user) {
         session.user.id = token.id as string;
         session.user.plan = token.plan as Plan;
+        session.user.role = token.role as UserRole;
         session.user.creditsBalance = token.creditsBalance as number;
       }
       return session;

@@ -23,6 +23,12 @@ model User {
   image          String?
   passwordHash   String?   // bcrypt — null for OAuth-only users
 
+  // Access control
+  role           UserRole  @default(USER)
+  isBanned       Boolean   @default(false)
+  bannedReason   String?
+  bannedAt       DateTime?
+
   // Plan & credits
   plan           Plan      @default(FREE)
   creditsBalance Int       @default(100)   // seed bonus
@@ -50,6 +56,12 @@ enum Plan {
   BASIC
   PRO
   ENTERPRISE
+}
+
+enum UserRole {
+  USER
+  ADMIN         // can manage users, view analytics
+  SUPER_ADMIN   // everything ADMIN can do + grant/revoke admin roles
 }
 
 // OAuth linked accounts (Google/GitHub)
