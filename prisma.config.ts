@@ -9,7 +9,10 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // For migrations, prefer the direct (non-pooled) URL — poolers like
+    // Neon's pgBouncer don't support the session-level operations Prisma
+    // migrate needs. Falls back to DATABASE_URL for local dev.
+    url: process.env["DIRECT_DATABASE_URL"] ?? process.env["DATABASE_URL"],
     shadowDatabaseUrl: process.env["SHADOW_DATABASE_URL"],
   },
 });
