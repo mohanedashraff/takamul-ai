@@ -51,14 +51,33 @@ export async function submitTask(params: SubmitTaskParams): Promise<SubmitTaskRe
     body:    JSON.stringify(params.payload),
   });
 
-  const data = await res.json().catch(() => ({}));
+  // Read as text first so we can give a meaningful message even when
+  // an upstream proxy returns HTML (Nginx 5xx page, login redirect, …).
+  const raw = await res.text();
+  let data: Record<string, unknown> = {};
+  try { data = raw ? JSON.parse(raw) : {}; } catch { /* not JSON, leave as {} */ }
+
   if (!res.ok) {
-    throw new Error((data && (data.error || data.detail)) || `Task submit failed (${res.status})`);
+    // Surface the first useful field instead of the raw HTML dump.
+    const msg = (data.error as string) || (data.detail as string) || extractApiErrorFromHtml(raw)
+      || `فشل بدء المهمة (${res.status})`;
+    throw new Error(msg);
   }
   if (!data.request_id) {
-    throw new Error("Upstream did not return a request_id");
+    throw new Error("الـ API ما رجّعش request_id — راجع رصيد MuAPI");
   }
   return data as SubmitTaskResult;
+}
+
+/** Best-effort: pull a human-readable error out of an HTML error page. */
+function extractApiErrorFromHtml(raw: string): string | null {
+  if (!raw || !raw.trimStart().startsWith("<")) return null;
+  // Try Nginx <h1>, then <title>.
+  const h1 = raw.match(/<h1[^>]*>([^<]+)<\/h1>/i)?.[1];
+  if (h1) return `Server: ${h1.trim()}`;
+  const title = raw.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1];
+  if (title) return `Server: ${title.trim()}`;
+  return null;
 }
 
 /** Poll muapi for a result until completed/failed/timeout. */
@@ -128,18 +147,23 @@ export async function uploadFile(
     };
 
     xhr.onload = () => {
-      try {
-        const data = JSON.parse(xhr.responseText);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const url = data.url || data.file_url || data.fileUrl;
-          if (!url) return reject(new Error("Upload succeeded but no URL was returned"));
-          resolve({ url });
-        } else {
-          reject(new Error(data.error || data.detail || `Upload failed (${xhr.status})`));
-        }
-      } catch (err) {
-        reject(err instanceof Error ? err : new Error("Upload response parse error"));
+      const raw = xhr.responseText ?? "";
+      let data: Record<string, unknown> = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch { /* HTML / empty — fall through */ }
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const url = (data.url || data.file_url || data.fileUrl) as string | undefined;
+        if (!url) return reject(new Error("الرفع نجح لكن ما رجعش URL"));
+        resolve({ url });
+        return;
       }
+      // Try to surface a meaningful message even if the body is HTML
+      // (e.g. "413 Request Entity Too Large" from nginx).
+      const msg = (data.error as string)
+        || (data.detail as string)
+        || extractApiErrorFromHtml(raw)
+        || (xhr.status === 413 ? "الملف كبير جداً" : `فشل الرفع (${xhr.status})`);
+      reject(new Error(msg));
     };
 
     xhr.onerror   = () => reject(new Error("Upload network error"));
