@@ -26,12 +26,11 @@ export function HeroSection() {
     <section className="relative min-h-[88vh] flex items-center justify-center overflow-hidden bg-bg-primary pt-20 md:pt-24 pb-16 mt-6 md:mt-10">
       {/* ── Background video ─────────────────────────────────────────── */}
       {/*
-        Cover the full section so the video isn't squashed/cropped.
-        `object-position: 50% 30%` shifts the visible "window" upward
-        on the source — meaning the astronaut + mountain land lower in
-        the frame visually, without ever clipping the top of her helmet.
+        The wrapper covers the section, but the <video> itself has
+        48px of space above it so the video starts a bit lower without
+        affecting the foreground title/CTAs (which live in z-10).
       */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0" style={{ paddingTop: 48 }}>
         <video
           src="/hero-bg.mp4"
           poster="/hero-bg-poster.png"

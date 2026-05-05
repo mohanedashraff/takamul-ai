@@ -92,7 +92,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { MediaRenderer } from "@/components/tools/MediaRenderer";
 import { HeroSection }   from "@/components/home/HeroSection";
-import { HeroPreview }   from "@/components/home/HeroPreview";
 
 import { IMAGE_TOOLS, VIDEO_TOOLS, AUDIO_TOOLS } from "@/lib/data/tools";
 import { AGENTS_LIST } from "@/lib/data/agents";
@@ -797,9 +796,6 @@ export default function PremiumLanding() {
 
       {/* ── 1. NEW HERO SECTION (cinematic split-screen) ── */}
       <HeroSection />
-
-      {/* ── 2. HERO PREVIEW (Image Gen | Video Player | Video Gen) ── */}
-      <HeroPreview />
       
       {/* ── ADVANCED LINE DIVIDER ── */}
       <div className="w-full max-w-5xl mx-auto py-2 relative z-20 opacity-80 mt-[-10px] md:mt-[-20px] mb-8 md:mb-10">

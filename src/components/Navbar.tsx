@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Terminal, User as UserIcon, LogOut, Settings, CreditCard, Zap,
   Shield, Crown, ChevronDown, Sparkles, LayoutGrid, Activity,
+  Film, Megaphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useUserStore } from "@/stores/useUserStore";
@@ -58,15 +59,17 @@ const Navbar = () => {
           </Link>
           <Link
             href="/cinema"
-            className="text-sm font-bold text-gray-400 hover:text-accent-400 transition-colors flex items-center gap-1.5"
+            className="group text-sm font-bold text-gray-400 hover:text-white transition-colors flex items-center gap-1.5"
           >
-            🎬 السينما
+            <Film className="w-4 h-4 text-accent-400 group-hover:scale-110 transition-transform" />
+            السينما
           </Link>
           <Link
             href="/marketing"
-            className="text-sm font-bold text-gray-400 hover:text-accent-400 transition-colors flex items-center gap-1.5"
+            className="group text-sm font-bold text-gray-400 hover:text-white transition-colors flex items-center gap-1.5"
           >
-            📢 التسويق
+            <Megaphone className="w-4 h-4 text-accent-400 group-hover:scale-110 transition-transform" />
+            التسويق
           </Link>
           <Link
             href="/chat"
