@@ -5,7 +5,7 @@ import { Upload, X, Plus, Minus, Search, LayoutGrid, Check, ChevronLeft, Chevron
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { STYLE_CATEGORIES } from "@/lib/data/tools";
-import type { ToolInput } from "@/lib/data/tools";
+import type { ToolInput, ToolInputOption } from "@/lib/data/tools";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -737,9 +737,50 @@ function SelectInput({
   onChange: (v: string) => void;
   colorRgb: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]               = useState(false);
+  const [fetched, setFetched]         = useState<ToolInputOption[] | null>(null);
+  const [fetchError, setFetchError]   = useState<string | null>(null);
+  const [loading, setLoading]         = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const selected = input.options?.find((o) => o.value === value);
+
+  // ── Dynamic-options fetch ─────────────────────────────────────────
+  // Some inputs (e.g. the TTS "voice" picker) load their options from
+  // a server endpoint at render time so the UI reflects what's *really*
+  // available from the backing provider. The endpoint can return the
+  // option array directly, or wrap it in any of: `voices`, `options`,
+  // `items`, `data` — we accept all four for resilience.
+  useEffect(() => {
+    if (!input.dynamicOptions) return;
+    let cancelled = false;
+    setLoading(true);
+    setFetchError(null);
+    fetch(input.dynamicOptions.endpoint, { cache: "default" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const list =
+          (Array.isArray(data) ? data : null) ??
+          data?.voices ?? data?.options ?? data?.items ?? data?.data ?? [];
+        // Each entry must already match the ToolInputOption shape.
+        // The TTS voices endpoint returns { value, label } so this is
+        // a no-op there; other providers may need extra mapping.
+        const cleaned: ToolInputOption[] = (list as ToolInputOption[]).filter((x) => x && x.value);
+        setFetched(cleaned);
+        // Auto-pick the first option when no value has been chosen yet
+        // so the picker never sits in a "اختر..." state on tools where
+        // a value is mandatory.
+        if (!value && cleaned[0]?.value) onChange(cleaned[0].value);
+      })
+      .catch((err) => {
+        if (!cancelled) setFetchError(err instanceof Error ? err.message : "تعذّر جلب الخيارات");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input.dynamicOptions?.endpoint]);
+
+  const allOptions: ToolInputOption[] = fetched ?? input.options ?? [];
+  const selected = allOptions.find((o) => o.value === value);
 
   useEffect(() => {
     if (!open) return;
@@ -750,29 +791,46 @@ function SelectInput({
     return () => document.removeEventListener("mousedown", fn);
   }, [open]);
 
+  const triggerLabel = loading
+    ? (input.dynamicOptions?.loadingLabel ?? "جاري التحميل…")
+    : selected?.label ?? "اختر...";
+
   return (
     <div className="space-y-2.5" ref={ref}>
       {input.label && (
-        <label className="text-sm text-gray-400 font-medium block">{input.label}</label>
+        <label className="text-sm text-gray-400 font-medium block">
+          {input.label}
+          {fetched && (
+            <span className="text-[10px] text-gray-600 mr-2 font-normal tabular-nums">
+              ({fetched.length})
+            </span>
+          )}
+        </label>
       )}
       <div className="relative">
         <button
           type="button"
-          onClick={() => setOpen((p) => !p)}
+          onClick={() => !loading && setOpen((p) => !p)}
+          disabled={loading}
           className={cn(
             "w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border text-sm transition-all duration-200",
             open
               ? "border-white/20 bg-white/[0.07]"
-              : "border-white/10 bg-white/[0.04] hover:border-white/15 hover:bg-white/[0.06]"
+              : "border-white/10 bg-white/[0.04] hover:border-white/15 hover:bg-white/[0.06]",
+            loading && "opacity-60 cursor-wait"
           )}
           style={open ? { borderColor: `rgba(${colorRgb}, 0.4)`, boxShadow: `0 0 0 1px rgba(${colorRgb}, 0.15)` } : {}}
         >
-          <span className="text-white font-medium truncate">{selected?.label ?? "اختر..."}</span>
+          <span className="text-white font-medium truncate">{triggerLabel}</span>
           <ChevronDown
             className="w-4 h-4 text-gray-500 flex-shrink-0 transition-transform duration-200"
             style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
           />
         </button>
+
+        {fetchError && (
+          <p className="text-[11px] text-red-400 mt-1.5">{fetchError}</p>
+        )}
 
         <AnimatePresence>
           {open && (
@@ -781,9 +839,13 @@ function SelectInput({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.98 }}
               transition={{ duration: 0.12 }}
-              className="absolute top-full mt-1.5 left-0 right-0 bg-[#1a1b1e] border border-white/10 rounded-xl overflow-hidden z-20 shadow-xl"
+              className="absolute top-full mt-1.5 left-0 right-0 bg-[#1a1b1e] border border-white/10 rounded-xl overflow-hidden z-20 shadow-xl max-h-72 overflow-y-auto"
             >
-              {input.options?.map((opt) => {
+              {allOptions.length === 0 ? (
+                <div className="px-4 py-6 text-center text-xs text-gray-500">
+                  لا توجد خيارات متاحة
+                </div>
+              ) : allOptions.map((opt) => {
                 const isActive = value === opt.value;
                 return (
                   <button

@@ -36,6 +36,22 @@ export interface ToolInput {
   required?: boolean;
   accept?: string;           // upload: 'image/*' | 'video/*' | 'audio/*'
   options?: ToolInputOption[]; // button-group / select
+  /**
+   * For `select` inputs, fetches the option list from a server
+   * endpoint at render time instead of using a static `options`
+   * array. Used by the TTS tool to pull the live ElevenLabs voice
+   * catalogue (`/api/audio/voices`) so the picker stays in sync with
+   * the actual provider — no more mock voices.
+   *
+   * The endpoint is expected to return either an array of options or
+   * `{ voices: [...] }` / `{ options: [...] }` — the renderer is lax
+   * about the wrapping key.
+   */
+  dynamicOptions?: {
+    endpoint: string;
+    /** Optional human label shown while the list is loading. */
+    loadingLabel?: string;
+  };
   defaultValue?: any;
   min?: number;              // slider / counter
   max?: number;
@@ -1564,9 +1580,14 @@ export const AUDIO_TOOLS: Tool[] = [
     credits: 3,
     customRunner: {
       endpoint: "/api/audio/tts",
-      // Most fields map 1:1; we drop "mood" + "speed" since ElevenLabs
-      // expects voice_settings, not mood — keeping the UI for future.
-      paramMap: { text: "text", voice: "voice", format: "format" },
+      paramMap: {
+        text:             "text",
+        voice:            "voice",
+        format:           "format",
+        stability:        "stability",
+        similarity_boost: "similarity_boost",
+        style:            "style",
+      },
     },
     inputs: [
       {
@@ -1580,41 +1601,41 @@ export const AUDIO_TOOLS: Tool[] = [
         id: "voice",
         type: "select",
         label: "الصوت",
-        options: [
-          { value: "adam",    label: "Adam — وثائقي عميق 🇺🇸"      },
-          { value: "sarah",   label: "سارة — قصصي ومرح 🇪🇬"         },
-          { value: "fahad",   label: "فهد — إخباري رسمي 🇸🇦"        },
-          { value: "yuki",    label: "Yuki — أنمي حماسي 🇯🇵"        },
-          { value: "james",   label: "James — هادئ ومحترف 🇬🇧"      },
-          { value: "lina",    label: "لينا — ناعم ودافئ 🇦🇪"         },
-          { value: "marcus",  label: "Marcus — درامي قوي 🇺🇸"       },
-          { value: "nour",    label: "نور — شبابي وعصري 🇲🇦"         },
-        ],
-        defaultValue: "adam",
+        // Pulls real voices from ElevenLabs at render time — no more
+        // mock list. Defaults to whichever voice the endpoint returns
+        // first (multilingual voices sort to the top server-side).
+        dynamicOptions: {
+          endpoint:     "/api/audio/voices",
+          loadingLabel: "جاري تحميل الأصوات…",
+        },
       },
       {
-        id: "mood",
-        type: "button-group",
-        label: "أسلوب الأداء",
-        options: [
-          { value: "neutral",   label: "محايد"    },
-          { value: "happy",     label: "مبهج"     },
-          { value: "sad",       label: "حزين"     },
-          { value: "excited",   label: "متحمس"    },
-          { value: "serious",   label: "جدي"      },
-          { value: "whispering",label: "همس"      },
-        ],
-        defaultValue: "neutral",
-      },
-      {
-        id: "speed",
+        id: "stability",
         type: "slider",
-        label: "سرعة الكلام",
-        min: 0.5,
-        max: 2.0,
-        step: 0.1,
-        defaultValue: 1.0,
-        unit: "x",
+        label: "ثبات الأداء",
+        hint:  "أعلى = أداء أكثر تحفظاً، أقل = أكثر تعبيراً",
+        min: 0,
+        max: 1,
+        step: 0.05,
+        defaultValue: 0.55,
+      },
+      {
+        id: "similarity_boost",
+        type: "slider",
+        label: "تطابق هوية الصوت",
+        min: 0,
+        max: 1,
+        step: 0.05,
+        defaultValue: 0.75,
+      },
+      {
+        id: "style",
+        type: "slider",
+        label: "تعبيرية الأداء",
+        min: 0,
+        max: 1,
+        step: 0.05,
+        defaultValue: 0.30,
       },
       {
         id: "format",

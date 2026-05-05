@@ -22,62 +22,95 @@ export function HeroSection() {
     setReduceMotion(mq.matches);
   }, []);
 
-  // ── Ping-pong loop ────────────────────────────────────────────────
-  // The video plays forward to the end, then plays *backward* via a
-  // requestAnimationFrame manual scrub (negative playbackRate is
-  // unreliable across browsers), then forward again — creating a
-  // seamless boomerang loop that never visibly cuts back to frame 0.
+  // ── Ping-pong loop (no boundary pause) ────────────────────────────
+  // Earlier versions called `v.pause()` at the end, then started
+  // manually scrubbing backwards. The pause→play handshake takes one
+  // decode roundtrip (~30–60ms) on most browsers, which the eye reads
+  // as a tiny freeze. To kill it, we drive BOTH directions via
+  // requestAnimationFrame and never call pause()/play() inside the
+  // loop. The video element itself stays "paused" the whole time and
+  // we rewrite `currentTime` every frame — this gives perfectly
+  // continuous motion at any speed and any direction.
   //
-  // We poll `currentTime` against `duration` every frame instead of
-  // relying on the `ended` event, which Safari + autoplay-restricted
-  // contexts sometimes swallow. The 0.05s margin avoids freeze frames
-  // at the boundaries.
+  // Tunables:
+  //   FWD_SPEED  → forward playback rate (1 = realtime; we use 1.25
+  //                for the "slightly faster" feel the brief asks for).
+  //   REV_SPEED  → reverse scrub rate (we match forward so the loop
+  //                feels symmetric).
+  //   EPSILON    → distance from boundary at which we flip direction;
+  //                tight enough that the bounce reads as "instant".
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
 
-    let dir: 1 | -1 = 1;             // 1 = forward, -1 = reverse
-    let raf = 0;
-    let last = performance.now();
-    const speed = 1;                  // reverse playback speed (sec / sec)
-    const epsilon = 0.05;              // boundary margin (s)
+    const FWD_SPEED = 1.25;
+    const REV_SPEED = 1.25;
+    const EPSILON   = 0.03;
 
-    // Make sure native loop is OFF — we drive it manually.
+    let dir: 1 | -1 = 1;
+    let t            = 0;
+    let last         = performance.now();
+    let raf          = 0;
+    let started      = false;
+
+    // Native loop OFF — we drive it ourselves.
     v.loop = false;
 
-    const startForward = () => {
-      dir = 1;
+    // Try to start forward playback once metadata is available; some
+    // browsers won't autoplay a video without a user gesture, but
+    // muted+playsInline usually clears it. If play() is rejected we
+    // still drive the loop via currentTime — the user just sees a
+    // poster-on-poster fade until interaction.
+    const kickoff = () => {
+      if (started) return;
+      started = true;
+      // Slightly faster forward playback.
+      v.playbackRate = FWD_SPEED;
       v.play().catch(() => {});
     };
+    if (v.readyState >= 1) kickoff();
+    else v.addEventListener("loadedmetadata", kickoff, { once: true });
 
     const tick = (now: number) => {
       const dt = Math.max(0, (now - last) / 1000);
       last = now;
       const dur = isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
 
-      if (dir === 1) {
-        // Forward mode: let the browser play. Detect "end" by polling.
-        if (dur && v.currentTime >= dur - epsilon) {
-          dir = -1;
-          v.pause();
-        }
-      } else {
-        // Reverse mode: scrub backwards manually.
-        const next = v.currentTime - dt * speed;
-        if (next <= epsilon) {
-          v.currentTime = epsilon;
-          startForward();
+      if (dur > 0) {
+        if (dir === 1) {
+          // Forward → let the browser advance currentTime via native
+          // playback. We just watch for the boundary.
+          t = v.currentTime;
+          if (t >= dur - EPSILON) {
+            // Flip to reverse — switch to manual scrubbing without
+            // calling pause(): set rate to 0 so internal time stops
+            // advancing, but the element never enters the "paused"
+            // state that would gate the next play() call.
+            dir = -1;
+            v.playbackRate = 0;
+            t = dur - EPSILON;
+            v.currentTime = t;
+          }
         } else {
-          v.currentTime = next;
+          // Reverse → manually walk currentTime backwards. No pause
+          // call means the element stays "playing" the whole time, so
+          // re-flipping to forward is just a `playbackRate = FWD_SPEED`
+          // assignment — no decode round-trip, no flicker.
+          t -= dt * REV_SPEED;
+          if (t <= EPSILON) {
+            dir = 1;
+            t = EPSILON;
+            v.currentTime = t;
+            v.playbackRate = FWD_SPEED;
+          } else {
+            v.currentTime = t;
+          }
         }
       }
+
       raf = requestAnimationFrame(tick);
     };
-
-    // Kick off — autoplay is set on the element, but call play() too in
-    // case it was suspended.
-    startForward();
     raf = requestAnimationFrame(tick);
 
     return () => cancelAnimationFrame(raf);

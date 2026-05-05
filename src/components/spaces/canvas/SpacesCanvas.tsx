@@ -6,7 +6,7 @@
 // ============================================================
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ReactFlow,
   Background,
@@ -110,23 +110,32 @@ function setCachedSpaceId(id: string) {
   localStorage.setItem(SPACE_ID_KEY, id);
 }
 
-async function loadOrCreateSpace(): Promise<{
+async function loadOrCreateSpace(explicitId?: string | null): Promise<{
   spaceId: string;
   nodes: Node[];
   edges: Edge[];
+  title?: string;
 } | null> {
   if (typeof window === "undefined") return null;
 
-  const cached = getCachedSpaceId();
-  if (cached) {
+  // 1. Explicit `?space=<id>` from a deep link (e.g. opened from a
+  //    template) takes precedence over the cached default.
+  const idToTry = explicitId ?? getCachedSpaceId();
+
+  if (idToTry) {
     try {
-      const res = await fetch(`/api/spaces/${cached}`, { cache: "no-store" });
+      const res = await fetch(`/api/spaces/${idToTry}`, { cache: "no-store" });
       if (res.ok) {
         const { space } = await res.json();
+        // Promote the explicit id so subsequent reloads land on it
+        // again (matches MuAPI: opening a template makes it your
+        // current canvas until you switch).
+        if (explicitId) setCachedSpaceId(space.id);
         return {
           spaceId: space.id,
           nodes: (space.nodes as Node[]) ?? [],
           edges: (space.edges as Edge[]) ?? [],
+          title: space.title,
         };
       }
       // 404 → fall through and create a new one
@@ -161,6 +170,7 @@ async function saveCanvasToBackend(spaceId: string, nodes: Node[], edges: Edge[]
 // ============================================================
 function SpacesCanvasInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { screenToFlowPosition, fitView, zoomIn, zoomOut, getNodes, getEdges } = useReactFlow();
 
   // State
@@ -175,10 +185,13 @@ function SpacesCanvasInner() {
   const historyRef = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
   const historyIndexRef = useRef(-1);
 
-  // Load from backend (creates a default space on first visit)
+  // Load from backend (creates a default space on first visit, or
+  // loads the explicit id passed via `?space=<id>` — used when we
+  // open a workflow template into the canvas).
   useEffect(() => {
     let cancelled = false;
-    loadOrCreateSpace().then((result) => {
+    const explicit = searchParams.get("space");
+    loadOrCreateSpace(explicit).then((result) => {
       if (cancelled || !result) { setLoaded(true); return; }
       setSpaceId(result.spaceId);
       setNodes(result.nodes);
@@ -186,7 +199,7 @@ function SpacesCanvasInner() {
       setLoaded(true);
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [searchParams]);
 
   // Auto-save on changes (debounced → backend PUT)
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);

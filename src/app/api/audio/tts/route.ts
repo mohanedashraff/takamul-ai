@@ -15,10 +15,16 @@ export const runtime    = "nodejs";
 export const maxDuration = 60;
 
 const Schema = z.object({
-  text:   z.string().min(1).max(4_000),
-  voice:  z.string().default("adam"),
-  format: z.enum(["mp3", "wav"]).default("mp3"),
-  speed:  z.number().min(0.5).max(2.0).optional(),
+  text:             z.string().min(1).max(4_000),
+  // The frontend now sends a real ElevenLabs voice id (resolved by
+  // /api/audio/voices). The synthesizer also accepts our short keys
+  // ("adam", "sarah", …) as a fallback, so passing either works.
+  voice:            z.string().min(1).default("adam"),
+  format:           z.enum(["mp3", "wav"]).default("mp3"),
+  speed:            z.number().min(0.5).max(2.0).optional(),
+  stability:        z.number().min(0).max(1).optional(),
+  similarity_boost: z.number().min(0).max(1).optional(),
+  style:            z.number().min(0).max(1).optional(),
 });
 
 export async function POST(req: Request) {
@@ -35,7 +41,16 @@ export async function POST(req: Request) {
   if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Invalid");
 
   try {
-    const { buffer, mimeType } = await synthesize(parsed.data);
+    // Map the route schema field names to what `synthesize` expects.
+    const { buffer, mimeType } = await synthesize({
+      text:             parsed.data.text,
+      voice:            parsed.data.voice,
+      format:           parsed.data.format,
+      speed:            parsed.data.speed,
+      stability:        parsed.data.stability,
+      similarityBoost:  parsed.data.similarity_boost,
+      style:            parsed.data.style,
+    });
 
     // Forward the audio to MuAPI's upload_file so it lives at a stable
     // public URL we can reference from generations / spaces / etc.

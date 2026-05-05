@@ -6,18 +6,63 @@ import { motion } from "framer-motion";
 import { Loader2, Search, Bot, Star, Sparkles, MessageCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { tAgent } from "@/lib/data/muapi-translations";
 
-interface AgentRow {
+// MuAPI returns slightly different shapes for /featured and /templates;
+// we normalise everything we care about into one shape.
+interface RawAgent {
   id?:           string;
   agent_id:      string;          // slug used for chat
   name:          string;
   description?:  string;
-  thumbnail?:    string;
+  icon_url?:     string;          // ← real MuAPI field (was missing before)
+  thumbnail?:    string;          // legacy fallback
   category?:     string | null;
   system_prompt?:string;
 }
 
+interface AgentRow {
+  agent_id:    string;
+  name:        string;
+  description: string;
+  icon:        string | null;
+}
+
 type Tab = "all" | "featured" | "templates";
+
+// Stable colour gradient based on slug — used as a placeholder when no
+// thumbnail is provided by MuAPI (most "featured" agents have none).
+function gradientFor(slug: string): string {
+  const palette = [
+    "from-violet-500/40 to-fuchsia-500/30",
+    "from-cyan-500/40 to-blue-500/30",
+    "from-amber-500/40 to-rose-500/30",
+    "from-emerald-500/40 to-teal-500/30",
+    "from-pink-500/40 to-orange-500/30",
+    "from-indigo-500/40 to-purple-500/30",
+    "from-yellow-500/40 to-amber-500/30",
+    "from-sky-500/40 to-cyan-500/30",
+  ];
+  let hash = 0;
+  for (let i = 0; i < slug.length; i++) hash = (hash * 31 + slug.charCodeAt(i)) | 0;
+  return palette[Math.abs(hash) % palette.length];
+}
+
+function normalise(raws: RawAgent[]): AgentRow[] {
+  return raws
+    .filter((a) => a && a.agent_id)
+    .map((a) => {
+      const ar = tAgent(a.agent_id, { name: a.name, description: a.description });
+      const icon = a.icon_url || a.thumbnail || null;
+      // MuAPI sometimes returns "" for icon_url — treat as null.
+      return {
+        agent_id:    a.agent_id,
+        name:        ar.name,
+        description: ar.description,
+        icon:        icon && icon.trim() ? icon : null,
+      };
+    });
+}
 
 export default function AgentsPage() {
   const [featured, setFeatured] = useState<AgentRow[]>([]);
@@ -32,8 +77,8 @@ export default function AgentsPage() {
       fetch("/api/external-agents/templates/agents", { cache: "no-store" }).then((r) => r.json()).catch(() => []),
     ])
       .then(([f, t]) => {
-        if (Array.isArray(f)) setFeatured(f);
-        if (Array.isArray(t)) setTemplates(t);
+        if (Array.isArray(f)) setFeatured(normalise(f));
+        if (Array.isArray(t)) setTemplates(normalise(t));
       })
       .catch(() => toast.error("فشل تحميل الوكلاء"))
       .finally(() => setLoading(false));
@@ -100,46 +145,60 @@ export default function AgentsPage() {
         <div className="py-20 text-center text-gray-500">لا توجد نتائج</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((a, i) => (
-            <motion.div
-              key={a.agent_id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: Math.min(i * 0.02, 0.4), ease: [0.16, 1, 0.3, 1] }}
-            >
-              <Link
-                href={`/agents/${encodeURIComponent(a.agent_id)}`}
-                className="block group bento-card rounded-2xl overflow-hidden border border-white/10 hover:border-violet-500/40 transition-colors h-full"
+          {filtered.map((a, i) => {
+            const isFeatured = featured.some((f) => f.agent_id === a.agent_id);
+            const grad = gradientFor(a.agent_id);
+            const initials = a.name
+              .split(/\s+/)
+              .slice(0, 2)
+              .map((w) => w.charAt(0))
+              .join("")
+              .slice(0, 2);
+
+            return (
+              <motion.div
+                key={a.agent_id}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: Math.min(i * 0.02, 0.4), ease: [0.16, 1, 0.3, 1] }}
               >
-                <div className="relative aspect-square bg-gradient-to-br from-violet-500/15 to-accent-400/10 overflow-hidden">
-                  {a.thumbnail ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={a.thumbnail} alt={a.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Bot className="w-16 h-16 text-violet-400/40" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  {featured.some((f) => f.agent_id === a.agent_id) && (
-                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-black bg-accent-400 text-black flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-current" /> مميز
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="text-sm font-bold text-white mb-1 line-clamp-1">{a.name}</h3>
-                  {a.description && (
-                    <p className="text-[11px] text-gray-500 line-clamp-2 mb-2">{a.description}</p>
-                  )}
-                  <p className="text-[11px] font-bold text-violet-400 flex items-center gap-1 group-hover:gap-2 transition-all">
-                    <MessageCircle className="w-3 h-3" />
-                    ابدأ المحادثة →
-                  </p>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
+                <Link
+                  href={`/agents/${encodeURIComponent(a.agent_id)}`}
+                  className="block group bento-card rounded-2xl overflow-hidden border border-white/10 hover:border-violet-500/40 transition-colors h-full"
+                >
+                  <div className={cn("relative aspect-square overflow-hidden bg-gradient-to-br", grad)}>
+                    {a.icon ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={a.icon} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                        <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-white text-2xl font-black tracking-wider">
+                          {initials || <Bot className="w-8 h-8" />}
+                        </div>
+                        <Bot className="w-4 h-4 text-white/40" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+                    {isFeatured && (
+                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-black bg-accent-400 text-black flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-current" /> مميز
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-sm font-bold text-white mb-1 line-clamp-1">{a.name}</h3>
+                    {a.description && (
+                      <p className="text-[11px] text-gray-500 line-clamp-2 mb-2 leading-relaxed">{a.description}</p>
+                    )}
+                    <p className="text-[11px] font-bold text-violet-400 flex items-center gap-1 group-hover:gap-2 transition-all">
+                      <MessageCircle className="w-3 h-3" />
+                      ابدأ المحادثة ←
+                    </p>
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>

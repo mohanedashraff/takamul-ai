@@ -2,13 +2,15 @@
 
 import React, { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Loader2, ArrowRight, Sparkles, Upload, Download, RotateCcw,
-  ImageIcon, AlertCircle,
+  ImageIcon, AlertCircle, Network,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { uploadFile } from "@/lib/muapi";
 import { cn } from "@/lib/utils";
+import { tField, tTemplate } from "@/lib/data/muapi-translations";
 
 interface InputDef {
   name:        string;
@@ -39,6 +41,7 @@ export default function TemplateRunPage({
   params,
 }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
 
   const [def,        setDef]        = useState<WorkflowDef | null>(null);
   const [inputs,     setInputs]     = useState<InputDef[]>([]);
@@ -46,6 +49,7 @@ export default function TemplateRunPage({
   const [files,      setFiles]      = useState<Record<string, File | null>>({});
   const [previews,   setPreviews]   = useState<Record<string, string>>({});
   const [loading,    setLoading]    = useState(true);
+  const [openingCanvas, setOpeningCanvas] = useState(false);
   const [phase,      setPhase]      = useState<Phase>("idle");
   const [progress,   setProgress]   = useState("");
   const [errorMsg,   setErrorMsg]   = useState("");
@@ -143,6 +147,27 @@ export default function TemplateRunPage({
     setErrorMsg("");
   };
 
+  // Open this workflow in the Spaces canvas — server-side: fetch the
+  // workflow def, convert nodes/edges to our format, persist as a new
+  // Space, redirect to /spaces/canvas?space=<newId>.
+  const handleOpenInCanvas = async () => {
+    if (openingCanvas) return;
+    setOpeningCanvas(true);
+    try {
+      const r = await fetch(`/api/spaces/from-template/${id}`, { method: "POST" });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.spaceId) {
+        throw new Error(data.error || "فشل فتح القالب في الكانفس");
+      }
+      toast.success("تم فتح القالب — يتم تحميل الكانفس…");
+      router.push(`/spaces/canvas?space=${data.spaceId}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "خطأ";
+      toast.error(message);
+      setOpeningCanvas(false);
+    }
+  };
+
   // Pick rendered URLs from arbitrary output shapes.
   const resultUrls = useMemo(() => collectUrls(outputs), [outputs]);
 
@@ -164,16 +189,48 @@ export default function TemplateRunPage({
         <>
           {/* Header */}
           <div className="bento-card rounded-3xl border border-white/10 p-6 md:p-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent-400/30 bg-accent-400/8 text-accent-400 text-xs font-bold mb-3">
-              <Sparkles className="w-3 h-3" />
-              قالب MuAPI
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+              <div className="flex-1 min-w-0">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent-400/30 bg-accent-400/8 text-accent-400 text-xs font-bold mb-3">
+                  <Sparkles className="w-3 h-3" />
+                  قالب جاهز
+                </div>
+                <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                  {tTemplate(id, { name: def?.name }).name}
+                </h1>
+                {tTemplate(id).description && (
+                  <p className="text-sm text-gray-400 mt-2 leading-relaxed max-w-2xl">
+                    {tTemplate(id).description}
+                  </p>
+                )}
+                {def?.data?.nodes && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    يحتوي على {(def.data.nodes as unknown[]).length} خطوة
+                  </p>
+                )}
+              </div>
+
+              {/* Open in Spaces — pushes the workflow into our infinite
+                  canvas (xyflow) where it can be edited node-by-node,
+                  matching the MuAPI Spaces experience. */}
+              <button
+                onClick={handleOpenInCanvas}
+                disabled={openingCanvas}
+                type="button"
+                className={cn(
+                  "shrink-0 inline-flex items-center gap-2 h-11 px-4 rounded-2xl text-xs font-bold transition-all",
+                  "border border-violet-500/30 bg-violet-500/10 text-violet-300",
+                  "hover:bg-violet-500/20 hover:text-white hover:border-violet-500/50",
+                  "disabled:opacity-60 disabled:cursor-not-allowed",
+                )}
+              >
+                {openingCanvas ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> جاري الفتح…</>
+                ) : (
+                  <><Network className="w-4 h-4" /> افتح في الكانفس</>
+                )}
+              </button>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">{def?.name ?? "قالب"}</h1>
-            {def?.data?.nodes && (
-              <p className="text-xs text-gray-500 mt-2">
-                يحتوي على {(def.data.nodes as unknown[]).length} خطوة
-              </p>
-            )}
           </div>
 
           {/* Form + Output side by side */}
@@ -359,9 +416,14 @@ function InputField({
   preview:  string;
   onFile:   (f: File | null) => void;
 }) {
-  const label = inp.label || inp.name;
-  const type  = (inp.type || "string").toLowerCase();
-  const isFile = isFileInput(type);
+  // Prefer Arabic translation when we know the field name; fall back
+  // to MuAPI's label, then the raw key. Strip any "node.field" prefix
+  // (e.g. "image1.image_url" → "image_url") so the dictionary hits.
+  const rawKey   = inp.name.split(".").pop() ?? inp.name;
+  const arLabel  = tField(rawKey);
+  const label    = arLabel !== rawKey ? arLabel : (inp.label || rawKey);
+  const type     = (inp.type || "string").toLowerCase();
+  const isFile   = isFileInput(type);
 
   if (isFile) {
     const accept =

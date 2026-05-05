@@ -9,14 +9,16 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { tTemplate } from "@/lib/data/muapi-translations";
 
 interface TemplateRow {
-  id:         string;
-  name:       string;
-  thumbnail:  string;
-  category:   string;
-  created_at: string;
-  updated_at: string;
+  id:           string;
+  name:         string;       // already translated to Arabic
+  description?: string;       // Arabic one-liner if available
+  thumbnail:    string;
+  category:     string;
+  created_at:   string;
+  updated_at:   string;
 }
 
 const CATEGORY_META: Record<string, { ar: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -37,7 +39,14 @@ export default function TemplatesPage() {
     fetch("/api/workflow/get-template-workflows", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
-        if (Array.isArray(d)) setItems(d);
+        if (Array.isArray(d)) {
+          // Apply Arabic name + description, keeping the original
+          // English name as a fallback when no translation exists.
+          setItems(d.map((t: TemplateRow) => {
+            const ar = tTemplate(t.id, { name: t.name });
+            return { ...t, name: ar.name, description: ar.description };
+          }));
+        }
         else if (d.error) toast.error(d.error);
       })
       .catch(() => toast.error("فشل تحميل القوالب"))
@@ -149,9 +158,14 @@ export default function TemplatesPage() {
                 </div>
                 <div className="p-4">
                   <h3 className="text-sm font-bold text-white line-clamp-2 mb-1">{t.name}</h3>
+                  {t.description && (
+                    <p className="text-[11px] text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+                      {t.description}
+                    </p>
+                  )}
                   <p className="text-[11px] text-accent-400 font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
                     <Sparkles className="w-3 h-3" />
-                    تشغيل القالب →
+                    تشغيل القالب ←
                   </p>
                 </div>
               </Link>
