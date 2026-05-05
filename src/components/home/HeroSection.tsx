@@ -24,30 +24,50 @@ export function HeroSection() {
 
   // ── Ping-pong loop ────────────────────────────────────────────────
   // The video plays forward to the end, then plays *backward* via a
-  // requestAnimationFrame manual scrub (since negative playbackRate is
+  // requestAnimationFrame manual scrub (negative playbackRate is
   // unreliable across browsers), then forward again — creating a
   // seamless boomerang loop that never visibly cuts back to frame 0.
+  //
+  // We poll `currentTime` against `duration` every frame instead of
+  // relying on the `ended` event, which Safari + autoplay-restricted
+  // contexts sometimes swallow. The 0.05s margin avoids freeze frames
+  // at the boundaries.
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
 
-    let dir: 1 | -1 = 1;            // 1 = forward, -1 = reverse
+    let dir: 1 | -1 = 1;             // 1 = forward, -1 = reverse
     let raf = 0;
     let last = performance.now();
-    const speed = 1;                 // playback speed for the reverse pass
+    const speed = 1;                  // reverse playback speed (sec / sec)
+    const epsilon = 0.05;              // boundary margin (s)
+
+    // Make sure native loop is OFF — we drive it manually.
+    v.loop = false;
+
+    const startForward = () => {
+      dir = 1;
+      v.play().catch(() => {});
+    };
 
     const tick = (now: number) => {
-      const dt = Math.max(0, (now - last) / 1000); // seconds since last frame
+      const dt = Math.max(0, (now - last) / 1000);
       last = now;
-      // Only scrub manually while we're in reverse mode. In forward
-      // mode the browser plays the video natively.
-      if (dir === -1) {
+      const dur = isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
+
+      if (dir === 1) {
+        // Forward mode: let the browser play. Detect "end" by polling.
+        if (dur && v.currentTime >= dur - epsilon) {
+          dir = -1;
+          v.pause();
+        }
+      } else {
+        // Reverse mode: scrub backwards manually.
         const next = v.currentTime - dt * speed;
-        if (next <= 0) {
-          v.currentTime = 0;
-          dir = 1;
-          v.play().catch(() => {});
+        if (next <= epsilon) {
+          v.currentTime = epsilon;
+          startForward();
         } else {
           v.currentTime = next;
         }
@@ -55,20 +75,12 @@ export function HeroSection() {
       raf = requestAnimationFrame(tick);
     };
 
-    const onEnded = () => {
-      // End reached → flip into reverse mode. Pause the underlying
-      // playback so the rAF loop is the only thing moving currentTime.
-      dir = -1;
-      v.pause();
-      last = performance.now();
-    };
-
-    v.addEventListener("ended", onEnded);
+    // Kick off — autoplay is set on the element, but call play() too in
+    // case it was suspended.
+    startForward();
     raf = requestAnimationFrame(tick);
-    return () => {
-      v.removeEventListener("ended", onEnded);
-      cancelAnimationFrame(raf);
-    };
+
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   return (
