@@ -88,6 +88,17 @@ export interface Tool {
   inputs: ToolInput[];
   /** Wires this tool to one or more muapi models */
   muapi?: ToolMuapiBinding;
+  /** Wires this tool to an internal API route instead of MuAPI — for
+   *  third-party providers (ElevenLabs TTS, Replicate audio, FFmpeg
+   *  resize, …). Mutually exclusive with `muapi`. */
+  customRunner?: {
+    /** Internal endpoint path, e.g. "/api/audio/tts". */
+    endpoint: string;
+    /** Translate ToolInput.id → API field name. */
+    paramMap?: Record<string, string>;
+    /** Static fields merged into every request. */
+    staticPayload?: Record<string, unknown>;
+  };
   /** When set, the dashboard / gallery links to this absolute path instead
    *  of `/tools/<id>`. Use it for tools that have their own bespoke UI
    *  (Cinema Studio, Marketing Studio, …). */
@@ -1308,7 +1319,10 @@ export const VIDEO_TOOLS: Tool[] = [
     icon: Frame,
     image: "/media/video-resize.webm",
     credits: 5,
-    comingSoon: true,
+    customRunner: {
+      endpoint: "/api/video/resize",
+      paramMap: { video: "video_url", ratio: "ratio" },
+    },
     inputs: [
       {
         id: "video",
@@ -1548,7 +1562,12 @@ export const AUDIO_TOOLS: Tool[] = [
     icon: Music,
     image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=600&auto=format&fit=crop",
     credits: 3,
-    comingSoon: true,
+    customRunner: {
+      endpoint: "/api/audio/tts",
+      // Most fields map 1:1; we drop "mood" + "speed" since ElevenLabs
+      // expects voice_settings, not mood — keeping the UI for future.
+      paramMap: { text: "text", voice: "voice", format: "format" },
+    },
     inputs: [
       {
         id: "text",
@@ -1617,7 +1636,11 @@ export const AUDIO_TOOLS: Tool[] = [
     icon: Layers,
     image: "https://images.unsplash.com/photo-1516280440502-3c66f6517170?q=80&w=600&auto=format&fit=crop",
     credits: 3,
-    comingSoon: true,
+    customRunner: {
+      endpoint: "/api/audio/separate",
+      paramMap: { audio: "audio_url" },
+      staticPayload: { stems: 2 },
+    },
     inputs: [
       {
         id: "audio",
@@ -1637,7 +1660,10 @@ export const AUDIO_TOOLS: Tool[] = [
     icon: Sparkles,
     image: "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=600&auto=format&fit=crop",
     credits: 2,
-    comingSoon: true,
+    customRunner: {
+      endpoint: "/api/audio/enhance",
+      paramMap: { audio: "audio_url" },
+    },
     inputs: [
       {
         id: "audio",

@@ -40,9 +40,17 @@ export async function executeTool(
   values: Record<string, unknown>,
   opts:   ExecuteToolOptions = {},
 ): Promise<ExecuteToolResult> {
+  // ── Custom runner path (ElevenLabs TTS, Replicate audio, FFmpeg, …)
+  // Tools wired to an internal API route bypass the MuAPI submit/poll
+  // flow and just call the endpoint directly. We still go through
+  // /api/generations for credit-deduction + history logging.
+  if (tool.customRunner) {
+    return runCustomTool(tool, values, opts);
+  }
+
   const binding = tool.muapi;
   if (!binding) {
-    throw new Error(`Tool "${tool.id}" is not yet wired to MuAPI`);
+    throw new Error(`Tool "${tool.id}" is not yet wired to a backend`);
   }
 
   // 1. Resolve which model to use
@@ -93,6 +101,103 @@ export async function executeTool(
   };
 }
 
+// ── Custom-runner path ──────────────────────────────────────────────
+// Used by tools wired to internal endpoints (TTS, audio split,
+// audio enhance, video resize). One POST → final result. No polling.
+
+async function runCustomTool(
+  tool:   Tool,
+  values: Record<string, unknown>,
+  opts:   ExecuteToolOptions,
+): Promise<ExecuteToolResult> {
+  const cfg = tool.customRunner!;
+  const paramMap = cfg.paramMap ?? {};
+
+  // Build the payload using the same conventions as MuAPI tools.
+  const payload: Record<string, unknown> = { ...(cfg.staticPayload ?? {}) };
+  for (const [key, raw] of Object.entries(values)) {
+    if (key === "model") continue;
+    if (raw === "" || raw === undefined || raw === null) continue;
+    if (raw === "auto") continue;
+    payload[paramMap[key] ?? key] = raw;
+  }
+
+  // Step 1 — book-keeping: deduct credits + create a PENDING generation row.
+  const startRes = await fetch("/api/generations", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ toolId: tool.id, inputs: values }),
+  });
+  const startData = await startRes.json().catch(() => ({}));
+  if (!startRes.ok) {
+    throw new Error(startData.error || "فشل بدء العملية");
+  }
+  const generationId = startData.generation.id as string;
+
+  // Step 2 — call the actual provider.
+  opts.onStatus?.("processing");
+  const started = performance.now();
+  let resultUrl: string | undefined;
+  try {
+    const res = await fetch(cfg.endpoint, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(payload),
+      signal:  opts.signal,
+    });
+    const raw = await res.text();
+    let data: Record<string, unknown> = {};
+    try { data = raw ? JSON.parse(raw) : {}; } catch { /* HTML / empty */ }
+    if (!res.ok) {
+      const msg = (data.error as string) || (data.detail as string) || `فشلت العملية (${res.status})`;
+      throw new Error(msg);
+    }
+
+    // Pick the first usable URL from the response. Different endpoints
+    // return slightly different shapes (TTS → { url }, separate →
+    // { vocals, drums, … }).
+    resultUrl = (data.url as string)
+      || (data.vocals as string)
+      || (data.audio as string);
+    if (!resultUrl) {
+      // For multi-stem outputs, surface the entire object as outputs.
+      if (Object.keys(data).length === 0) throw new Error("لم يتم استلام الناتج");
+    }
+
+    // Step 3 — mark COMPLETED, store outputs.
+    await fetch(`/api/generations/${generationId}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        status:     "COMPLETED",
+        outputs:    data,
+        durationMs: Math.round(performance.now() - started),
+      }),
+    }).catch(() => {});
+
+    return {
+      result: data as never,
+      generationId,
+      endpoint: cfg.endpoint,
+      modelId:  tool.id,
+      credits:  tool.credits,
+    };
+  } catch (err) {
+    // FAILED → server-side auto-refund.
+    const message = err instanceof Error ? err.message : String(err);
+    await fetch(`/api/generations/${generationId}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        status:       "FAILED",
+        errorMessage: message,
+        durationMs:   Math.round(performance.now() - started),
+      }),
+    }).catch(() => {});
+    throw err;
+  }
+}
+
 // ── helpers ─────────────────────────────────────────────────────────────
 
 function buildPayload(
@@ -114,7 +219,8 @@ function buildPayload(
   return out;
 }
 
-/** Does this tool have a complete muapi binding? */
+/** Does this tool have a working backend (MuAPI OR custom)? */
 export function isExecutable(tool: Tool): boolean {
+  if (tool.customRunner?.endpoint) return true;
   return Boolean(tool.muapi && tool.muapi.models.length > 0);
 }

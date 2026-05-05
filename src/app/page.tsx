@@ -94,7 +94,6 @@ import { MediaRenderer } from "@/components/tools/MediaRenderer";
 import { HeroSection }   from "@/components/home/HeroSection";
 
 import { IMAGE_TOOLS, VIDEO_TOOLS, AUDIO_TOOLS } from "@/lib/data/tools";
-import { AGENTS_LIST } from "@/lib/data/agents";
 
 const IMAGE_VIDEOS = [
   "https://cdn.higgsfield.ai/application_main/a7aa648c-6d7b-463a-8c47-998e25342aaa.mp4",
@@ -295,94 +294,6 @@ const SpacesSection = () => {
               جرّب التجربة الكاملة ←
             </Button>
           </Link>
-        </div>
-
-      </div>
-    </section>
-  );
-};
-
-const AgentsStoreSection = () => {
-  return (
-    <section className="pt-20 pb-24 relative bg-bg-primary overflow-hidden">
-      {/* Background Ambience */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent-400/5 rounded-full blur-[150px] pointer-events-none" />
-
-      <div className="site-container relative z-10 flex flex-col items-center">
-        
-        {/* Section Header */}
-        <div className="flex flex-col items-center text-center mb-16">
-          <div className="-mt-8 mb-12 inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 bg-white/5 text-white text-sm font-bold tracking-widest backdrop-blur-md shadow-[0_0_30px_rgba(255,255,255,0.05)]">
-            <Cpu className="w-5 h-5 text-accent-400" />
-            <span>AI AGENTS متجر</span>
-          </div>
-          <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase drop-shadow-[0_0_40px_rgba(255,255,255,0.1)] mb-6">
-            وظف فريقاً <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary-400 to-accent-400">آلياً متكاملاً</span>
-          </h2>
-          <p className="text-lg text-gray-400 max-w-2xl leading-relaxed">
-            استكشف متجر الوكلاء الذكيين المجهزين بالكامل لأداء أصعب مهامك. من خدمة العملاء والمبيعات إلى صيانة الأنظمة وكتابة المحتوى. جاهزون للعمل بضغطة زر.
-          </p>
-        </div>
-
-        {/* Filtration & Search System */}
-        <div className="w-full max-w-5xl mx-auto mb-16 flex flex-col md:flex-row items-center gap-6">
-          <div className="relative w-full md:w-1/2 group">
-             <div className="absolute inset-0 bg-accent-400/10 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
-             <div className="relative flex items-center w-full h-14 bg-black/40 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-md">
-               <div className="pl-4 pr-3 text-gray-500 hidden sm:block">
-                  <Sparkles className="w-5 h-5" />
-               </div>
-               <input 
-                 type="text" 
-                 placeholder="ابحث عن وكيل (مثال: خبير SEO)..."
-                 className="w-full h-full bg-transparent border-none outline-none text-white placeholder-gray-500 font-light px-4 sm:px-0"
-               />
-             </div>
-          </div>
-          <div className="flex items-center gap-3 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 hide-scroll snap-x">
-            {['الكل', 'المبيعات', 'التسويق', 'العمليات', 'البرمجة'].map((tag, i) => (
-              <button key={tag} className={`snap-center px-6 py-3 rounded-2xl text-sm font-bold whitespace-nowrap transition-all ${i===0 ? 'bg-neon-yellow text-black shadow-[0_0_20px_rgba(254,228,64,0.4)] border border-transparent' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10 hover:bg-white/10'}`}>
-                {tag}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* The Agents Grid (matching slider cards exactly) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
-          {AGENTS_LIST.map((agent) => (
-             <div
-               key={agent.title}
-               className="bento-card rounded-[2rem] p-3 group hover:scale-[1.02] hover:-translate-y-2 transition-all duration-500 cursor-pointer w-full bg-black/40"
-               style={{ '--hover-border': 'rgba(254, 228, 64, 0.4)', '--hover-shadow': 'rgba(254, 228, 64, 0.1)' } as React.CSSProperties}
-             >
-               {/* Card Image Wrapper */}
-               <div className="w-full h-[220px] rounded-[1.5rem] bg-black mb-5 overflow-hidden relative">
-                 <img 
-                   src={agent.image} 
-                   alt={agent.title} 
-                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-70 group-hover:opacity-100 grayscale-[0.3] group-hover:grayscale-0" 
-                 />
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex items-end p-5">
-                   <agent.icon className={`w-7 h-7 ${agent.colorClass}`} />
-                 </div>
-               </div>
-               
-               {/* Card Text Content */}
-               <div className="px-3 pb-4">
-                 <h3 className="text-xl font-bold text-white mb-2">{agent.title}</h3>
-                 <p className="text-sm text-gray-400 font-light leading-relaxed mb-6">{agent.desc}</p>
-                 
-                 {/* Action Button */}
-                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-accent-400 opacity-70 group-hover:opacity-100 transition-opacity">
-                   <span>تفعيل واستئجار</span>
-                   <svg className="w-4 h-4 rotate-180 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                   </svg>
-                 </div>
-               </div>
-             </div>
-          ))}
         </div>
 
       </div>
@@ -981,9 +892,6 @@ export default function PremiumLanding() {
 
       {/* ── TRANSITION DIVIDER ── */}
       <StoreTransitionDivider />
-
-      {/* ── 3.75. AI AGENTS STORE SECTION ── */}
-      <AgentsStoreSection />
 
       {/* ── 3.8. SPACES (INFINITE COLLABORATION) SECTION ── */}
       <SpacesSection />
