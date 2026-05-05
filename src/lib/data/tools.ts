@@ -1576,7 +1576,9 @@ export const AUDIO_TOOLS: Tool[] = [
     title: "كلام واقعي بصوت بشري",
     desc: "استمع فوراً لما تكتبه بصوت طبيعي وواضح.",
     icon: Music,
-    image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=600&auto=format&fit=crop",
+    // Custom-branded thumbnail generated via OpenRouter (gpt-5.4-image-2)
+    // — see scripts/gen-audio-thumbnails.mjs.
+    image: "/tool-thumbnails/text-to-speech.png",
     credits: 3,
     customRunner: {
       endpoint: "/api/audio/tts",
@@ -1655,7 +1657,7 @@ export const AUDIO_TOOLS: Tool[] = [
     desc: "افصل الكلام عن الموسيقى بسهولة ودقة عالية.",
     layout: "centered",
     icon: Layers,
-    image: "https://images.unsplash.com/photo-1516280440502-3c66f6517170?q=80&w=600&auto=format&fit=crop",
+    image: "/tool-thumbnails/audio-separate.png",
     credits: 3,
     customRunner: {
       endpoint: "/api/audio/separate",
@@ -1679,7 +1681,7 @@ export const AUDIO_TOOLS: Tool[] = [
     desc: "نقي صوتك من الضوضاء واجعله أكثر وضوحاً.",
     layout: "centered",
     icon: Sparkles,
-    image: "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=600&auto=format&fit=crop",
+    image: "/tool-thumbnails/audio-enhance.png",
     credits: 2,
     customRunner: {
       endpoint: "/api/audio/enhance",

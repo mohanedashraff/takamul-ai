@@ -139,6 +139,30 @@ export function workflowToSpace(workflow: {
   const nodeTypeById: Record<string, string> = {};
   const nodes: SpaceNode[] = [];
 
+  // ── Filename + mime helper ─────────────────────────────────────
+  // The UploadNode component reads `data.file = { name, type, url }`
+  // (a single object, not loose fields). It uses `type` to pick the
+  // right preview (img/video/audio). Best-effort guess from the URL
+  // extension since MuAPI doesn't return mime.
+  const fileFromUrl = (url: string, kind: "image" | "video" | "audio"): {
+    name: string; type: string; url: string;
+  } => {
+    const name = url.split("/").pop()?.split("?")[0] || `${kind}-input`;
+    const ext = (name.match(/\.([a-z0-9]+)$/i)?.[1] ?? "").toLowerCase();
+    const mimeMap: Record<string, string> = {
+      // images
+      jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+      webp: "image/webp", gif: "image/gif", avif: "image/avif",
+      // videos
+      mp4: "video/mp4", mov: "video/quicktime", webm: "video/webm",
+      // audio
+      mp3: "audio/mpeg", wav: "audio/wav", m4a: "audio/mp4",
+      ogg: "audio/ogg", flac: "audio/flac",
+    };
+    const type = mimeMap[ext] ?? `${kind}/unknown`;
+    return { name, type, url };
+  };
+
   for (const n of muNodes) {
     const cat = (n.category ?? "").toLowerCase();
     const model = (n.model ?? "").toLowerCase();
@@ -153,42 +177,37 @@ export function workflowToSpace(workflow: {
       if (typeof prompt === "string") data.text = prompt;
     } else if (cat === "image" && isPassthrough) {
       type = "upload";
-      data.acceptType = "image";
-      const url = n.input_params?.image_url;
+      const url = n.input_params?.image_url ?? n.input_params?.url;
       if (typeof url === "string" && url) {
-        data.fileUrl = url;
-        data.preview = url;
-        data.fileName = url.split("/").pop() ?? "image";
+        // Match the shape UploadNode reads: data.file
+        data.file = fileFromUrl(url, "image");
       }
     } else if (cat === "video" && isPassthrough) {
       type = "upload";
-      data.acceptType = "video";
       const url = (n.input_params?.video_url ?? n.input_params?.url) as string | undefined;
       if (typeof url === "string" && url) {
-        data.fileUrl = url;
-        data.preview = url;
-        data.fileName = url.split("/").pop() ?? "video";
+        data.file = fileFromUrl(url, "video");
       }
     } else if (cat === "audio" && isPassthrough) {
       type = "upload";
-      data.acceptType = "audio";
       const url = (n.input_params?.audio_url ?? n.input_params?.url) as string | undefined;
       if (typeof url === "string" && url) {
-        data.fileUrl = url;
-        data.preview = url;
-        data.fileName = url.split("/").pop() ?? "audio";
+        data.file = fileFromUrl(url, "audio");
       }
     } else if (cat === "image") {
       type = "image-generator";
-      data.model  = model || "auto";
-      data.prompt = (n.input_params?.prompt as string) ?? "";
+      data.model        = model || "nano-banana";
+      data.prompt       = (n.input_params?.prompt as string) ?? "";
+      data.aspectRatio  = (n.input_params?.aspect_ratio as string) ?? "1:1";
       // Surface every input param so the user can see the recipe even if
       // we don't have a UI for each one yet.
       data.params = { ...(n.input_params ?? {}) };
     } else if (cat === "video") {
       type = "video-generator";
-      data.model  = model || "auto";
-      data.prompt = (n.input_params?.prompt as string) ?? "";
+      data.model        = model || "auto";
+      data.prompt       = (n.input_params?.prompt as string) ?? "";
+      data.aspectRatio  = (n.input_params?.aspect_ratio as string) ?? "16:9";
+      data.duration     = (n.input_params?.duration as number) ?? 5;
       data.params = { ...(n.input_params ?? {}) };
     } else if (cat === "audio") {
       type = "audio-generator";
