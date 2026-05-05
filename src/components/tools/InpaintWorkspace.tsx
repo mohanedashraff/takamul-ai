@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile, type MuapiResult } from "@/lib/muapi";
+import { canvasToPngBlob, blobToFile } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -75,6 +79,9 @@ export function InpaintWorkspace({ tool, config }: Props) {
 
   // ── Phase ──────────────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>("edit");
+  const [result, setResult] = useState<MuapiResult | null>(null);
+  const [progress, setProgress] = useState("");
+  const [refFile, setRefFile] = useState<File | null>(null);
 
   // Cleanup on unmount
   useEffect(() => () => {
@@ -106,11 +113,13 @@ export function InpaintWorkspace({ tool, config }: Props) {
     if (refUrlRef.current) URL.revokeObjectURL(refUrlRef.current);
     const url = URL.createObjectURL(f);
     refUrlRef.current = url;
+    setRefFile(f);
     setRefPreview(url);
   }, []);
 
   const removeRef = () => {
     if (refUrlRef.current) { URL.revokeObjectURL(refUrlRef.current); refUrlRef.current = ""; }
+    setRefFile(null);
     setRefPreview("");
   };
 
@@ -342,10 +351,54 @@ export function InpaintWorkspace({ tool, config }: Props) {
             </div>
 
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (!valid || phase === "processing") return;
+                if (!isExecutable(tool)) {
+                  toast.error("هذه الأداة لم تُربط بعد بالـ AI backend");
+                  return;
+                }
+                if (!file || !canvasRef.current) return;
                 setPhase("processing");
-                setTimeout(() => setPhase("result"), 3500);
+                setProgress("جاري رفع الصورة…");
+                setResult(null);
+                try {
+                  // 1. Upload base image
+                  const { url: imageUrl } = await uploadFile(file);
+
+                  // 2. Convert canvas mask → PNG blob → upload
+                  setProgress("جاري رفع قناع التعديل…");
+                  const maskBlob = await canvasToPngBlob(canvasRef.current);
+                  const { url: maskUrl } = await uploadFile(blobToFile(maskBlob, "mask.png"));
+
+                  // 3. Optional reference image
+                  let refUrl: string | undefined;
+                  if (refFile) {
+                    setProgress("جاري رفع الصورة المرجعية…");
+                    const { url } = await uploadFile(refFile);
+                    refUrl = url;
+                  }
+
+                  // 4. Submit + poll via executeTool
+                  setProgress("جاري التوليد بالذكاء الاصطناعي…");
+                  const { result: r } = await executeTool(
+                    tool,
+                    {
+                      image: imageUrl,
+                      mask_url: maskUrl,
+                      ...(refUrl ? { ref: refUrl } : {}),
+                      prompt,
+                    },
+                    { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
+                  );
+                  setResult(r);
+                  setPhase("result");
+                  toast.success("تم التعديل ✨");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "فشل التعديل");
+                  setPhase("edit");
+                } finally {
+                  setProgress("");
+                }
               }}
               disabled={!valid || phase === "processing"}
               className={cn(
@@ -364,7 +417,7 @@ export function InpaintWorkspace({ tool, config }: Props) {
               }}
             >
               {phase === "processing" ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> جاري التعديل...</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> {progress || "جاري التعديل..."}</>
               ) : (
                 <><Sparkles className="w-5 h-5" /> ابدأ التعديل</>
               )}
@@ -468,19 +521,23 @@ export function InpaintWorkspace({ tool, config }: Props) {
                     </div>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={preview}
+                      src={pickFirstUrl(result) ?? preview}
                       alt="نتيجة"
                       className="w-full max-h-[60vh] object-contain bg-black/40"
                     />
                   </div>
                   <div className="flex gap-3 w-full">
-                    <button
+                    <a
+                      href={pickFirstUrl(result) ?? "#"}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-xl"
                     >
                       <Download className="w-4 h-4" /> تحميل النتيجة
-                    </button>
+                    </a>
                     <button
-                      onClick={() => setPhase("edit")}
+                      onClick={() => { setPhase("edit"); setResult(null); }}
                       className="h-12 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors"
                     >
                       <RefreshCw className="w-4 h-4" /> تعديل جديد
@@ -693,4 +750,17 @@ export function InpaintWorkspace({ tool, config }: Props) {
       </div>
     </div>
   );
+}
+
+// ── helpers ──────────────────────────────────────────────────────────
+function pickFirstUrl(r: MuapiResult | null): string | null {
+  if (!r) return null;
+  if (typeof r.url === "string" && r.url) return r.url;
+  if (Array.isArray(r.urls) && r.urls[0]) return r.urls[0];
+  if (Array.isArray(r.outputs) && r.outputs.length) {
+    const first = r.outputs[0];
+    if (typeof first === "string") return first;
+    if (typeof first === "object" && first && "url" in first) return (first as { url: string }).url;
+  }
+  return null;
 }

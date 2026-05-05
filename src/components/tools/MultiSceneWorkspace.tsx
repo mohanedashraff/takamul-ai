@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile, type MuapiResult } from "@/lib/muapi";
+import { pickAllUrls } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 
 type Phase = "idle" | "processing" | "result";
 
@@ -131,8 +135,11 @@ export function MultiSceneWorkspace({ tool, config }: Props) {
   const rgb     = config.shadowColor;
 
   const [phase,      setPhase]      = useState<Phase>("idle");
+  const [file,       setFile]       = useState<File | null>(null);
   const [preview,    setPreview]    = useState("");
   const [layoutId,   setLayoutId]   = useState("2x2");
+  const [result,     setResult]     = useState<MuapiResult | null>(null);
+  const [progress,   setProgress]   = useState("");
 
   const urlRef    = useRef("");
   const fileRef   = useRef<HTMLInputElement>(null);
@@ -144,15 +151,17 @@ export function MultiSceneWorkspace({ tool, config }: Props) {
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     const url = URL.createObjectURL(f);
     urlRef.current = url;
+    setFile(f);
     setPreview(url);
   }, []);
 
   const clearFile = useCallback(() => {
     if (urlRef.current) { URL.revokeObjectURL(urlRef.current); urlRef.current = ""; }
+    setFile(null);
     setPreview("");
   }, []);
 
-  const reset = () => { clearFile(); setPhase("idle"); setLayoutId("2x2"); };
+  const reset = () => { clearFile(); setPhase("idle"); setLayoutId("2x2"); setResult(null); };
 
   const canGenerate  = !!preview;
   const activeLayout = GRID_LAYOUTS.find(l => l.id === layoutId)!;
@@ -314,10 +323,31 @@ export function MultiSceneWorkspace({ tool, config }: Props) {
 
                   {/* ── Generate button ── */}
                   <button
-                    onClick={() => {
-                      if (!canGenerate) return;
+                    onClick={async () => {
+                      if (!canGenerate || !file) return;
+                      if (!isExecutable(tool)) { toast.error("هذه الأداة لم تُربط بعد بالـ AI backend"); return; }
                       setPhase("processing");
-                      setTimeout(() => setPhase("result"), 4000);
+                      setProgress("جاري رفع الصورة…");
+                      setResult(null);
+                      try {
+                        const { url } = await uploadFile(file);
+                        setProgress("جاري توليد المشاهد…");
+                        const { result: r } = await executeTool(
+                          tool,
+                          { image: url, num_images: activeLayout.count },
+                          { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
+                        );
+                        setResult(r);
+                        setPhase("result");
+                        toast.success("تم توليد المشاهد ✨");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "فشل التوليد");
+                        setPhase("idle");
+                      } finally {
+                        setProgress("");
+                      }
+                      return;
+                      // legacy: setTimeout(() => setPhase("result"), 4000);
                     }}
                     disabled={!canGenerate}
                     className={cn(
@@ -364,7 +394,7 @@ export function MultiSceneWorkspace({ tool, config }: Props) {
                           </div>
                         </div>
                         <div className="text-center">
-                          <p className="text-white font-bold text-lg mb-1">جاري توليد المشاهد...</p>
+                          <p className="text-white font-bold text-lg mb-1">{progress || "جاري توليد المشاهد..."}</p>
                           <p className="text-gray-400 text-sm">{activeLayout.count} احتمالات · {activeLayout.label}</p>
                         </div>
                       </div>
@@ -443,34 +473,45 @@ export function MultiSceneWorkspace({ tool, config }: Props) {
 
                     {/* Results grid */}
                     <div className={cn("grid gap-px bg-white/5", activeLayout.cols)}>
-                      {resultImages.map(({ key, filter }) => (
-                        <motion.div key={key}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: key * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                          className="relative bg-black/50 overflow-hidden group"
-                          style={{ height: activeLayout.count <= 4 ? 160 : 110 }}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={preview} alt={`مشهد ${key + 1}`}
-                            className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-                            style={{ filter }} />
+                      {(() => {
+                        const urls = pickAllUrls(result);
+                        const cells = urls.length > 0
+                          ? urls.slice(0, activeLayout.count)
+                          : Array(activeLayout.count).fill(preview);
+                        return cells.map((url, key) => (
+                          <motion.div key={key}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: key * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                            className="relative bg-black/50 overflow-hidden group"
+                            style={{ height: activeLayout.count <= 4 ? 160 : 110 }}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt={`مشهد ${key + 1}`}
+                              className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" />
 
-                          {/* Hover overlay */}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                            <button className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
-                              <Download className="w-4 h-4 text-white" />
-                            </button>
-                          </div>
+                            {/* Hover overlay */}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <a
+                                href={url}
+                                download
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors"
+                              >
+                                <Download className="w-4 h-4 text-white" />
+                              </a>
+                            </div>
 
-                          {/* Shot label */}
-                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent py-2 px-2">
-                            <p className="text-white text-[10px] font-bold">
-                              مشهد {key + 1}
-                            </p>
-                          </div>
-                        </motion.div>
-                      ))}
+                            {/* Shot label */}
+                            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent py-2 px-2">
+                              <p className="text-white text-[10px] font-bold">
+                                مشهد {key + 1}
+                              </p>
+                            </div>
+                          </motion.div>
+                        ));
+                      })()}
                     </div>
                   </div>
 

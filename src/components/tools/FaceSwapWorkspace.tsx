@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile, type MuapiResult } from "@/lib/muapi";
+import { pickFirstUrl } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 
 type Phase = "idle" | "processing" | "result";
 
@@ -116,13 +120,15 @@ export function FaceSwapWorkspace({ tool, config }: Props) {
   const router = useRouter();
   const rgb    = config.shadowColor;
 
-  const [phase, setPhase] = useState<Phase>("idle");
+  const [phase,    setPhase]    = useState<Phase>("idle");
+  const [result,   setResult]   = useState<MuapiResult | null>(null);
+  const [progress, setProgress] = useState("");
   const face   = useUploadSlot();   // new face
   const target = useUploadSlot();   // target image
 
   const bothReady = !!face.slot.preview && !!target.slot.preview;
 
-  const reset = () => { face.clear(); target.clear(); setPhase("idle"); };
+  const reset = () => { face.clear(); target.clear(); setPhase("idle"); setResult(null); };
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-primary">
@@ -250,10 +256,32 @@ export function FaceSwapWorkspace({ tool, config }: Props) {
 
                   {/* Generate button */}
                   <button
-                    onClick={() => {
-                      if (!bothReady) return;
+                    onClick={async () => {
+                      if (!bothReady || !face.slot.file || !target.slot.file) return;
+                      if (!isExecutable(tool)) { toast.error("هذه الأداة لم تُربط بعد بالـ AI backend"); return; }
                       setPhase("processing");
-                      setTimeout(() => setPhase("result"), 3500);
+                      setProgress("جاري رفع الصور…");
+                      setResult(null);
+                      try {
+                        const [{ url: faceUrl }, { url: targetUrl }] = await Promise.all([
+                          uploadFile(face.slot.file),
+                          uploadFile(target.slot.file),
+                        ]);
+                        setProgress("جاري تبديل الوجه…");
+                        const { result: r } = await executeTool(
+                          tool,
+                          { faceSource: faceUrl, targetImage: targetUrl },
+                          { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري تبديل الوجه…" : "جاري المعالجة…") },
+                        );
+                        setResult(r);
+                        setPhase("result");
+                        toast.success("تم تبديل الوجه ✨");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "فشل التبديل");
+                        setPhase("idle");
+                      } finally {
+                        setProgress("");
+                      }
                     }}
                     disabled={!bothReady}
                     className={cn(
@@ -311,7 +339,7 @@ export function FaceSwapWorkspace({ tool, config }: Props) {
                         </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-white font-bold text-lg mb-1">جاري تغيير الوجه...</p>
+                        <p className="text-white font-bold text-lg mb-1">{progress || "جاري تغيير الوجه..."}</p>
                         <p className="text-gray-400 text-sm">الذكاء الاصطناعي يدمج الوجوه</p>
                       </div>
                     </div>
@@ -359,17 +387,23 @@ export function FaceSwapWorkspace({ tool, config }: Props) {
                           بعد
                         </div>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={target.slot.preview} alt="بعد"
+                        <img src={pickFirstUrl(result) ?? target.slot.preview} alt="بعد"
                           className="w-full object-cover object-top"
-                          style={{ maxHeight: "55vh", filter: "hue-rotate(15deg) brightness(1.03) saturate(1.1)" }} />
+                          style={{ maxHeight: "55vh" }} />
                       </div>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
-                    <button className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
+                    <a
+                      href={pickFirstUrl(result) ?? "#"}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors"
+                    >
                       <Download className="w-4 h-4" /> تحميل النتيجة
-                    </button>
+                    </a>
                     <button onClick={reset}
                       className="h-12 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors">
                       <RefreshCw className="w-4 h-4" /> تجربة جديدة

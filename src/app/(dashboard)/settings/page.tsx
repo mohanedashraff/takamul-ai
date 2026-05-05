@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import {
   User as UserIcon, Mail, Lock, Camera, Loader2, Check,
-  CreditCard, Shield, Zap, Calendar, Crown,
+  CreditCard, Shield, Zap, Calendar, Crown, Gift, Copy as CopyIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -13,7 +13,7 @@ import { useUserStore } from "@/stores/useUserStore";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
-type Tab = "profile" | "security" | "billing";
+type Tab = "profile" | "security" | "billing" | "referrals";
 
 export default function SettingsPage() {
   const { update } = useSession();
@@ -40,15 +40,17 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-2xl w-fit">
-        <TabButton active={tab === "profile"} onClick={() => setTab("profile")} icon={UserIcon} label="الملف الشخصي" />
-        <TabButton active={tab === "security"} onClick={() => setTab("security")} icon={Lock} label="الأمان" />
-        <TabButton active={tab === "billing"} onClick={() => setTab("billing")} icon={CreditCard} label="الاشتراك" />
+      <div className="flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-2xl w-fit overflow-x-auto no-scrollbar">
+        <TabButton active={tab === "profile"}   onClick={() => setTab("profile")}   icon={UserIcon}   label="الملف الشخصي" />
+        <TabButton active={tab === "security"}  onClick={() => setTab("security")}  icon={Lock}       label="الأمان" />
+        <TabButton active={tab === "billing"}   onClick={() => setTab("billing")}   icon={CreditCard} label="الاشتراك" />
+        <TabButton active={tab === "referrals"} onClick={() => setTab("referrals")} icon={Gift}       label="الإحالات" />
       </div>
 
-      {tab === "profile"  && <ProfileTab onSaved={() => { fetchUser(); update(); }} />}
-      {tab === "security" && <SecurityTab />}
-      {tab === "billing"  && <BillingTab />}
+      {tab === "profile"   && <ProfileTab onSaved={() => { fetchUser(); update(); }} />}
+      {tab === "security"  && <SecurityTab />}
+      {tab === "billing"   && <BillingTab />}
+      {tab === "referrals" && <ReferralsTab />}
     </div>
   );
 }
@@ -174,27 +176,156 @@ function SecurityTab() {
   }
 
   return (
-    <Card className="border-border-glass">
-      <CardHeader>
-        <CardTitle className="text-lg font-bold text-white">الأمان</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex items-start gap-3">
-          <Shield className="w-5 h-5 text-accent-400 shrink-0 mt-0.5" />
-          <div>
-            <div className="text-sm font-bold text-white mb-1">تغيير كلمة المرور</div>
-            <p className="text-xs text-gray-500">اختر كلمة مرور قوية لم تستخدمها قبل كده.</p>
+    <div className="space-y-6">
+      <Card className="border-border-glass">
+        <CardHeader>
+          <CardTitle className="text-lg font-bold text-white">الأمان</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex items-start gap-3">
+            <Shield className="w-5 h-5 text-accent-400 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-sm font-bold text-white mb-1">تغيير كلمة المرور</div>
+              <p className="text-xs text-gray-500">اختر كلمة مرور قوية لم تستخدمها قبل كده.</p>
+            </div>
           </div>
+
+          <FormField label="كلمة المرور الحالية" icon={Lock} value={current} onChange={setCurrent} type="password" dir="ltr" />
+          <FormField label="كلمة المرور الجديدة" icon={Lock} value={next} onChange={setNext} type="password" dir="ltr" />
+          <FormField label="تأكيد كلمة المرور الجديدة" icon={Lock} value={confirm} onChange={setConfirm} type="password" dir="ltr" />
+
+          <div className="pt-2 flex justify-end">
+            <Button variant="cosmic" onClick={save} disabled={saving || !current || !next || !confirm} className="px-8">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "تغيير كلمة المرور"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <DangerZone />
+    </div>
+  );
+}
+
+// ── GDPR / Danger Zone ────────────────────────────────────────────────
+function DangerZone() {
+  const user = useUserStore((s) => s.user)!;
+  const [downloading,   setDownloading]   = useState(false);
+  const [showDelete,    setShowDelete]    = useState(false);
+  const [confirmEmail,  setConfirmEmail]  = useState("");
+  const [confirmPwd,    setConfirmPwd]    = useState("");
+  const [deleting,      setDeleting]      = useState(false);
+
+  const exportData = async () => {
+    setDownloading(true);
+    try {
+      const r = await fetch("/api/user/export");
+      if (!r.ok) throw new Error("فشل التصدير");
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `yilow-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("تم تنزيل بياناتك");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "خطأ");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (confirmEmail.toLowerCase().trim() !== user.email.toLowerCase()) {
+      toast.error("الرجاء كتابة بريدك بالضبط");
+      return;
+    }
+    setDeleting(true);
+    try {
+      const r = await fetch("/api/user/delete", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ confirmEmail, password: confirmPwd || undefined }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || "فشل الحذف");
+      toast.success("تم حذف حسابك");
+      // Sign out and bounce home.
+      await fetch("/api/auth/signout", { method: "POST" }).catch(() => {});
+      window.location.href = "/";
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "خطأ");
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <Card className="border-red-500/20 bg-red-500/[0.02]">
+      <CardHeader>
+        <CardTitle className="text-lg font-bold text-red-300">منطقة الخطر</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {/* Export */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+          <div>
+            <div className="text-sm font-bold text-white">تنزيل بياناتي</div>
+            <p className="text-xs text-gray-500 mt-0.5">احصل على نسخة JSON من كل بياناتك (GDPR).</p>
+          </div>
+          <Button onClick={exportData} disabled={downloading} variant="glass" className="px-5 shrink-0">
+            {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : "تنزيل JSON"}
+          </Button>
         </div>
 
-        <FormField label="كلمة المرور الحالية" icon={Lock} value={current} onChange={setCurrent} type="password" dir="ltr" />
-        <FormField label="كلمة المرور الجديدة" icon={Lock} value={next} onChange={setNext} type="password" dir="ltr" />
-        <FormField label="تأكيد كلمة المرور الجديدة" icon={Lock} value={confirm} onChange={setConfirm} type="password" dir="ltr" />
+        {/* Delete */}
+        <div className="p-4 rounded-xl bg-red-500/[0.04] border border-red-500/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-bold text-red-200">حذف الحساب نهائياً</div>
+              <p className="text-xs text-red-300/60 mt-0.5">كل بياناتك (محادثات، توليدات، مساحات) هتتحذف. لا يمكن التراجع.</p>
+            </div>
+            {!showDelete && (
+              <Button onClick={() => setShowDelete(true)} className="bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 px-5 shrink-0">
+                حذف الحساب
+              </Button>
+            )}
+          </div>
 
-        <div className="pt-2 flex justify-end">
-          <Button variant="cosmic" onClick={save} disabled={saving || !current || !next || !confirm} className="px-8">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "تغيير كلمة المرور"}
-          </Button>
+          {showDelete && (
+            <div className="mt-5 space-y-3 pt-5 border-t border-red-500/15">
+              <p className="text-xs text-red-200">للتأكيد، اكتب بريدك ({user.email}) وكلمة المرور:</p>
+              <input
+                value={confirmEmail}
+                onChange={(e) => setConfirmEmail(e.target.value)}
+                placeholder={user.email}
+                dir="ltr"
+                className="w-full h-10 px-3 bg-black/40 border border-red-500/30 rounded-lg text-sm text-white placeholder-red-300/40 focus:outline-none focus:border-red-500"
+              />
+              <input
+                type="password"
+                value={confirmPwd}
+                onChange={(e) => setConfirmPwd(e.target.value)}
+                placeholder="كلمة المرور (لو حسابك بكلمة مرور)"
+                className="w-full h-10 px-3 bg-black/40 border border-red-500/30 rounded-lg text-sm text-white placeholder-red-300/40 focus:outline-none focus:border-red-500"
+              />
+              <div className="flex gap-2 pt-1">
+                <Button
+                  onClick={deleteAccount}
+                  disabled={deleting}
+                  className="bg-red-500 text-white hover:bg-red-600 disabled:opacity-60 flex-1"
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "تأكيد الحذف النهائي"}
+                </Button>
+                <Button
+                  onClick={() => { setShowDelete(false); setConfirmEmail(""); setConfirmPwd(""); }}
+                  variant="glass"
+                  className="flex-1"
+                >
+                  إلغاء
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -203,6 +334,22 @@ function SecurityTab() {
 
 function BillingTab() {
   const user = useUserStore((s) => s.user)!;
+  const [opening, setOpening] = useState(false);
+
+  const openPortal = async () => {
+    setOpening(true);
+    try {
+      const r = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await r.json();
+      if (!r.ok || !data.url) throw new Error(data.error || "فشل فتح بوابة الفوترة");
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "خطأ");
+      setOpening(false);
+    }
+  };
+
+  const isPaying = user.plan !== "FREE";
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -234,11 +381,18 @@ function BillingTab() {
             </div>
           )}
 
-          <Link href="/pricing">
-            <Button variant="cosmic" className="w-full md:w-auto px-8">
-              {user.plan === "FREE" || user.plan === "BASIC" ? "ترقية الخطة" : "إدارة الاشتراك"}
-            </Button>
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/pricing">
+              <Button variant="cosmic" className="px-8">
+                {isPaying ? "تغيير الخطة" : "ترقية الخطة"}
+              </Button>
+            </Link>
+            {isPaying && (
+              <Button onClick={openPortal} disabled={opening} variant="glass" className="px-6">
+                {opening ? "جاري الفتح…" : "إدارة الفوترة (Stripe)"}
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -335,4 +489,132 @@ function planLabel(plan: string): string {
   return (
     { FREE: "مجاني", BASIC: "أساسي", PRO: "PRO", ENTERPRISE: "ENTERPRISE" } as Record<string, string>
   )[plan] ?? plan;
+}
+
+// ── Referrals tab ────────────────────────────────────────────────────
+interface ReferralsData {
+  code:   string;
+  stats: {
+    totalReferrals:     number;
+    totalEarnedCredits: number;
+    bonuses:            { refereeCredits: number; referrerCredits: number };
+  };
+  recent: Array<{
+    id:        string;
+    createdAt: string;
+    credits:   number;
+    referee:   { name: string; joinedAt: string };
+  }>;
+}
+
+function ReferralsTab() {
+  const [data,    setData]    = useState<ReferralsData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/referrals", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setData(d))
+      .catch(() => toast.error("فشل التحميل"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="py-16 flex justify-center"><Loader2 className="w-7 h-7 animate-spin text-accent-400" /></div>;
+  if (!data)   return <div className="py-16 text-center text-gray-500">تعذّر تحميل الإحالات</div>;
+
+  const link = typeof window !== "undefined"
+    ? `${window.location.origin}/register?ref=${data.code}`
+    : `/register?ref=${data.code}`;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Code + share card */}
+      <Card className="border-border-glass lg:col-span-2">
+        <CardHeader>
+          <CardTitle className="text-lg font-bold text-white">رابط الإحالة الخاص بك</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <p className="text-sm text-gray-400 leading-relaxed">
+            شارك الرابط مع أصدقائك. لما يسجلوا باستخدامه، هتحصل على{" "}
+            <span className="text-accent-400 font-bold">{data.stats.bonuses.referrerCredits} كريديت</span>،
+            وهيحصلوا هما على{" "}
+            <span className="text-accent-400 font-bold">{data.stats.bonuses.refereeCredits} كريديت</span>{" "}
+            مكافأة.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              readOnly
+              value={link}
+              dir="ltr"
+              className="flex-1 h-11 px-4 bg-black/40 border border-white/10 rounded-xl text-sm text-white"
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+            />
+            <Button
+              variant="cosmic"
+              className="px-5"
+              onClick={() => { void navigator.clipboard.writeText(link); toast.success("تم نسخ الرابط"); }}
+            >
+              <CopyIcon className="w-4 h-4 ml-1" /> نسخ
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-400/8 border border-accent-400/20 text-xs text-accent-300 font-bold tracking-wider w-fit">
+            <Gift className="w-3.5 h-3.5" />
+            رمزك: <span className="text-accent-400 font-mono">{data.code}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats card */}
+      <Card className="border-border-glass">
+        <CardHeader>
+          <CardTitle className="text-lg font-bold text-white">إحصائياتك</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="text-3xl font-black text-white tabular-nums">
+              {data.stats.totalReferrals.toLocaleString("en")}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">أصدقاء انضموا</p>
+          </div>
+          <div className="h-px bg-white/5" />
+          <div>
+            <div className="text-3xl font-black text-accent-400 tabular-nums flex items-center gap-1.5">
+              <Zap className="w-5 h-5" />
+              {data.stats.totalEarnedCredits.toLocaleString("en")}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">كريديت ربحته</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent referrals */}
+      {data.recent.length > 0 && (
+        <Card className="border-border-glass lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold text-white">آخر الإحالات</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ul className="divide-y divide-white/5">
+              {data.recent.map((r) => (
+                <li key={r.id} className="px-6 py-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-300 font-black">
+                    {r.referee.name.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-white truncate">{r.referee.name}</div>
+                    <div className="text-xs text-gray-500">{new Date(r.createdAt).toLocaleDateString("ar")}</div>
+                  </div>
+                  <span className="text-sm font-black text-accent-400 tabular-nums shrink-0">
+                    +{r.credits} كريديت
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
 }

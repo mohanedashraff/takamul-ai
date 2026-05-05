@@ -188,7 +188,7 @@ export default function AdminToolsPage() {
                       </td>
                       <td className="px-4 py-3 text-left">
                         <Link
-                          href={`/tool/${t.id}`}
+                          href={`/tools/${t.id}`}
                           target="_blank"
                           className="text-xs font-bold text-accent-400 hover:text-white transition-colors"
                         >

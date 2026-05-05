@@ -25,6 +25,7 @@ export async function GET() {
           creditsLimit: true,
           planRenewsAt: true,
           createdAt: true,
+          emailVerified: true,
         },
       }),
       prisma.generation.count({

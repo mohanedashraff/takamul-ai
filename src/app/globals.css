@@ -111,10 +111,12 @@ body {
     box-shadow: 0 0 40px var(--hover-shadow, rgba(254, 228, 64, 0.2));
   }
 
-  .hide-scroll::-webkit-scrollbar {
+  .hide-scroll::-webkit-scrollbar,
+  .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  .hide-scroll {
+  .hide-scroll,
+  .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }

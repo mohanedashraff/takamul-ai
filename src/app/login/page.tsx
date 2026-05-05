@@ -98,7 +98,7 @@ function LoginInner() {
             <div className="space-y-1.5">
               <div className="flex justify-between items-center ml-1">
                 <label className="text-xs font-bold text-gray-400">كلمة المرور</label>
-                <a href="#" className="text-xs font-bold text-accent-400 hover:text-white transition-colors">نسيت كلمة المرور؟</a>
+                <Link href="/forgot-password" className="text-xs font-bold text-accent-400 hover:text-white transition-colors">نسيت كلمة المرور؟</Link>
               </div>
               <div className="relative group">
                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">

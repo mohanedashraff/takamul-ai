@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile } from "@/lib/muapi";
+import { canvasToPngBlob, blobToFile, pickFirstUrl } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -312,14 +316,42 @@ export function SketchWorkspace({ tool, config }: Props) {
     lastPosRef.current = { x: cx, y: cy };
   };
 
+  const [progress, setProgress] = useState("");
+
   // ── Generate ───────────────────────────────────────────────────────────────
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!prompt.trim() || phase === "processing") return;
+    if (!isExecutable(tool)) {
+      toast.error("هذه الأداة لم تُربط بعد بالـ AI backend");
+      return;
+    }
+    if (!canvasRef.current) return;
     setPhase("processing");
-    setTimeout(() => {
-      setResultUrl(canvasRef.current?.toDataURL("image/png") ?? "");
+    setProgress("جاري رفع الرسم…");
+    try {
+      // 1. Capture canvas → PNG blob → upload
+      const blob = await canvasToPngBlob(canvasRef.current);
+      const { url } = await uploadFile(blobToFile(blob, "sketch.png"));
+
+      // 2. Submit to muapi
+      setProgress("جاري التوليد…");
+      const { result } = await executeTool(
+        tool,
+        { sketch: url, prompt },
+        { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
+      );
+
+      const out = pickFirstUrl(result);
+      if (!out) throw new Error("لم يتم استلام الناتج");
+      setResultUrl(out);
       setPhase("result");
-    }, 3500);
+      toast.success("تم التوليد ✨");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل التوليد");
+      setPhase("draw");
+    } finally {
+      setProgress("");
+    }
   };
 
   const valid = !!prompt.trim();
@@ -430,7 +462,7 @@ export function SketchWorkspace({ tool, config }: Props) {
               }}
             >
               {phase === "processing"
-                ? <><Loader2 className="w-5 h-5 animate-spin" /> جاري التحويل...</>
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> {progress || "جاري التحويل..."}</>
                 : <><Sparkles className="w-5 h-5" /> حوّل إلى صورة</>}
             </button>
           </div>

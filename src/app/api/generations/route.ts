@@ -21,6 +21,9 @@ import { ALL_TOOLS_FLAT } from "@/lib/data/tools";
 const CreateSchema = z.object({
   toolId: z.string().min(1),
   inputs: z.record(z.string(), z.unknown()).default({}),
+  /** if set, overrides the static cost from tools.ts (must be ≥ 1) — used for
+   *  dynamic-pricing tools where the cost varies with payload */
+  overrideCredits: z.number().int().min(1).max(100_000).optional(),
 });
 
 export async function GET(req: Request) {
@@ -71,15 +74,19 @@ export async function POST(req: Request) {
   const parsed = CreateSchema.safeParse(body);
   if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Invalid");
 
-  const { toolId, inputs } = parsed.data;
+  const { toolId, inputs, overrideCredits } = parsed.data;
 
   const tool = ALL_TOOLS_FLAT.find((t) => t.id === toolId);
   if (!tool) return jsonError("Tool not found", 404);
 
+  // Dynamic pricing wins when provided (e.g. derived from /api/calculate-cost
+  // before submitting). Fall back to the static cost in tools.ts otherwise.
+  const credits = overrideCredits ?? tool.credits;
+
   try {
     const { balanceAfter, transactionId } = await deductCredits({
       userId: session.user.id,
-      amount: tool.credits,
+      amount: credits,
       reason: `tool:${toolId}`,
       metadata: { toolId, toolName: tool.title },
     });
@@ -91,7 +98,7 @@ export async function POST(req: Request) {
         toolName:    tool.title,
         category:    tool.categoryKey,
         status:      "PENDING",
-        creditsUsed: tool.credits,
+        creditsUsed: credits,
         inputs:      inputs as never,
       },
       select: { id: true, createdAt: true, status: true },

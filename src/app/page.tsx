@@ -91,6 +91,8 @@ const StoreTransitionDivider = () => (
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { MediaRenderer } from "@/components/tools/MediaRenderer";
+import { HeroSection }   from "@/components/home/HeroSection";
+import { HeroPreview }   from "@/components/home/HeroPreview";
 
 import { IMAGE_TOOLS, VIDEO_TOOLS, AUDIO_TOOLS } from "@/lib/data/tools";
 import { AGENTS_LIST } from "@/lib/data/agents";
@@ -213,7 +215,7 @@ const ToolSliderSection = ({ title, desc, colorClass, shadowColor, items }: { ti
           return (
             <Link
               key={tool.title}
-              href={`/tool/${tool.id}`}
+              href={tool.customRoute ?? `/tools/${tool.id}`}
               style={{ ...baseStyle, ...activeStyle }}
               className={`shrink-0 w-[280px] md:w-[340px] snap-center bento-card rounded-[2rem] p-3 group hover:scale-[1.02] hover:-translate-y-2 transition-all duration-500 cursor-pointer`}
             >
@@ -788,168 +790,16 @@ const HeroAmbientBackground = () => {
 export default function PremiumLanding() {
   const containerRef = useRef(null);
   const [imageVideoIndex, setImageVideoIndex] = useState(0);
-  const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end end"] });
-  const yBg = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
-  const opacityHero = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
   return (
     <div ref={containerRef} className="relative min-h-screen bg-bg-primary overflow-hidden selection:bg-primary-500/30">
       <Navbar />
 
-      {/* ── 1. THE SINGULARITY HERO SECTION (MILLION DOLLAR LOOK) ── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-start px-6 pt-36 md:pt-44 pb-4 overflow-hidden">
-        
-        {/* Bottom Fade Gradient for smooth transition */}
-        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-bg-primary via-bg-primary/80 to-transparent z-20 pointer-events-none" />
+      {/* ── 1. NEW HERO SECTION (cinematic split-screen) ── */}
+      <HeroSection />
 
-        {/* Background Depth Effects */}
-        <div className="absolute inset-0 bg-transparent opacity-20 brightness-100 contrast-150 mix-blend-overlay pointer-events-none" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')" }} />
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-neon-yellow/10 rounded-full blur-[180px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-neon-yellow/6 rounded-full blur-[180px] pointer-events-none" />
-
-        {/* Ambient background — blur blobs + particles */}
-        <HeroAmbientBackground />
-
-        {/* Floating Complex Glass Widgets (Background App Mockups) - TEMPORARILY DISABLED */}
-        {/*
-        <div className="absolute inset-0 pointer-events-none z-0">
-           <motion.div animate={{ y: [-15, 15, -15] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[15%] right-[2%] lg:right-[5%] xl:right-[10%] w-60 p-4 rounded-[1.5rem] bento-card border border-white/10 bg-[#0a0a0f]/80 backdrop-blur-2xl shadow-[0_0_50px_rgba(254,228,64,0.2)] hidden lg:block opacity-60">
-              <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-3">
-                 <div className="w-8 h-8 rounded-xl bg-accent-400/20 flex items-center justify-center border border-accent-400/30"><Music className="w-4 h-4 text-accent-400" /></div>
-                 <span className="text-white text-xs font-bold tracking-widest">تحليل الموجات</span>
-              </div>
-              <div className="flex items-end gap-1.5 h-12 w-full">
-                 {[...Array(16)].map((_,i) => <motion.div key={i} animate={{ height: ["20%", "100%", "20%"] }} transition={{ duration: Math.random() * 1.5 + 0.5, repeat: Infinity }} className="flex-1 bg-gradient-to-t from-accent-400/20 to-accent-400 rounded-full" />)}
-              </div>
-           </motion.div>
-
-           <motion.div animate={{ y: [15, -15, 15] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }} className="absolute top-[45%] left-[2%] lg:left-[5%] xl:left-[10%] w-72 p-4 rounded-[1.5rem] bento-card border border-white/10 bg-[#0a0a0f]/80 backdrop-blur-2xl shadow-[0_0_50px_rgba(254,228,64,0.2)] hidden lg:block opacity-60">
-              <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
-                 <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 border border-red-400/50" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 border border-yellow-400/50" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500 border border-green-400/50" />
-                 </div>
-                 <span className="text-gray-500 text-[10px] font-mono font-bold tracking-widest">engine.ts</span>
-              </div>
-              <div className="font-mono text-[11px] text-primary-400 opacity-90 leading-loose font-bold" dir="ltr">
-                 <span><span className="text-pink-500">import</span> {`{ Core }`} <span className="text-pink-500">from</span> 'yilow';</span><br/>
-                 <motion.span animate={{ opacity: [0, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>$ Initializing neurolink...</motion.span><br/>
-                 <motion.span animate={{ opacity: [0, 1] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.7 }}>$ Generating components...</motion.span><br/>
-              </div>
-           </motion.div>
-           
-           <motion.div animate={{ y: [-10, 10, -10], rotate: [-2, 2, -2] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }} className="absolute bottom-[15%] right-[8%] lg:right-[15%] xl:right-[22%] w-48 p-3 rounded-[1.5rem] bento-card border border-white/10 bg-[#0a0a0f]/80 backdrop-blur-2xl shadow-[0_0_50px_rgba(74,222,128,0.2)] hidden xl:flex flex-col opacity-60">
-              <div className="w-full h-32 rounded-[1rem] bg-gradient-to-tr from-green-400 to-blue-500 overflow-hidden relative shadow-inner mb-2">
-                 <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} />
-                 <div className="absolute inset-0 flex items-center justify-center"><ImageIcon className="w-8 h-8 text-white/50" /></div>
-              </div>
-              <div className="h-8 w-full flex items-center justify-center gap-2">
-                 <span className="relative flex h-1.5 w-1.5">
-                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
-                 </span>
-                 <span className="text-white text-[10px] font-bold tracking-widest uppercase">Rendering 4K</span>
-              </div>
-           </motion.div>
-        </div>
-        */}
-
-        {/* Hero Content (Foreground) */}
-        <motion.div variants={staggerVar} initial="hidden" animate="show" className="relative z-10 text-center max-w-[1000px] mx-auto w-full flex flex-col items-center mt-10 md:mt-16">
-          
-          <motion.div variants={fadeUpVar} className="mb-8">
-             <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl shadow-inner hover:scale-105 transition-transform cursor-pointer">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-400"></span>
-                </span>
-                <span className="text-xs font-bold tracking-[0.2em] uppercase text-white">إطلاق المحرك القادم من المستقبل 🚀</span>
-             </div>
-          </motion.div>
-
-          <motion.h1 variants={fadeUpVar} className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-[1.25] text-white mb-6 drop-shadow-2xl pb-2">
-            نظام <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500 pb-2 inline-block">خارق</span><br/>
-            لبناء <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-accent-400 to-neon-pink drop-shadow-[0_0_40px_rgba(254,228,64,0.5)] pb-2 inline-block">أي شيء.</span>
-          </motion.h1>
-
-          <motion.p variants={fadeUpVar} className="text-base md:text-lg text-gray-400 font-light max-w-2xl leading-relaxed mb-10 mx-auto">
-            منصة "Yilow.ai" تضع قوة 40 نموذج ذكاء اصطناعي عالمي بين يديك. اكتب أوامرك، ودع المحرك يتولى <strong className="text-white font-bold tracking-wide">البرمجة، التصميم، الكتابة، وصناعة الفيديو</strong> في ثوانٍ.
-          </motion.p>
-
-          {/* Interactive Core: The Majestic Prompt Bar - TEMPORARILY DISABLED */}
-          {/*
-          <motion.div variants={fadeUpVar} className="w-full max-w-[800px] relative group z-20 mb-16">
-             <div className="absolute inset-[-2px] bg-gradient-to-r from-primary-500 via-accent-400 to-neon-pink rounded-full blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-700 pointer-events-none" />
-             <div className="relative w-full h-16 sm:h-20 bg-[#050508]/80 border border-white/10 rounded-full flex items-center p-2 sm:p-2.5 backdrop-blur-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)]">
-                <div className="h-full px-5 sm:px-6 flex-1 flex items-center border-l border-white/10">
-                   <Sparkles className="w-5 h-5 text-accent-400 ml-3 hidden sm:block opacity-70" />
-                   <input 
-                     type="text" 
-                     placeholder="تخيل أي شيء واستدعِه للوجود..." 
-                     className="w-full bg-transparent border-none text-base md:text-lg text-white placeholder-gray-500/50 outline-none font-bold"
-                     readOnly
-                   />
-                </div>
-                <Link href="/dashboard" className="h-full group/btn">
-                  <Button className="h-full px-6 md:px-10 rounded-full bg-white text-black hover:bg-gray-200 text-sm md:text-base font-bold tracking-wide transition-all hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)] flex gap-2 items-center">
-                    <span>توليد الآن</span>
-                    <Wand2 className="w-4 h-4 opacity-70 group-hover/btn:opacity-100 group-hover/btn:scale-110 transition-all" />
-                  </Button>
-                </Link>
-             </div>
-             
-             <div className="mt-5 flex flex-wrap justify-center gap-2 opacity-70">
-                 <span className="px-3 py-1.5 rounded-full border border-white/5 bg-white/5 text-[10px] font-bold text-gray-300">🔥 صمم متجر عطور</span>
-                 <span className="px-3 py-1.5 rounded-full border border-white/5 bg-white/5 text-[10px] font-bold text-gray-300">✨ توليد فيديو سينمائي</span>
-                 <span className="px-3 py-1.5 rounded-full border border-white/5 bg-white/5 text-[10px] font-bold text-gray-300">💡 كتابة خطة تسويق</span>
-             </div>
-          </motion.div>
-          */}
-
-          {/* Trusted Companies or Sub Text */}
-          {/* Removed static list for the animated ticker below */}
-
-        </motion.div>
-
-        {/* ── 2. HERO CTA BUTTONS ── */}
-        <motion.div
-          variants={fadeUpVar}
-          initial="hidden"
-          animate="show"
-          className="relative z-20 flex flex-wrap items-center justify-center gap-4 mb-10 md:mb-14"
-        >
-          <Link href="/dashboard">
-            <Button
-              variant="cosmic"
-              size="lg"
-              className="rounded-full shadow-[0_0_40px_rgba(254,228,64,0.35)] hover:scale-105 transition-transform"
-            >
-              <Sparkles className="w-5 h-5" />
-              ابدأ مجاناً
-            </Button>
-          </Link>
-          <Link href="/tools">
-            <Button
-              variant="cyber"
-              size="lg"
-              className="rounded-full hover:scale-105 transition-transform"
-            >
-              استكشف الأدوات
-              <ArrowDown className="w-4 h-4 rotate-[-90deg]" />
-            </Button>
-          </Link>
-        </motion.div>
-
-        {/* ── 3. AI MODELS ELASTIC FILM-STRIP TICKER (break out of section padding) ── */}
-        <div className="w-screen -mx-6 mt-auto mb-28 md:mb-36 relative z-30 flex flex-col items-center justify-center overflow-visible">
-          <ElasticModelsTicker logos={AI_MODELS_LOGOS} />
-          {/* Left fade — sits above both strips */}
-          <div className="absolute top-[-250px] bottom-[-250px] left-0 w-28 md:w-40 pointer-events-none" style={{ zIndex: 50, background: "linear-gradient(to right, #030305 35%, transparent)" }} />
-          {/* Right fade */}
-          <div className="absolute top-[-250px] bottom-[-250px] right-0 w-28 md:w-40 pointer-events-none" style={{ zIndex: 50, background: "linear-gradient(to left, #030305 35%, transparent)" }} />
-        </div>
-      </section>
+      {/* ── 2. HERO PREVIEW (Image Gen | Video Player | Video Gen) ── */}
+      <HeroPreview />
       
       {/* ── ADVANCED LINE DIVIDER ── */}
       <div className="w-full max-w-5xl mx-auto py-2 relative z-20 opacity-80 mt-[-10px] md:mt-[-20px] mb-8 md:mb-10">

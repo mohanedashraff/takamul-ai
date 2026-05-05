@@ -4,6 +4,7 @@ import React, { useState, useCallback } from "react";
 import { type NodeProps, useReactFlow } from "@xyflow/react";
 import { Type } from "lucide-react";
 import { BaseNode } from "./BaseNode";
+import { registerExecutor, type NodeOutput } from "../lib/graph-executor";
 
 export function TextNode({ id, data, selected }: NodeProps) {
   const { updateNodeData } = useReactFlow();
@@ -35,3 +36,11 @@ export function TextNode({ id, data, selected }: NodeProps) {
     </BaseNode>
   );
 }
+
+// ── Graph executor ────────────────────────────────────────────────────
+// Text nodes are pure data sources — they emit whatever's typed in.
+registerExecutor("text", async (node): Promise<NodeOutput> => {
+  const value = (node.data?.text as string) || "";
+  if (!value.trim()) throw new Error("Text node is empty");
+  return { type: "text", value };
+});

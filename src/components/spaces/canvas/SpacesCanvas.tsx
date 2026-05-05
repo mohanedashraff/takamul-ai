@@ -54,6 +54,10 @@ import { SpotlightSearch } from "./SpotlightSearch";
 // Registry
 import { NODE_TYPES as NODE_REGISTRY, NODE_CATEGORIES, PORT_COLORS } from "../lib/nodeRegistry";
 
+// Graph execution
+import { runGraph, hasExecutor } from "../lib/graph-executor";
+import toast from "react-hot-toast";
+
 // ---- Node type mapping ----
 const nodeTypes = {
   text: TextNode,
@@ -220,6 +224,50 @@ function SpacesCanvasInner() {
       setEdges(next.edges);
     }
   }, []);
+
+  // ── Run All — walks the graph topologically, executes each node,
+  //              pipes outputs into downstream nodes via the edges. ──
+  const [isRunning, setIsRunning] = useState(false);
+  const handleRunAll = useCallback(async () => {
+    if (isRunning) return;
+
+    const runnable = nodes.filter((n) => hasExecutor(n.type ?? ""));
+    if (runnable.length === 0) {
+      toast.error("الكانفس فاضي — أضف عقدة أولاً");
+      return;
+    }
+
+    setIsRunning(true);
+    // Mark all runnable nodes as running so the user sees instant feedback
+    setNodes((current) =>
+      current.map((n) =>
+        hasExecutor(n.type ?? "")
+          ? { ...n, data: { ...(n.data ?? {}), status: "idle" } }
+          : n,
+      ),
+    );
+
+    const updateNode = (nodeId: string, patch: Record<string, unknown>) => {
+      setNodes((current) =>
+        current.map((n) => (n.id === nodeId ? { ...n, data: { ...(n.data ?? {}), ...patch } } : n)),
+      );
+    };
+
+    try {
+      await runGraph({
+        nodes: nodes as never,
+        edges,
+        onNodeStart: (id) => updateNode(id, { status: "running" }),
+        onNodeDone:  (id, output) => updateNode(id, { status: "success", resultUrl: output.value, output: output.value }),
+        onNodeError: (id, message) => updateNode(id, { status: "error", errorMessage: message }),
+      });
+      toast.success("تم تشغيل المخطط ✨");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل التشغيل");
+    } finally {
+      setIsRunning(false);
+    }
+  }, [nodes, edges, isRunning]);
 
   // Node changes handler
   const onNodesChange: OnNodesChange = useCallback(
@@ -465,6 +513,16 @@ function SpacesCanvasInner() {
               <Search className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
               <span>بحث سريع</span>
               <kbd className="text-[10px] bg-black/30 px-1.5 py-0.5 rounded ml-1 opacity-70 group-hover:opacity-100 font-mono">Space</kbd>
+            </button>
+            <div className="w-px h-6 bg-white/[0.08] mx-1" />
+            <button
+              onClick={handleRunAll}
+              disabled={isRunning}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 hover:text-white transition-all text-xs font-bold disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_0_18px_rgba(52,211,153,0.18)]"
+              title="تشغيل المخطط بالكامل"
+            >
+              <Play className={`w-3.5 h-3.5 ${isRunning ? "animate-pulse" : ""}`} />
+              <span>{isRunning ? "جاري التشغيل…" : "تشغيل الكل"}</span>
             </button>
           </div>
         </div>

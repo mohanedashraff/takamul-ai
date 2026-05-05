@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { useUserStore } from "@/stores/useUserStore";
 import { cn } from "@/lib/utils";
+import { NotificationsBell } from "@/components/layout/NotificationsBell";
 
 const Navbar = () => {
   const { data: session, status } = useSession();
@@ -56,6 +57,18 @@ const Navbar = () => {
             الأدوات
           </Link>
           <Link
+            href="/cinema"
+            className="text-sm font-bold text-gray-400 hover:text-accent-400 transition-colors flex items-center gap-1.5"
+          >
+            🎬 السينما
+          </Link>
+          <Link
+            href="/marketing"
+            className="text-sm font-bold text-gray-400 hover:text-accent-400 transition-colors flex items-center gap-1.5"
+          >
+            📢 التسويق
+          </Link>
+          <Link
             href="/chat"
             className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-l from-primary-400 to-accent-400 hover:opacity-80 transition-opacity drop-shadow-[0_0_10px_rgba(157,78,221,0.5)]"
           >
@@ -99,6 +112,9 @@ const Navbar = () => {
                   {(storeUser?.creditsBalance ?? session.user.creditsBalance ?? 0).toLocaleString("en")}
                 </span>
               </div>
+
+              {/* Notifications */}
+              <NotificationsBell />
 
               {/* Profile dropdown */}
               <div className="relative" ref={menuRef}>

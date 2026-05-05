@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile, type MuapiResult } from "@/lib/muapi";
+import { pickAllUrls } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 import {
   MALE_OUTFITS_DATA,   FEMALE_OUTFITS_DATA,
   MALE_OUTWEAR_DATA,   MALE_TOP_DATA,        MALE_SET_DATA,
@@ -264,6 +268,7 @@ export function FashionDesignerWorkspace({ tool, config }: {
 
   const [phase,          setPhase]          = useState<Phase>("idle");
   const [gender,         setGender]         = useState<Gender>("male");
+  const [personFile,     setPersonFile]     = useState<File | null>(null);
   const [personPreview,  setPersonPreview]  = useState("");
   const [selectedItems,  setSelectedItems]  = useState<SelectedItem[]>([]);
   const [selectedOutfit, setSelectedOutfit] = useState<string | null>(null);
@@ -271,6 +276,8 @@ export function FashionDesignerWorkspace({ tool, config }: {
   const [selectedPose,   setSelectedPose]   = useState<string | null>(null);
   const [genCount,       setGenCount]       = useState(2);
   const [showSelected,   setShowSelected]   = useState(false);
+  const [result,         setResult]         = useState<MuapiResult | null>(null);
+  const [progress,       setProgress]       = useState("");
 
   const personUrlRef  = useRef("");
   const personFileRef = useRef<HTMLInputElement>(null);
@@ -281,6 +288,7 @@ export function FashionDesignerWorkspace({ tool, config }: {
     if (personUrlRef.current) URL.revokeObjectURL(personUrlRef.current);
     const url = URL.createObjectURL(f);
     personUrlRef.current = url;
+    setPersonFile(f);
     setPersonPreview(url);
   }, []);
 
@@ -528,7 +536,7 @@ export function FashionDesignerWorkspace({ tool, config }: {
                           <Loader2 className={cn("w-6 h-6 animate-spin", config.colorClass)} />
                         </div>
                       </div>
-                      <p className="text-white font-bold">جاري تطبيق الإطلالة...</p>
+                      <p className="text-white font-bold">{progress || "جاري تطبيق الإطلالة..."}</p>
                     </div>
                   </div>
                   <div className="w-64 h-1.5 rounded-full bg-white/8 overflow-hidden">
@@ -544,19 +552,50 @@ export function FashionDesignerWorkspace({ tool, config }: {
                   initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   className="relative h-full flex items-center justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={personPreview} alt="النتيجة"
-                    className="max-w-full max-h-full object-contain rounded-2xl"
-                    style={{ filter: "hue-rotate(30deg) brightness(1.05) saturate(1.15)", boxShadow: `0 0 50px rgba(${rgb},0.15)` }} />
-                  <div className="absolute top-3 right-3 flex gap-2">
-                    <button className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-white text-black font-bold hover:bg-gray-100 transition-colors">
-                      <Download className="w-3 h-3" /> تحميل
-                    </button>
-                    <button onClick={() => setPhase("idle")}
-                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-sm border border-white/10 text-gray-300 hover:text-white transition-all">
-                      <RotateCcw className="w-3 h-3" /> مجدداً
-                    </button>
-                  </div>
+                  {(() => {
+                    const urls = pickAllUrls(result);
+                    const main = urls[0] ?? personPreview;
+                    return (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={main} alt="النتيجة"
+                          className="max-w-full max-h-full object-contain rounded-2xl"
+                          style={{ boxShadow: `0 0 50px rgba(${rgb},0.15)` }} />
+                        <div className="absolute top-3 right-3 flex gap-2">
+                          <a
+                            href={main}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-white text-black font-bold hover:bg-gray-100 transition-colors"
+                          >
+                            <Download className="w-3 h-3" /> تحميل
+                          </a>
+                          <button onClick={() => { setPhase("idle"); setResult(null); }}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-sm border border-white/10 text-gray-300 hover:text-white transition-all">
+                            <RotateCcw className="w-3 h-3" /> مجدداً
+                          </button>
+                        </div>
+                        {urls.length > 1 && (
+                          <div className="absolute bottom-3 right-3 flex gap-1.5">
+                            {urls.slice(1, 4).map((u, i) => (
+                              <a
+                                key={i}
+                                href={u}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-12 h-12 rounded-lg border border-white/15 overflow-hidden hover:border-accent-400/60 transition-colors"
+                                title={`بديل ${i + 2}`}
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={u} alt="" className="w-full h-full object-cover" />
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </motion.div>
               )}
 
@@ -611,7 +650,51 @@ export function FashionDesignerWorkspace({ tool, config }: {
 
               {/* Generate */}
               <button
-                onClick={() => { if (!canGenerate) return; setPhase("processing"); setTimeout(() => setPhase("result"), 3500); }}
+                onClick={async () => {
+                  if (!canGenerate) return;
+                  if (!isExecutable(tool)) { toast.error("هذه الأداة لم تُربط بعد بالـ AI backend"); return; }
+
+                  // Build descriptive prompt from the selected items / outfit / pose / background.
+                  const parts: string[] = [];
+                  if (activeOutfit?.nameAr) {
+                    parts.push(`wearing ${activeOutfit.nameAr}`);
+                  } else if (selectedItems.length) {
+                    parts.push(`wearing ${selectedItems.map((s) => s.nameAr).join(", ")}`);
+                  }
+                  if (selectedPose) parts.push(`${selectedPose} pose`);
+                  if (selectedBg)   parts.push(`${selectedBg} background`);
+                  parts.push(`${gender === "male" ? "male" : "female"} fashion model, professional studio photography, full body shot`);
+                  const finalPrompt = parts.join(", ");
+
+                  setPhase("processing");
+                  setProgress(personFile ? "جاري رفع الصورة المرجعية…" : "جاري التحضير…");
+                  setResult(null);
+                  try {
+                    let referenceUrl: string | undefined;
+                    if (personFile) {
+                      const { url } = await uploadFile(personFile);
+                      referenceUrl = url;
+                    }
+                    setProgress("جاري توليد التصاميم…");
+                    const { result: r } = await executeTool(
+                      tool,
+                      {
+                        prompt: finalPrompt,
+                        ...(referenceUrl ? { person: referenceUrl } : {}),
+                        num_images: genCount,
+                      },
+                      { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
+                    );
+                    setResult(r);
+                    setPhase("result");
+                    toast.success("تم توليد التصاميم ✨");
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "فشل التوليد");
+                    setPhase("idle");
+                  } finally {
+                    setProgress("");
+                  }
+                }}
                 disabled={!canGenerate}
                 className={cn(
                   "h-11 px-7 rounded-2xl font-bold text-base flex items-center gap-2.5 transition-all duration-300",

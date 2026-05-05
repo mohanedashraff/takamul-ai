@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile } from "@/lib/muapi";
+import { pickFirstUrl } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 
 type Phase = "idle" | "processing" | "result";
 
@@ -223,6 +227,7 @@ export function VideoTransitionsWorkspace({ tool, config }: Props) {
   const [duration,   setDuration]   = useState<string>("5");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search,     setSearch]     = useState("");
+  const [progress,   setProgress]   = useState("");
 
   const start = useUploadSlot();
   const end   = useUploadSlot();
@@ -239,13 +244,38 @@ export function VideoTransitionsWorkspace({ tool, config }: Props) {
     setResultUrl("");
   };
 
-  const handleGenerate = () => {
-    if (!canGenerate) return;
+  const handleGenerate = async () => {
+    if (!canGenerate || !start.file || !end.file) return;
+    if (!isExecutable(tool)) { toast.error("هذه الأداة لم تُربط بعد بالـ AI backend"); return; }
     setPhase("processing");
-    setTimeout(() => {
-      setResultUrl(selected.video);
+    setProgress("جاري رفع الإطارات…");
+    try {
+      const [{ url: startUrl }, { url: endUrl }] = await Promise.all([
+        uploadFile(start.file),
+        uploadFile(end.file),
+      ]);
+      setProgress("جاري بناء الانتقال…");
+      const { result } = await executeTool(
+        tool,
+        {
+          startFrame: startUrl,
+          endFrame:   endUrl,
+          style:      styleId,
+          duration:   Number(duration),
+        },
+        { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري بناء الانتقال…" : "جاري المعالجة…") },
+      );
+      const url = pickFirstUrl(result);
+      if (!url) throw new Error("لم يتم استلام الناتج");
+      setResultUrl(url);
       setPhase("result");
-    }, 4500);
+      toast.success("تم بناء الانتقال 🎬");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل بناء الانتقال");
+      setPhase("idle");
+    } finally {
+      setProgress("");
+    }
   };
 
   // Close modal on Escape
@@ -418,7 +448,7 @@ export function VideoTransitionsWorkspace({ tool, config }: Props) {
                       </div>
                     </div>
                     <div className="px-5 py-4 border-t border-white/8 bg-black/30 text-center">
-                      <p className="text-white font-bold mb-1 text-sm">جاري توليد الانتقال...</p>
+                      <p className="text-white font-bold mb-1 text-sm">{progress || "جاري توليد الانتقال..."}</p>
                       <p className="text-gray-500 text-xs">{selected.label} · {duration} ثوانٍ</p>
                       <div className="h-1.5 rounded-full bg-white/8 overflow-hidden mt-3">
                         <motion.div className="h-full rounded-full"

@@ -22,6 +22,7 @@ interface DashboardData {
     creditsLimit: number;
     planRenewsAt: string | null;
     createdAt: string;
+    emailVerified: string | null;
   };
   stats: {
     monthlyGenerations: number;
@@ -82,6 +83,9 @@ export default function DashboardOverview() {
     <div className="site-container py-8 space-y-10 pb-20">
       {/* Alien glow bg */}
       <div className="fixed top-0 right-0 w-full h-[500px] bg-gradient-to-b from-primary-600/10 to-transparent pointer-events-none -z-10" />
+
+      {/* Email-verification banner — only shown when emailVerified is null */}
+      {!user.emailVerified && <VerifyEmailBanner email={user.email} />}
 
       {/* Welcome banner */}
       <div className="relative overflow-hidden rounded-[2.5rem] p-10 sm:p-16 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
@@ -244,7 +248,7 @@ export default function DashboardOverview() {
                         </div>
                       </div>
                       <Link
-                        href={`/tool/${gen.toolId}`}
+                        href={`/tools/${gen.toolId}`}
                         className="text-xs font-bold text-gray-400 hover:text-accent-400 transition-colors"
                       >
                         إعادة الاستخدام
@@ -278,7 +282,7 @@ export default function DashboardOverview() {
             if (!tool) return null;
             const Icon = tool.icon;
             return (
-              <Link key={i} href={`/tool/${tool.id}`}>
+              <Link key={i} href={tool.customRoute ?? `/tools/${tool.id}`}>
                 <Card className="group cursor-pointer border-white/5 hover:border-primary-400/50 hover:-translate-y-2 transition-all duration-500 h-full">
                   <CardContent className="p-8 flex flex-col items-center text-center">
                     <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 border border-white/10 bg-accent-400/10 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(254,228,64,0.4)] transition-all duration-500">
@@ -358,4 +362,53 @@ function getSuggested(n: number) {
     toolName: t.title,
     count: 0,
   }));
+}
+
+// ── Email-verification banner ─────────────────────────────────────────
+function VerifyEmailBanner({ email }: { email: string }) {
+  const [status, setStatus] = React.useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [errorMsg, setErrorMsg] = React.useState("");
+
+  const resend = async () => {
+    setStatus("sending");
+    try {
+      const r = await fetch("/api/auth/verify-email/send", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({}),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || "فشل الإرسال");
+      setStatus("sent");
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg(err instanceof Error ? err.message : "خطأ");
+    }
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5 p-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/8 text-yellow-100">
+      <div className="w-10 h-10 rounded-xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center shrink-0">
+        <span className="text-lg">📧</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-bold text-sm md:text-base text-yellow-200 mb-0.5">
+          أكّد بريدك الإلكتروني للوصول الكامل للمنصة
+        </div>
+        <div className="text-xs text-yellow-200/70" dir="ltr">
+          {email}
+        </div>
+      </div>
+      <button
+        onClick={resend}
+        disabled={status === "sending" || status === "sent"}
+        className="shrink-0 px-4 py-2 rounded-lg bg-yellow-400 text-black text-sm font-bold hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-60"
+      >
+        {status === "sending" ? "جاري الإرسال…" :
+         status === "sent"    ? "تم الإرسال ✓"   :
+         status === "error"   ? errorMsg || "إعادة المحاولة" :
+                                "إعادة إرسال الرابط"}
+      </button>
+    </div>
+  );
 }

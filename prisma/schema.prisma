@@ -49,6 +49,13 @@ model User {
   spaces             Space[]
   agentSubscriptions AgentSubscription[]
   creditTransactions CreditTransaction[]
+  subscriptions      Subscription[]
+  payments           Payment[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]    @relation("ActorLogs")
+  referralsGiven     Referral[]    @relation("Referrer")
+  referralsReceived  Referral[]    @relation("Referee")
+  referralCode       String?       @unique
 }
 
 enum Plan {
@@ -262,3 +269,147 @@ enum SubscriptionStatus {
   CANCELLED
   PAST_DUE
 }
+
+// ════════════════════════════════════════════════════════════════
+// BILLING — Stripe-backed subscriptions, one-off payments, credit packs
+// ════════════════════════════════════════════════════════════════
+
+// One row per Stripe subscription. The "current" subscription for a user
+// is also denormalised on User.stripeSubscriptionId for fast lookups.
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String
+  stripeSubscriptionId String   @unique
+  stripeCustomerId     String
+  stripePriceId        String
+  plan                 Plan
+  status               SubscriptionStatus
+  // Window the *current* invoice covers. Used by the renewal cron to
+  // know whether credits have already been refilled this cycle.
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean  @default(false)
+  cancelledAt          DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+// Persistent log of every successful payment / refund. Used for the
+// admin billing dashboard and for receipts.
+model Payment {
+  id                    String        @id @default(cuid())
+  userId                String
+  stripePaymentIntentId String?       @unique
+  stripeInvoiceId       String?       @unique
+  stripeChargeId        String?       @unique
+  amount                Int           // in smallest currency unit (cents)
+  currency              String        @default("usd")
+  status                PaymentStatus
+  description           String?
+  // What this payment bought — subscription cycle, credit pack, etc.
+  type                  PaymentType
+  metadata              Json?
+  createdAt             DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type])
+}
+
+enum PaymentStatus {
+  SUCCEEDED
+  PENDING
+  FAILED
+  REFUNDED
+}
+
+enum PaymentType {
+  SUBSCRIPTION   // monthly plan charge
+  CREDIT_PACK    // one-off credit purchase
+  AGENT          // agent subscription
+  REFUND
+  OTHER
+}
+
+// In-app notification — delivered to the user inbox / bell dropdown.
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  kind      NotificationKind
+  title     String
+  body      String?
+  // Optional link the bell item should navigate to when clicked.
+  href      String?
+  // Free-form context (e.g. generationId, paymentId, …)
+  metadata  Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+enum NotificationKind {
+  GENERATION_DONE
+  GENERATION_FAILED
+  CREDITS_LOW
+  CREDITS_REFILLED
+  PAYMENT_SUCCEEDED
+  PAYMENT_FAILED
+  REFERRAL_BONUS
+  PLAN_RENEWED
+  PLAN_CANCELLED
+  ANNOUNCEMENT
+}
+
+// Append-only structured audit trail of admin / sensitive actions.
+// Distinct from CreditTransaction (financial) and Notification (user-facing).
+model AuditLog {
+  id        String         @id @default(cuid())
+  // Who performed the action. Null = system / cron.
+  actorId   String?
+  // What kind of action (BAN_USER, PROMOTE_ADMIN, REFUND_GEN, …).
+  action    String
+  // Optional reference to the entity being acted on.
+  targetId  String?
+  targetKind String?       // "user" | "generation" | "subscription" | …
+  // Original IP (best-effort) + user-agent for forensics.
+  ip        String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  actor User? @relation("ActorLogs", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([action])
+  @@index([targetKind, targetId])
+}
+
+// Tracks who invited whom + the bonus that was awarded.
+model Referral {
+  id             String   @id @default(cuid())
+  referrerId     String
+  refereeId      String   @unique
+  // Snapshot of the code used so changing the code later does not break
+  // analytics on past referrals.
+  codeUsed       String
+  // Credits granted to each side (denormalised for clear reporting).
+  referrerCredits Int     @default(0)
+  refereeCredits  Int     @default(0)
+  createdAt      DateTime @default(now())
+
+  referrer User @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referee  User @relation("Referee",  fields: [refereeId],  references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
+}
+

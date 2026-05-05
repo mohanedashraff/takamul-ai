@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile } from "@/lib/muapi";
+import { canvasToPngBlob, blobToFile, pickFirstUrl } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -421,14 +425,44 @@ export function SketchToVideoWorkspace({ tool, config }: Props) {
     setElements(p => p.map(el => el.id === id ? { ...el, editing: true } : el));
   };
 
+  const [progress, setProgress] = useState("");
+
   // ── Generate ──────────────────────────────────────────────────────────────
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!prompt.trim() || phase === "processing") return;
+    if (!isExecutable(tool)) { toast.error("هذه الأداة لم تُربط بعد بالـ AI backend"); return; }
+    if (!canvasRef.current) return;
     setPhase("processing");
-    setTimeout(() => {
-      setResultUrl(canvasRef.current?.toDataURL("image/png") ?? "");
+    setProgress("جاري رفع الرسم…");
+    try {
+      // 1. Capture canvas → PNG → upload
+      const blob = await canvasToPngBlob(canvasRef.current);
+      const { url: sketchUrl } = await uploadFile(blobToFile(blob, "sketch.png"));
+
+      setProgress("جاري توليد الفيديو…");
+      const { result } = await executeTool(
+        tool,
+        {
+          sketch:       sketchUrl,
+          prompt,
+          aspect_ratio: aspect,
+          duration:     Number(duration),
+          resolution,
+        },
+        { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري توليد الفيديو…" : "جاري المعالجة…") },
+      );
+
+      const url = pickFirstUrl(result);
+      if (!url) throw new Error("لم يتم استلام الناتج");
+      setResultUrl(url);
       setPhase("result");
-    }, 4000);
+      toast.success("تم توليد الفيديو 🎬");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل التوليد");
+      setPhase("draw");
+    } finally {
+      setProgress("");
+    }
   };
 
   const valid = !!prompt.trim();
@@ -550,7 +584,7 @@ export function SketchToVideoWorkspace({ tool, config }: Props) {
               } : {}) }}
             >
               {phase==="processing"
-                ? <><Loader2 className="w-5 h-5 animate-spin" /> جاري التحويل...</>
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> {progress || "جاري التحويل..."}</>
                 : <><Video className="w-5 h-5" /> حوّل إلى فيديو</>}
             </button>
           </div>
@@ -770,12 +804,18 @@ export function SketchToVideoWorkspace({ tool, config }: Props) {
                         {prompt.slice(0,40)}{prompt.length>40?"...":""}
                       </span>
                     </div>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={resultUrl} alt="نتيجة" className="w-full object-contain bg-black/50"
-                      style={{ maxHeight:"60vh" }} />
+                    {/\.(mp4|mov|webm)(\?|$)/i.test(resultUrl) ? (
+                      <video src={resultUrl} controls autoPlay loop muted playsInline
+                        className="w-full bg-black/50" style={{ maxHeight:"60vh" }} />
+                    ) : (
+                      // fallback for image/poster results
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={resultUrl} alt="نتيجة" className="w-full object-contain bg-black/50"
+                        style={{ maxHeight:"60vh" }} />
+                    )}
                   </div>
                   <div className="flex gap-3 w-full">
-                    <a href={resultUrl} download="sketch-video-frame.png"
+                    <a href={resultUrl} download target="_blank" rel="noopener noreferrer"
                       className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-xl">
                       <Download className="w-4 h-4" /> تحميل
                     </a>

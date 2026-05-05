@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile, type MuapiResult } from "@/lib/muapi";
+import { pickFirstUrl } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -80,6 +84,8 @@ export function OutpaintWorkspace({ tool, config }: Props) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
+  const [result, setResult] = useState<MuapiResult | null>(null);
+  const [progress, setProgress] = useState("");
   const [nat, setNat] = useState<{ w: number; h: number } | null>(null);
   const previewRef = useRef("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -308,10 +314,44 @@ export function OutpaintWorkspace({ tool, config }: Props) {
               </span>
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (!file || !hasExpansion || phase === "processing") return;
+                if (!isExecutable(tool)) {
+                  toast.error("هذه الأداة لم تُربط بعد بالـ AI backend");
+                  return;
+                }
                 setPhase("processing");
-                setTimeout(() => setPhase("result"), 3500);
+                setProgress("جاري رفع الصورة…");
+                setResult(null);
+                try {
+                  const { url } = await uploadFile(file);
+                  setProgress("جاري التمديد بالذكاء الاصطناعي…");
+                  // pick the best ratio key for the muapi payload — keep "auto" if user didn't choose
+                  const aspect = (window as unknown as { __outpaintAspect?: string }).__outpaintAspect;
+                  const { result: r } = await executeTool(
+                    tool,
+                    {
+                      image: url,
+                      ...(prompt ? { prompt } : {}),
+                      ...(aspect ? { ratio: aspect } : {}),
+                      // expansion margins (top/right/bottom/left) — passed through for
+                      // muapi endpoints that support them; harmless otherwise.
+                      expand_top:    expand.top,
+                      expand_right:  expand.right,
+                      expand_bottom: expand.bottom,
+                      expand_left:   expand.left,
+                    },
+                    { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التمديد…" : "جاري المعالجة…") },
+                  );
+                  setResult(r);
+                  setPhase("result");
+                  toast.success("تم التمديد ✨");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "فشل التمديد");
+                  setPhase("edit");
+                } finally {
+                  setProgress("");
+                }
               }}
               disabled={!file || !hasExpansion || phase === "processing"}
               className={cn(
@@ -330,7 +370,7 @@ export function OutpaintWorkspace({ tool, config }: Props) {
               }}
             >
               {phase === "processing"
-                ? <><Loader2 className="w-5 h-5 animate-spin" /> جاري التمديد...</>
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> {progress || "جاري التمديد..."}</>
                 : <><Sparkles className="w-5 h-5" /> ابدأ التمديد</>}
             </button>
           </div>
@@ -431,13 +471,19 @@ export function OutpaintWorkspace({ tool, config }: Props) {
                       <span className="text-xs text-gray-600 font-mono">{outputW}×{outputH}px</span>
                     </div>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={preview} alt="نتيجة" className="w-full object-contain bg-black/40" style={{ maxHeight: "60vh" }} />
+                    <img src={pickFirstUrl(result) ?? preview} alt="نتيجة" className="w-full object-contain bg-black/40" style={{ maxHeight: "60vh" }} />
                   </div>
                   <div className="flex gap-3 w-full">
-                    <button className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-xl">
+                    <a
+                      href={pickFirstUrl(result) ?? "#"}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-xl"
+                    >
                       <Download className="w-4 h-4" /> تحميل النتيجة
-                    </button>
-                    <button onClick={() => setPhase("edit")}
+                    </a>
+                    <button onClick={() => { setPhase("edit"); setResult(null); }}
                       className="h-12 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors">
                       <RefreshCw className="w-4 h-4" /> تعديل جديد
                     </button>

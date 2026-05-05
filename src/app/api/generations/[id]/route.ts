@@ -78,6 +78,27 @@ export async function PATCH(
     },
   });
 
+  // Drop a notification when a long-running generation finishes — useful
+  // mostly for video/audio jobs that take minutes. We deliberately skip
+  // re-transitions and lightning-fast image jobs to avoid spam.
+  const justCompleted = data.status === "COMPLETED" && gen.status !== "COMPLETED";
+  const justFailed    = data.status === "FAILED"    && gen.status !== "FAILED";
+  if (justCompleted || justFailed) {
+    const slow = (data.durationMs ?? 0) >= 8_000; // ≥ 8s ⇒ background-y
+    if (slow || justFailed) {
+      await prisma.notification.create({
+        data: {
+          userId:   session.user.id,
+          kind:     justFailed ? "GENERATION_FAILED" : "GENERATION_DONE",
+          title:    justFailed ? `فشل: ${gen.toolName}` : `جاهز: ${gen.toolName}`,
+          body:     justFailed ? (data.errorMessage ?? "حدث خطأ في التوليد") : "اضغط للعرض والتحميل.",
+          href:     `/dashboard?gen=${gen.id}`,
+          metadata: { generationId: gen.id, toolId: gen.toolId } as never,
+        },
+      }).catch(() => {});
+    }
+  }
+
   return jsonOk({ generation: updated });
 }
 

@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile, type MuapiResult } from "@/lib/muapi";
+import { pickFirstUrl } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 
 type Phase = "idle" | "processing" | "result";
 
@@ -116,7 +120,9 @@ export function ChangeClothesWorkspace({ tool, config }: Props) {
   const router = useRouter();
   const rgb    = config.shadowColor;
 
-  const [phase, setPhase] = useState<Phase>("idle");
+  const [phase,    setPhase]    = useState<Phase>("idle");
+  const [result,   setResult]   = useState<MuapiResult | null>(null);
+  const [progress, setProgress] = useState("");
   const person  = useUploadSlot();
   const outfit  = useUploadSlot();
 
@@ -126,6 +132,7 @@ export function ChangeClothesWorkspace({ tool, config }: Props) {
     person.clear();
     outfit.clear();
     setPhase("idle");
+    setResult(null);
   };
 
   return (
@@ -196,10 +203,32 @@ export function ChangeClothesWorkspace({ tool, config }: Props) {
 
                   {/* Generate button — lights up when both uploaded */}
                   <button
-                    onClick={() => {
-                      if (!bothReady) return;
+                    onClick={async () => {
+                      if (!bothReady || !person.slot.file || !outfit.slot.file) return;
+                      if (!isExecutable(tool)) { toast.error("هذه الأداة لم تُربط بعد بالـ AI backend"); return; }
                       setPhase("processing");
-                      setTimeout(() => setPhase("result"), 3500);
+                      setProgress("جاري رفع الصور…");
+                      setResult(null);
+                      try {
+                        const [{ url: personUrl }, { url: outfitUrl }] = await Promise.all([
+                          uploadFile(person.slot.file),
+                          uploadFile(outfit.slot.file),
+                        ]);
+                        setProgress("جاري تبديل الملابس…");
+                        const { result: r } = await executeTool(
+                          tool,
+                          { person: personUrl, outfit: outfitUrl },
+                          { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري تبديل الملابس…" : "جاري المعالجة…") },
+                        );
+                        setResult(r);
+                        setPhase("result");
+                        toast.success("تم تبديل الملابس ✨");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "فشل التبديل");
+                        setPhase("idle");
+                      } finally {
+                        setProgress("");
+                      }
                     }}
                     disabled={!bothReady}
                     className={cn(
@@ -258,7 +287,7 @@ export function ChangeClothesWorkspace({ tool, config }: Props) {
                         </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-white font-bold text-lg mb-1">جاري تغيير الملابس...</p>
+                        <p className="text-white font-bold text-lg mb-1">{progress || "جاري تغيير الملابس..."}</p>
                         <p className="text-gray-400 text-sm">الذكاء الاصطناعي يطبّق الزي الجديد</p>
                       </div>
                     </div>
@@ -306,18 +335,23 @@ export function ChangeClothesWorkspace({ tool, config }: Props) {
                           بعد
                         </div>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={person.slot.preview} alt="بعد"
+                        <img src={pickFirstUrl(result) ?? person.slot.preview} alt="بعد"
                           className="w-full object-cover"
-                          style={{ maxHeight: "55vh", objectPosition: "top",
-                            filter: "hue-rotate(200deg) brightness(1.05) saturate(1.2)" }} />
+                          style={{ maxHeight: "55vh", objectPosition: "top" }} />
                       </div>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
-                    <button className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
+                    <a
+                      href={pickFirstUrl(result) ?? "#"}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors"
+                    >
                       <Download className="w-4 h-4" /> تحميل النتيجة
-                    </button>
+                    </a>
                     <button onClick={reset}
                       className="h-12 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors">
                       <RefreshCw className="w-4 h-4" /> تجربة جديدة

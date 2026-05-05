@@ -163,18 +163,22 @@ function ToolsContent() {
               } : {};
 
               return (
-                <Link href={`/tool/${tool.id}`} key={tool.id}>
+                <Link href={tool.customRoute ?? `/tools/${tool.id}`} key={tool.id}>
                   <motion.div 
                     variants={fadeUpVar}
                     style={{ ...baseStyle, ...activeStyle }}
                     className="w-full h-full bento-card rounded-[2rem] p-3 group hover:scale-[1.02] hover:-translate-y-2 transition-all duration-500 cursor-pointer relative"
                   >
-                    {/* New Badge */}
-                    {tool.isNew && (
+                    {/* Badges */}
+                    {tool.comingSoon ? (
+                      <div className="absolute top-5 left-5 z-20">
+                        <Badge variant="warning" className="shadow-lg shadow-warning/20 text-[10px] font-black">قريباً</Badge>
+                      </div>
+                    ) : tool.isNew ? (
                       <div className="absolute top-5 left-5 z-20">
                         <Badge variant="success" className="shadow-lg shadow-success/20 text-[10px] font-black">جديد</Badge>
                       </div>
-                    )}
+                    ) : null}
 
                     {/* Image */}
                     <div className="w-full h-[180px] rounded-[1.5rem] bg-black mb-4 overflow-hidden relative pointer-events-none">

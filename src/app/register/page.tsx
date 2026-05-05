@@ -1,20 +1,36 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import toast from "react-hot-toast";
-import { Terminal, Mail, Lock, User, ArrowRight, Layers, LayoutGrid, Zap, Loader2 } from "lucide-react";
+import { Terminal, Mail, Lock, User, ArrowRight, Layers, LayoutGrid, Zap, Loader2, Gift } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterInner />
+    </Suspense>
+  );
+}
+
+function RegisterInner() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Pick up ?ref=CODE from invite links — applied silently after signup.
+  const [referralCode, setReferralCode] = useState("");
+  useEffect(() => {
+    const r = searchParams.get("ref");
+    if (r) setReferralCode(r.trim().toUpperCase());
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,6 +64,23 @@ export default function RegisterPage() {
         toast.error("سجل دخول بنفسك من فضلك");
         router.push("/login");
       } else {
+        // Apply referral code (if any). Best-effort — failure shouldn't
+        // block the user from reaching the dashboard.
+        if (referralCode) {
+          try {
+            const refRes = await fetch("/api/referrals", {
+              method:  "POST",
+              headers: { "Content-Type": "application/json" },
+              body:    JSON.stringify({ code: referralCode }),
+            });
+            if (refRes.ok) {
+              const ref = await refRes.json().catch(() => ({}));
+              if (ref?.refereeCredits) {
+                toast.success(`+${ref.refereeCredits} كريديت مكافأة الإحالة 🎁`);
+              }
+            }
+          } catch { /* ignore */ }
+        }
         router.push("/dashboard");
         router.refresh();
       }
@@ -80,8 +113,20 @@ export default function RegisterPage() {
         {/* Form Container */}
         <div className="w-full max-w-sm mx-auto my-auto py-12">
           <h1 className="text-3xl font-black text-white mb-2">إنشاء حساب جديد</h1>
-          <p className="text-gray-400 text-sm mb-10">ابدأ رحلتك في بناء وتوليد إبداعاتك باستخدام أحدث النماذج.</p>
-          
+          <p className="text-gray-400 text-sm mb-6">ابدأ رحلتك في بناء وتوليد إبداعاتك باستخدام أحدث النماذج.</p>
+
+          {referralCode && (
+            <div className="flex items-center gap-3 p-3 mb-5 rounded-xl bg-violet-500/10 border border-violet-500/30">
+              <div className="w-9 h-9 rounded-lg bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-300 shrink-0">
+                <Gift className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0 text-xs">
+                <p className="text-violet-200 font-bold">رمز إحالة مفعّل: <span className="font-mono">{referralCode}</span></p>
+                <p className="text-violet-300/70 mt-0.5">هتحصل على كريديت مكافأة عند التسجيل</p>
+              </div>
+            </div>
+          )}
+
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-400 ml-1">الاسم الكامل</label>

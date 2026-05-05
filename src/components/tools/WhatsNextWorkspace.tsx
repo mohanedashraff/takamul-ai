@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile, type MuapiResult } from "@/lib/muapi";
+import { pickAllUrls } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 
 type Phase = "idle" | "ready" | "processing" | "result";
 
@@ -36,10 +40,12 @@ export function WhatsNextWorkspace({ tool, config }: Props) {
   const router = useRouter();
   const rgb    = config.shadowColor;
 
-  const [phase,   setPhase]   = useState<Phase>("idle");
-  const [preview, setPreview] = useState("");
-  const [file,    setFile]    = useState<File | null>(null);
-  const [drag,    setDrag]    = useState(false);
+  const [phase,    setPhase]    = useState<Phase>("idle");
+  const [preview,  setPreview]  = useState("");
+  const [file,     setFile]     = useState<File | null>(null);
+  const [drag,     setDrag]     = useState(false);
+  const [result,   setResult]   = useState<MuapiResult | null>(null);
+  const [progress, setProgress] = useState("");
 
   const urlRef  = useRef("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -60,6 +66,7 @@ export function WhatsNextWorkspace({ tool, config }: Props) {
     setFile(null);
     setPreview("");
     setPhase("idle");
+    setResult(null);
   };
 
   return (
@@ -181,7 +188,30 @@ export function WhatsNextWorkspace({ tool, config }: Props) {
 
                   {/* Generate */}
                   <button
-                    onClick={() => { setPhase("processing"); setTimeout(() => setPhase("result"), 4000); }}
+                    onClick={async () => {
+                      if (!file) return;
+                      if (!isExecutable(tool)) { toast.error("هذه الأداة لم تُربط بعد بالـ AI backend"); return; }
+                      setPhase("processing");
+                      setProgress("جاري رفع الصورة…");
+                      setResult(null);
+                      try {
+                        const { url } = await uploadFile(file);
+                        setProgress("جاري توليد التكملات…");
+                        const { result: r } = await executeTool(
+                          tool,
+                          { image: url, num_images: RESULT_COUNT },
+                          { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
+                        );
+                        setResult(r);
+                        setPhase("result");
+                        toast.success("تم توليد التكملات ✨");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "فشل التوليد");
+                        setPhase("ready");
+                      } finally {
+                        setProgress("");
+                      }
+                    }}
                     className="w-full rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:brightness-110 text-white"
                     style={{
                       height: "56px",
@@ -218,7 +248,7 @@ export function WhatsNextWorkspace({ tool, config }: Props) {
                         </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-white font-bold text-lg mb-1">جاري التوليد...</p>
+                        <p className="text-white font-bold text-lg mb-1">{progress || "جاري التوليد..."}</p>
                         <p className="text-gray-400 text-sm">{RESULT_COUNT} احتمالات للمشهد التالي</p>
                       </div>
                     </div>
@@ -278,40 +308,57 @@ export function WhatsNextWorkspace({ tool, config }: Props) {
                   <div className="rounded-3xl overflow-hidden border border-white/10"
                     style={{ boxShadow: `0 0 50px rgba(${rgb},0.12)` }}>
                     <div className="grid grid-cols-4 gap-px bg-white/5">
-                      {Array.from({ length: RESULT_COUNT }, (_, i) => (
-                        <motion.div key={i}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: i * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                          className="relative bg-black/50 overflow-hidden group"
-                          style={{ height: 130 }}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={preview} alt={`احتمال ${i + 1}`}
-                            className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-                            style={{ filter: RESULT_FILTERS[i] }} />
+                      {(() => {
+                        const urls = pickAllUrls(result);
+                        const cells = urls.length > 0
+                          ? urls.slice(0, RESULT_COUNT)
+                          : Array(RESULT_COUNT).fill(preview);
+                        return cells.map((url, i) => (
+                          <motion.div key={i}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: i * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                            className="relative bg-black/50 overflow-hidden group"
+                            style={{ height: 130 }}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt={`احتمال ${i + 1}`}
+                              className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" />
 
-                          {/* Hover overlay */}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                            <button className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
-                              <Download className="w-3.5 h-3.5 text-white" />
-                            </button>
-                          </div>
+                            {/* Hover overlay */}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <a
+                                href={url}
+                                download
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors"
+                              >
+                                <Download className="w-3.5 h-3.5 text-white" />
+                              </a>
+                            </div>
 
-                          {/* Number badge */}
-                          <div className="absolute bottom-1.5 right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/70 text-gray-400 border border-white/10 group-hover:opacity-0 transition-opacity">
-                            {i + 1}
-                          </div>
-                        </motion.div>
-                      ))}
+                            {/* Number badge */}
+                            <div className="absolute bottom-1.5 right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/70 text-gray-400 border border-white/10 group-hover:opacity-0 transition-opacity">
+                              {i + 1}
+                            </div>
+                          </motion.div>
+                        ));
+                      })()}
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div className="flex gap-3">
-                    <button className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
-                      <Download className="w-4 h-4" /> تحميل الكل
-                    </button>
+                    <a
+                      href={pickAllUrls(result)[0] ?? "#"}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors"
+                    >
+                      <Download className="w-4 h-4" /> تحميل الأول
+                    </a>
                     <button onClick={reset}
                       className="h-12 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors">
                       <RefreshCw className="w-4 h-4" /> تجربة جديدة

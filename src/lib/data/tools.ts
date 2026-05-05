@@ -1,6 +1,6 @@
 import {
   Sparkles, Zap, Frame, Radio, Layers,
-  Wand2, Image as ImageIcon, Video, Music,
+  Wand2, Image as ImageIcon, Video, Music, Film, Megaphone,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -47,6 +47,35 @@ export interface ToolInput {
 
 // ── Tool Interface ────────────────────────────────────────────────────────────
 
+import type { ModelCategory } from "./models";
+
+export interface ToolModelOption {
+  /** model id from the muapi registry (src/lib/data/models/registry.json) */
+  id: string;
+  /** Arabic display label (overrides registry `name`) */
+  label?: string;
+  /** Optional tagline shown under the name */
+  tag?: string;
+  /** Picker preview image */
+  thumbnail?: string;
+  /** Marks the recommended default — picked first in the UI */
+  recommended?: boolean;
+}
+
+export interface ToolMuapiBinding {
+  /** Which registry slice to use for model resolution */
+  category: ModelCategory;
+  /** Curated list shown in the model picker (subset of the registry) */
+  models: ToolModelOption[];
+  /** Map our tool inputs (ToolInput.id) → muapi payload field names.
+   *  If an input's id already matches the muapi field, omit the entry. */
+  paramMap?: Record<string, string>;
+  /** Static payload fields merged into every request (rarely needed) */
+  staticPayload?: Record<string, unknown>;
+  /** When true, dynamic-cost calc is enabled in the UI */
+  dynamicCost?: boolean;
+}
+
 export interface Tool {
   id: string;
   title: string;
@@ -57,6 +86,17 @@ export interface Tool {
   isNew?: boolean;
   layout?: "default" | "centered" | "inpaint" | "sketch" | "outpaint" | "angle" | "relight" | "multi-scene" | "change-clothes" | "fashion-designer" | "face-swap" | "whats-next" | "sketch-to-video" | "video-transitions";
   inputs: ToolInput[];
+  /** Wires this tool to one or more muapi models */
+  muapi?: ToolMuapiBinding;
+  /** When set, the dashboard / gallery links to this absolute path instead
+   *  of `/tools/<id>`. Use it for tools that have their own bespoke UI
+   *  (Cinema Studio, Marketing Studio, …). */
+  customRoute?: string;
+  /** Highlights this tool as "premium / studio experience" in the gallery */
+  studio?: boolean;
+  /** Marks the tool as not yet available — UI shows a coming-soon
+   *  message instead of trying to call MuAPI. */
+  comingSoon?: boolean;
 }
 
 // ── Shared option sets ────────────────────────────────────────────────────────
@@ -130,35 +170,44 @@ const LIGHT_DIRECTION: ToolInputOption[] = [
   { value: "bottom", label: "أسفل" },
 ];
 
+// ── Model option lists ──────────────────────────────────────────────────────
+// Values here are real muapi slugs from src/lib/data/models/full-registry.js
+// so they can flow straight into the muapi proxy without translation.
+
 const IMAGE_MODELS: ToolInputOption[] = [
-  { value: "nano_banana_pro",  label: "Nano Banana Pro"  },
-  { value: "seedream_v5_lite", label: "Seedream 5.0 Lite" },
-  { value: "seedream_4_5",     label: "Seedream 4.5"      },
+  { value: "nano-banana",                 label: "Nano Banana ✨"       },
+  { value: "flux-schnell",                label: "Flux Schnell — أسرع"  },
+  { value: "flux-dev",                    label: "Flux Dev"             },
+  { value: "bytedance-seedream-v4",       label: "Seedream 4"           },
+  { value: "google-imagen4",              label: "Google Imagen 4"      },
+  { value: "google-imagen4-ultra",        label: "Imagen 4 Ultra 🔥"     },
+  { value: "gpt4o-text-to-image",         label: "GPT-4o Image"         },
+  { value: "midjourney-v7-text-to-image", label: "Midjourney v7"        },
+  { value: "qwen-image",                  label: "Qwen Image"           },
+  { value: "hunyuan-image-3.0",           label: "Hunyuan Image 3.0"    },
 ];
 
 const VIDEO_MODELS: ToolInputOption[] = [
-  { value: "seedance_2_0",       label: "Seedance 2.0"         },
-  { value: "kling_3_0",          label: "Kling 3.0"            },
-  { value: "kling_o1_edit",      label: "Kling O1 Edit"        },
-  { value: "open_sora_video",    label: "Sora 2"               },
-  { value: "veo_3_1_lite",       label: "Google Veo 3.1 Lite"  },
-  { value: "veo_3_1",            label: "Google Veo 3.1"       },
-  { value: "grok_imagine",       label: "Grok Imagine"         },
-  { value: "wan2_7",             label: "Wan 2.7"              },
+  { value: "kling-v3.0-pro-text-to-video",      label: "Kling 3.0 Pro 🔥"     },
+  { value: "kling-v2.6-pro-t2v",                label: "Kling 2.6 Pro"        },
+  { value: "veo3.1-text-to-video",              label: "Google Veo 3.1"       },
+  { value: "veo3.1-fast-text-to-video",         label: "Veo 3.1 Fast"         },
+  { value: "openai-sora-2-text-to-video",       label: "OpenAI Sora 2"        },
+  { value: "wan2.6-text-to-video",              label: "Wan 2.6"              },
+  { value: "wan2.5-text-to-video-fast",         label: "Wan 2.5 Fast — أرخص"  },
+  { value: "seedance-v2.0-t2v",                 label: "Seedance 2.0"         },
+  { value: "minimax-hailuo-2.3-pro-t2v",        label: "Minimax Hailuo 2.3"   },
+  { value: "ltx-2-fast-text-to-video",          label: "LTX 2 Fast"           },
 ];
 
 const LIPSYNC_MODELS: ToolInputOption[] = [
-  { value: "wan_2_5_fast",         label: "Wan 2.5 Fast"           },
-  { value: "kling_2_6_lipsync",    label: "Kling 2.6 Lipsync"      },
-  { value: "veo_3",                label: "Google Veo 3"           },
-  { value: "veo_3_fast",           label: "Google Veo 3 Fast"      },
-  { value: "wan_2_5_speak",        label: "Wan 2.5 Speak"          },
-  { value: "wan_2_5_speak_fast",   label: "Wan 2.5 Speak Fast"     },
-  { value: "kling_avatars_2_0",    label: "Kling Avatars 2.0"      },
-  { value: "higgsfield_speak",     label: "Higgsfield Speak 2.0"   },
-  { value: "infinite_talk",        label: "Infinite Talk"          },
-  { value: "kling_lipsync",        label: "Kling Lipsync"          },
-  { value: "sync_lipsync_2_pro",   label: "Sync Lipsync 2 Pro"     },
+  { value: "sync-lipsync",                  label: "Sync Lipsync"         },
+  { value: "latent-sync",                   label: "LatentSync"           },
+  { value: "creatify-lipsync",              label: "Creatify"             },
+  { value: "veed-lipsync",                  label: "Veed Lipsync"         },
+  { value: "wan2.2-speech-to-video",        label: "Wan 2.2 Speech"       },
+  { value: "ltx-2.3-lipsync",               label: "LTX 2.3 Lipsync"      },
+  { value: "infinitetalk-video-to-video",   label: "Infinite Talk"        },
 ];
 
 const TRANSITIONS_STYLES: ToolInputOption[] = [
@@ -314,6 +363,27 @@ const IMAGE_STYLES: ToolInputOption[] = [
 
 export const IMAGE_TOOLS: Tool[] = [
   {
+    id: "cinema-studio",
+    title: "استوديو السينما 🎬",
+    desc: "كاميرات وعدسات سينمائية احترافية بميزانية لانهائية.",
+    icon: Film,
+    image: "https://static.higgsfield.ai/explore/create-image.mp4",
+    credits: 8,
+    isNew: true,
+    studio: true,
+    customRoute: "/cinema",
+    inputs: [
+      // Cinema Studio uses its own bespoke UI — these are kept minimal
+      // so it still satisfies the Tool schema for the generations API.
+      {
+        id: "prompt",
+        type: "prompt",
+        label: "وصف المشهد",
+        required: true,
+      },
+    ],
+  },
+  {
     id: "text-to-image",
     title: "توليد صورة",
     desc: "حوّل كلماتك إلى صور مميزة وفريدة.",
@@ -372,6 +442,15 @@ export const IMAGE_TOOLS: Tool[] = [
         hint: "اختياري — اختر أسلوبًا بصريًا لتوجيه التوليد",
       },
     ],
+    muapi: {
+      category: "t2i",
+      models: IMAGE_MODELS.map((m) => ({ id: m.value, label: m.label })),
+      paramMap: {
+        ratio: "aspect_ratio",
+        count: "num_images",
+      },
+      dynamicCost: true,
+    },
   },
   {
     id: "enhance-image",
@@ -391,6 +470,16 @@ export const IMAGE_TOOLS: Tool[] = [
         hint: "PNG، JPG، MP4 — بحد أقصى 50MB",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [
+        { id: "ai-image-upscaler",   label: "AI Upscaler — السريع" },
+        { id: "topaz-image-upscale", label: "Topaz — أعلى جودة 🔥" },
+        { id: "seedvr2-image-upscale", label: "SeedVR2 — متقدم" },
+      ],
+      paramMap: { media: "image_url" },
+      dynamicCost: true,
+    },
   },
   {
     id: "edit-image",
@@ -425,6 +514,23 @@ export const IMAGE_TOOLS: Tool[] = [
         hint: "أضف منتجاً أو صورة كمرجع للتعديل",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [
+        { id: "nano-banana-pro-edit",    label: "Nano Banana Pro ✨" },
+        { id: "flux-kontext-pro-i2i",    label: "Flux Kontext Pro"   },
+        { id: "flux-kontext-max-i2i",    label: "Flux Kontext Max 🔥"},
+        { id: "qwen-image-edit-plus",    label: "Qwen Edit Plus"     },
+        { id: "gpt4o-edit",              label: "GPT-4o Edit"        },
+        { id: "bytedance-seedream-edit-v4", label: "Seedream Edit"   },
+        { id: "nano-banana-2-edit",      label: "Nano Banana 2"      },
+      ],
+      paramMap: {
+        image: "image_url",
+        ref:   "reference_image_url",
+      },
+      dynamicCost: true,
+    },
   },
   {
     id: "bg-remover",
@@ -444,6 +550,12 @@ export const IMAGE_TOOLS: Tool[] = [
         hint: "PNG أو JPG",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [{ id: "ai-background-remover", label: "AI Background Remover" }],
+      paramMap: { image: "image_url" },
+      dynamicCost: true,
+    },
   },
   {
     id: "product-mockup",
@@ -472,6 +584,15 @@ export const IMAGE_TOOLS: Tool[] = [
         placeholder: "مثال: منتج على طاولة خشبية مع إضاءة دافئة وزهور...",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [
+        { id: "ai-product-shot",        label: "AI Product Shot"        },
+        { id: "ai-product-photography", label: "AI Product Photography" },
+      ],
+      paramMap: { product: "image_url" },
+      dynamicCost: true,
+    },
   },
   {
     id: "sketch-to-image",
@@ -498,6 +619,16 @@ export const IMAGE_TOOLS: Tool[] = [
         placeholder: "مثال: رسم زيتي، واقعي فوتوغرافي، أنمي ياباني...",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [
+        { id: "flux-kontext-pro-i2i",     label: "Flux Kontext Pro" },
+        { id: "nano-banana-pro-edit",     label: "Nano Banana Pro"  },
+        { id: "qwen-image-edit-plus",     label: "Qwen Edit Plus"   },
+      ],
+      paramMap: { sketch: "image_url" },
+      dynamicCost: true,
+    },
   },
   {
     id: "restore-image",
@@ -517,6 +648,12 @@ export const IMAGE_TOOLS: Tool[] = [
         hint: "PNG أو JPG — بحد أقصى 20MB",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [{ id: "ai-color-photo", label: "AI Photo Restorer" }],
+      paramMap: { image: "image_url" },
+      dynamicCost: true,
+    },
   },
   {
     id: "skin-retouch",
@@ -537,6 +674,12 @@ export const IMAGE_TOOLS: Tool[] = [
         hint: "يفضل صورة وجه واضحة وعالية الدقة",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [{ id: "ai-skin-enhancer", label: "AI Skin Enhancer" }],
+      paramMap: { image: "image_url" },
+      dynamicCost: true,
+    },
   },
   {
     id: "image-outpaint",
@@ -564,6 +707,15 @@ export const IMAGE_TOOLS: Tool[] = [
         defaultValue: "16:9",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [
+        { id: "ai-image-extension", label: "AI Image Extension"     },
+        { id: "ideogram-v3-reframe", label: "Ideogram Reframe 🔥"   },
+      ],
+      paramMap: { image: "image_url", ratio: "aspect_ratio" },
+      dynamicCost: true,
+    },
   },
   {
     id: "change-angle",
@@ -619,6 +771,18 @@ export const IMAGE_TOOLS: Tool[] = [
         defaultValue: false,
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [
+        { id: "flux-kontext-pro-i2i",  label: "Flux Kontext Pro" },
+        { id: "nano-banana-pro-edit",  label: "Nano Banana Pro"  },
+        { id: "qwen-image-edit-plus",  label: "Qwen Edit Plus"   },
+      ],
+      paramMap: { image: "image_url" },
+      // rotation/tilt/zoom merge into the prompt — ToolInputRenderer
+      // drops empty values so payload stays clean.
+      dynamicCost: true,
+    },
   },
   {
     id: "multi-scene",
@@ -639,6 +803,16 @@ export const IMAGE_TOOLS: Tool[] = [
         hint: "ستحصل على 9 لقطات سينمائية مختلفة",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [
+        { id: "flux-kontext-pro-i2i", label: "Flux Kontext Pro" },
+        { id: "nano-banana-pro-edit", label: "Nano Banana Pro"  },
+      ],
+      paramMap: { image: "image_url" },
+      staticPayload: { num_images: 9 },
+      dynamicCost: true,
+    },
   },
   {
     id: "relighting",
@@ -691,6 +865,17 @@ export const IMAGE_TOOLS: Tool[] = [
         defaultValue: "#ffffff",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [
+        { id: "flux-kontext-pro-i2i", label: "Flux Kontext Pro 🔥" },
+        { id: "nano-banana-pro-edit", label: "Nano Banana Pro"     },
+        { id: "qwen-image-edit-plus", label: "Qwen Edit Plus"      },
+      ],
+      paramMap: { image: "image_url" },
+      // direction/lightType/brightness/color get baked into the prompt via UI
+      dynamicCost: true,
+    },
   },
   {
     id: "change-clothes",
@@ -719,6 +904,12 @@ export const IMAGE_TOOLS: Tool[] = [
         hint: "صورة الزي أو الملابس المراد تطبيقها",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [{ id: "ai-dress-change", label: "AI Dress Change" }],
+      paramMap: { person: "image_url", outfit: "garment_image_url" },
+      dynamicCost: true,
+    },
   },
   {
     id: "fashion-designer",
@@ -745,6 +936,21 @@ export const IMAGE_TOOLS: Tool[] = [
         hint: "صورة شخص أو مانيكان",
       },
     ],
+    muapi: {
+      // No reference → t2i (generate the design from scratch).
+      // We reuse the t2i path; if a reference is uploaded the executor
+      // will just include it as image_url and most t2i models will pass it.
+      category: "t2i",
+      models: [
+        { id: "nano-banana",                    label: "Nano Banana ✨"     },
+        { id: "flux-dev",                       label: "Flux Dev"           },
+        { id: "midjourney-v7-text-to-image",    label: "Midjourney v7"      },
+        { id: "google-imagen4-ultra",           label: "Imagen 4 Ultra 🔥"  },
+      ],
+      paramMap: { person: "image_url" },
+      staticPayload: { aspect_ratio: "3:4", num_images: 4 },
+      dynamicCost: true,
+    },
   },
   {
     id: "face-swap",
@@ -773,6 +979,15 @@ export const IMAGE_TOOLS: Tool[] = [
         hint: "الصورة التي تريد تغيير الوجه فيها",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [{ id: "ai-image-face-swap", label: "AI Face Swap" }],
+      paramMap: {
+        faceSource:  "source_image_url",
+        targetImage: "target_image_url",
+      },
+      dynamicCost: true,
+    },
   },
   {
     id: "whats-next",
@@ -793,12 +1008,43 @@ export const IMAGE_TOOLS: Tool[] = [
         hint: "ستحصل على 8 تكملات للمشهد",
       },
     ],
+    muapi: {
+      category: "i2i",
+      models: [
+        { id: "flux-kontext-pro-i2i",  label: "Flux Kontext Pro" },
+        { id: "nano-banana-pro-edit",  label: "Nano Banana Pro"  },
+      ],
+      paramMap: { image: "image_url" },
+      staticPayload: { num_images: 8 },
+      dynamicCost: true,
+    },
   },
 ];
 
 // ── Video Tools ───────────────────────────────────────────────────────────────
 
 export const VIDEO_TOOLS: Tool[] = [
+  {
+    id: "marketing-studio",
+    title: "استوديو التسويق 📢",
+    desc: "إعلانات احترافية بقوالب جاهزة (UGC، فتح صندوق، شرح، مراجعة).",
+    icon: Megaphone,
+    image: "https://d3adwkbyhxyrtq.cloudfront.net/web-app/ugc.mp4",
+    credits: 12,
+    isNew: true,
+    studio: true,
+    customRoute: "/marketing",
+    inputs: [
+      // Marketing Studio uses its own bespoke UI — these are kept minimal
+      // so it satisfies the Tool schema for the generations API.
+      {
+        id: "prompt",
+        type: "prompt",
+        label: "وصف الإعلان",
+        required: true,
+      },
+    ],
+  },
   {
     id: "text-to-video",
     title: "إنشاء فيديو",
@@ -827,7 +1073,7 @@ export const VIDEO_TOOLS: Tool[] = [
         type: "select",
         label: "النموذج",
         options: VIDEO_MODELS,
-        defaultValue: "seedance_2_0",
+        defaultValue: "kling-v3.0-pro-text-to-video",
       },
       {
         id: "ratio",
@@ -851,6 +1097,14 @@ export const VIDEO_TOOLS: Tool[] = [
         defaultValue: "1080p",
       },
     ],
+    muapi: {
+      category: "t2v",
+      models: VIDEO_MODELS.map((m) => ({ id: m.value, label: m.label })),
+      paramMap: {
+        ratio: "aspect_ratio",
+      },
+      dynamicCost: true,
+    },
   },
   {
     id: "sketch-to-video",
@@ -877,6 +1131,17 @@ export const VIDEO_TOOLS: Tool[] = [
         placeholder: "صف ما يحدث في الفيديو والحركات المطلوبة...",
       },
     ],
+    muapi: {
+      category: "i2v",
+      models: [
+        { id: "kling-v2.1-pro-i2v",         label: "Kling 2.1 Pro 🔥" },
+        { id: "veo3.1-image-to-video",      label: "Veo 3.1"         },
+        { id: "wan2.2-image-to-video",      label: "Wan 2.2"         },
+        { id: "midjourney-v7-image-to-video", label: "Midjourney v7"  },
+      ],
+      paramMap: { sketch: "image_url" },
+      dynamicCost: true,
+    },
   },
   {
     id: "motion-transfer",
@@ -921,6 +1186,21 @@ export const VIDEO_TOOLS: Tool[] = [
         defaultValue: "video",
       },
     ],
+    muapi: {
+      category: "v2v",
+      models: [
+        { id: "kling-v3.0-pro-motion-control", label: "Kling 3.0 Pro Motion 🔥" },
+        { id: "kling-v3.0-std-motion-control", label: "Kling 3.0 Standard"     },
+        { id: "kling-v2.6-std-motion-control", label: "Kling 2.6 Standard"     },
+        { id: "runway-act-two-i2v",            label: "Runway Act Two"         },
+      ],
+      paramMap: {
+        motionVideo: "video_url",
+        targetImage: "image_url",
+        quality:     "resolution",
+      },
+      dynamicCost: true,
+    },
   },
   {
     id: "video-editor",
@@ -947,6 +1227,16 @@ export const VIDEO_TOOLS: Tool[] = [
         attachments: { accept: "image/*", max: 5 },
       },
     ],
+    muapi: {
+      category: "v2v",
+      models: [
+        { id: "kling-v3.0-pro-motion-control", label: "Kling 3.0 Pro 🔥" },
+        { id: "kling-v3.0-std-motion-control", label: "Kling 3.0"        },
+        { id: "kling-v2.6-std-motion-control", label: "Kling 2.6"        },
+      ],
+      paramMap: { video: "video_url" },
+      dynamicCost: true,
+    },
   },
   {
     id: "lip-sync",
@@ -983,7 +1273,7 @@ export const VIDEO_TOOLS: Tool[] = [
         type: "select",
         label: "النموذج",
         options: LIPSYNC_MODELS,
-        defaultValue: "kling_2_6_lipsync",
+        defaultValue: "sync-lipsync",
       },
       {
         id: "duration",
@@ -1000,6 +1290,16 @@ export const VIDEO_TOOLS: Tool[] = [
         defaultValue: "720p",
       },
     ],
+    muapi: {
+      category: "lipsync",
+      models: LIPSYNC_MODELS.map((m) => ({ id: m.value, label: m.label })),
+      paramMap: {
+        image: "video_url",   // muapi expects a URL after upload
+        audio: "audio_url",
+        speech: "text",
+      },
+      dynamicCost: true,
+    },
   },
   {
     id: "video-resize",
@@ -1008,6 +1308,7 @@ export const VIDEO_TOOLS: Tool[] = [
     icon: Frame,
     image: "/media/video-resize.webm",
     credits: 5,
+    comingSoon: true,
     inputs: [
       {
         id: "video",
@@ -1068,6 +1369,15 @@ export const VIDEO_TOOLS: Tool[] = [
         placeholder: "صف التأثير البصري الذي تريده بالتفصيل...",
       },
     ],
+    muapi: {
+      category: "i2v",
+      models: [
+        { id: "ai-video-effects", label: "AI Video Effects" },
+        { id: "vfx",              label: "VFX Engine"       },
+      ],
+      paramMap: { media: "image_url", effect: "effect_type" },
+      dynamicCost: true,
+    },
   },
   {
     id: "video-transitions",
@@ -1110,6 +1420,21 @@ export const VIDEO_TOOLS: Tool[] = [
         hint: "صورة أو فيديو — بحد أقصى 5 ثوانٍ",
       },
     ],
+    muapi: {
+      // Use first-last-frame i2v models — Kling supports start_image+end_image
+      category: "i2v",
+      models: [
+        { id: "kling-v2.1-pro-i2v",      label: "Kling 2.1 Pro 🔥" },
+        { id: "kling-v2.1-master-i2v",   label: "Kling 2.1 Master" },
+        { id: "wan2.1-image-to-video",   label: "Wan 2.1"          },
+      ],
+      paramMap: {
+        startFrame: "image_url",
+        endFrame:   "tail_image_url",
+        style:      "transition_style",
+      },
+      dynamicCost: true,
+    },
   },
   {
     id: "video-bg-remover",
@@ -1130,6 +1455,12 @@ export const VIDEO_TOOLS: Tool[] = [
         hint: "MP4 أو MOV — بحد أقصى 100MB",
       },
     ],
+    muapi: {
+      category: "v2v",
+      models: [{ id: "video-watermark-remover", label: "Video BG Remover" }],
+      paramMap: { video: "video_url" },
+      dynamicCost: true,
+    },
   },
   {
     id: "product-video",
@@ -1159,6 +1490,16 @@ export const VIDEO_TOOLS: Tool[] = [
         placeholder: "مثال: منتج في مطبخ عصري مع إضاءة طبيعية...",
       },
     ],
+    muapi: {
+      category: "i2v",
+      models: [
+        { id: "kling-v2.1-pro-i2v",   label: "Kling 2.1 Pro" },
+        { id: "veo3.1-image-to-video", label: "Veo 3.1"      },
+        { id: "wan2.2-image-to-video", label: "Wan 2.2"      },
+      ],
+      paramMap: { product: "image_url" },
+      dynamicCost: true,
+    },
   },
   {
     id: "billboard-video",
@@ -1184,6 +1525,16 @@ export const VIDEO_TOOLS: Tool[] = [
         placeholder: "ما الرسالة التي تريد إيصالها للجمهور؟",
       },
     ],
+    muapi: {
+      category: "i2v",
+      models: [
+        { id: "kling-v2.1-pro-i2v",      label: "Kling 2.1 Pro 🔥" },
+        { id: "veo3.1-image-to-video",   label: "Veo 3.1"          },
+        { id: "wan2.2-image-to-video",   label: "Wan 2.2"          },
+      ],
+      paramMap: { media: "image_url" },
+      dynamicCost: true,
+    },
   },
 ];
 
@@ -1197,6 +1548,7 @@ export const AUDIO_TOOLS: Tool[] = [
     icon: Music,
     image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=600&auto=format&fit=crop",
     credits: 3,
+    comingSoon: true,
     inputs: [
       {
         id: "text",
@@ -1265,6 +1617,7 @@ export const AUDIO_TOOLS: Tool[] = [
     icon: Layers,
     image: "https://images.unsplash.com/photo-1516280440502-3c66f6517170?q=80&w=600&auto=format&fit=crop",
     credits: 3,
+    comingSoon: true,
     inputs: [
       {
         id: "audio",
@@ -1284,6 +1637,7 @@ export const AUDIO_TOOLS: Tool[] = [
     icon: Sparkles,
     image: "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=600&auto=format&fit=crop",
     credits: 2,
+    comingSoon: true,
     inputs: [
       {
         id: "audio",

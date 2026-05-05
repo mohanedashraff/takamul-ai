@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile, type MuapiResult } from "@/lib/muapi";
+import { pickFirstUrl } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 
 type Phase = "idle" | "edit" | "processing" | "result";
 
@@ -120,8 +124,11 @@ export function RelightWorkspace({ tool, config }: Props) {
   const router = useRouter();
   const rgb    = config.shadowColor;
 
-  const [phase,   setPhase]   = useState<Phase>("idle");
-  const [preview, setPreview] = useState("");
+  const [phase,    setPhase]    = useState<Phase>("idle");
+  const [file,     setFile]     = useState<File | null>(null);
+  const [preview,  setPreview]  = useState("");
+  const [result,   setResult]   = useState<MuapiResult | null>(null);
+  const [progress, setProgress] = useState("");
   const previewRef   = useRef("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -147,6 +154,7 @@ export function RelightWorkspace({ tool, config }: Props) {
     if (previewRef.current) URL.revokeObjectURL(previewRef.current);
     const url = URL.createObjectURL(f);
     previewRef.current = url;
+    setFile(f);
     setPreview(url);
     setPhase("edit");
   }, []);
@@ -397,10 +405,39 @@ export function RelightWorkspace({ tool, config }: Props) {
               </span>
             </div>
             <button
-              onClick={() => {
-                if (!preview || phase === "processing") return;
+              onClick={async () => {
+                if (!file || phase === "processing") return;
+                if (!isExecutable(tool)) { toast.error("هذه الأداة لم تُربط بعد بالـ AI backend"); return; }
                 setPhase("processing");
-                setTimeout(() => setPhase("result"), 3500);
+                setProgress("جاري رفع الصورة…");
+                setResult(null);
+                try {
+                  const { url } = await uploadFile(file);
+                  setProgress("جاري إعادة الإضاءة…");
+                  // Compose a relighting prompt fragment muapi image-edit models can use.
+                  const lightHint = `relight from azimuth ${azimuth} degrees elevation ${elevation} degrees, ${lightType} light, brightness ${brightness}%, color ${lightColor}`;
+                  const finalPrompt = [prompt.trim(), lightHint].filter(Boolean).join(", ");
+                  const { result: r } = await executeTool(
+                    tool,
+                    {
+                      image: url,
+                      prompt: finalPrompt,
+                      direction: azimuth,
+                      lightType,
+                      brightness,
+                      color: lightColor,
+                    },
+                    { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري إعادة الإضاءة…" : "جاري المعالجة…") },
+                  );
+                  setResult(r);
+                  setPhase("result");
+                  toast.success("تمت إعادة الإضاءة ✨");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "فشل التوليد");
+                  setPhase("edit");
+                } finally {
+                  setProgress("");
+                }
               }}
               disabled={!preview || phase === "processing"}
               className={cn(
@@ -419,7 +456,7 @@ export function RelightWorkspace({ tool, config }: Props) {
               }}
             >
               {phase === "processing"
-                ? <><Loader2 className="w-5 h-5 animate-spin" /> جاري المعالجة...</>
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> {progress || "جاري المعالجة..."}</>
                 : <><Sparkles className="w-5 h-5" /> تطبيق الإضاءة</>}
             </button>
           </div>
@@ -537,14 +574,20 @@ export function RelightWorkspace({ tool, config }: Props) {
                       <span className="text-xs text-gray-600 font-mono">{azimuth}° · {brightness}%</span>
                     </div>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={preview} alt="نتيجة"
+                    <img src={pickFirstUrl(result) ?? preview} alt="نتيجة"
                       className="w-full object-contain bg-black/40" style={{ maxHeight: "60vh" }} />
                   </div>
                   <div className="flex gap-3 w-full">
-                    <button className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
+                    <a
+                      href={pickFirstUrl(result) ?? "#"}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors"
+                    >
                       <Download className="w-4 h-4" /> تحميل النتيجة
-                    </button>
-                    <button onClick={() => setPhase("edit")}
+                    </a>
+                    <button onClick={() => { setPhase("edit"); setResult(null); }}
                       className="h-12 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors">
                       <RefreshCw className="w-4 h-4" /> إضاءة جديدة
                     </button>

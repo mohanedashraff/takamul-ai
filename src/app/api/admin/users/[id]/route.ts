@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireSuperAdmin, jsonOk, jsonError } from "@/lib/api";
 import { addCredits, deductCredits } from "@/lib/credits";
+import { audit } from "@/lib/audit";
 
 export async function GET(
   _req: Request,
@@ -135,11 +136,17 @@ export async function PATCH(
     },
   });
 
+  // Audit each meaningful change individually so it's queryable later.
+  if (data.role     !== undefined) await audit({ actorId: session.user.id, action: "CHANGE_ROLE",   targetId: target.id, targetKind: "user", metadata: { from: target.role, to: data.role }, req });
+  if (data.plan     !== undefined) await audit({ actorId: session.user.id, action: "CHANGE_PLAN",   targetId: target.id, targetKind: "user", metadata: { plan: data.plan }, req });
+  if (data.isBanned !== undefined) await audit({ actorId: session.user.id, action: data.isBanned ? "BAN_USER" : "UNBAN_USER", targetId: target.id, targetKind: "user", metadata: { reason: data.bannedReason ?? null }, req });
+  if (data.creditsDelta && data.creditsDelta !== 0) await audit({ actorId: session.user.id, action: "ADJUST_CREDITS", targetId: target.id, targetKind: "user", metadata: { delta: data.creditsDelta }, req });
+
   return jsonOk({ user: updated });
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { session, response } = await requireSuperAdmin();
@@ -150,9 +157,22 @@ export async function DELETE(
     return jsonError("لا يمكنك حذف حسابك بنفسك", 400);
   }
 
-  const exists = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+  const exists = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, email: true },
+  });
   if (!exists) return jsonError("User not found", 404);
 
   await prisma.user.delete({ where: { id } });
+
+  await audit({
+    actorId:    session.user.id,
+    action:     "DELETE_USER",
+    targetId:   exists.id,
+    targetKind: "user",
+    metadata:   { email: exists.email },
+    req,
+  });
+
   return jsonOk({ ok: true });
 }

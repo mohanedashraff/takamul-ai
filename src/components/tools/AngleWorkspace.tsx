@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import type { Tool } from "@/lib/data/tools";
 import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile, type MuapiResult } from "@/lib/muapi";
+import { pickFirstUrl } from "@/components/tools/useWorkspaceRun";
+import toast from "react-hot-toast";
 
 type Phase = "idle" | "edit" | "processing" | "result";
 
@@ -113,8 +117,11 @@ export function AngleWorkspace({ tool, config }: Props) {
   const router = useRouter();
   const rgb    = config.shadowColor;
 
-  const [phase,   setPhase]   = useState<Phase>("idle");
-  const [preview, setPreview] = useState("");
+  const [phase,    setPhase]    = useState<Phase>("idle");
+  const [file,     setFile]     = useState<File | null>(null);
+  const [preview,  setPreview]  = useState("");
+  const [result,   setResult]   = useState<MuapiResult | null>(null);
+  const [progress, setProgress] = useState("");
   const previewRef   = useRef("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -137,6 +144,7 @@ export function AngleWorkspace({ tool, config }: Props) {
     if (previewRef.current) URL.revokeObjectURL(previewRef.current);
     const url = URL.createObjectURL(f);
     previewRef.current = url;
+    setFile(f);
     setPreview(url);
     setPhase("edit");
   }, []);
@@ -383,10 +391,40 @@ export function AngleWorkspace({ tool, config }: Props) {
               </span>
             </div>
             <button
-              onClick={() => {
-                if (!preview || phase === "processing") return;
+              onClick={async () => {
+                if (!file || phase === "processing") return;
+                if (!isExecutable(tool)) { toast.error("هذه الأداة لم تُربط بعد بالـ AI backend"); return; }
                 setPhase("processing");
-                setTimeout(() => setPhase("result"), 3500);
+                setProgress("جاري رفع الصورة…");
+                setResult(null);
+                try {
+                  const { url } = await uploadFile(file);
+                  setProgress("جاري التوليد…");
+                  // Compose a prompt fragment describing the requested angle so muapi
+                  // image-edit models can interpret it; harmless for endpoints that
+                  // don't use it.
+                  const angleHint = `view from azimuth ${azimuth} degrees, elevation ${elevation} degrees${gen12 ? ", twelve different angles" : ""}`;
+                  const finalPrompt = [prompt.trim(), angleHint].filter(Boolean).join(", ");
+                  const { result: r } = await executeTool(
+                    tool,
+                    {
+                      image: url,
+                      prompt: finalPrompt,
+                      rotation: azimuth,
+                      tilt:     elevation,
+                      best12:   gen12,
+                    },
+                    { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
+                  );
+                  setResult(r);
+                  setPhase("result");
+                  toast.success("تم تغيير الزاوية ✨");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "فشل التوليد");
+                  setPhase("edit");
+                } finally {
+                  setProgress("");
+                }
               }}
               disabled={!preview || phase === "processing"}
               className={cn(
@@ -405,7 +443,7 @@ export function AngleWorkspace({ tool, config }: Props) {
               }}
             >
               {phase === "processing"
-                ? <><Loader2 className="w-5 h-5 animate-spin" /> جاري التوليد...</>
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> {progress || "جاري التوليد..."}</>
                 : <><Sparkles className="w-5 h-5" /> توليد الزاوية الجديدة</>}
             </button>
           </div>
@@ -531,14 +569,20 @@ export function AngleWorkspace({ tool, config }: Props) {
                       </span>
                     </div>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={preview} alt="نتيجة"
+                    <img src={pickFirstUrl(result) ?? preview} alt="نتيجة"
                       className="w-full object-contain bg-black/40" style={{ maxHeight: "60vh" }} />
                   </div>
                   <div className="flex gap-3 w-full">
-                    <button className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
+                    <a
+                      href={pickFirstUrl(result) ?? "#"}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 h-12 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors"
+                    >
                       <Download className="w-4 h-4" /> تحميل النتيجة
-                    </button>
-                    <button onClick={() => setPhase("edit")}
+                    </a>
+                    <button onClick={() => { setPhase("edit"); setResult(null); }}
                       className="h-12 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors">
                       <RefreshCw className="w-4 h-4" /> تجربة زاوية أخرى
                     </button>

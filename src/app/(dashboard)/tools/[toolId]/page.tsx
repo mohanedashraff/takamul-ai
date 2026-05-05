@@ -18,6 +18,21 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { executeTool, isExecutable } from "@/lib/execute-tool";
+import { uploadFile, type MuapiResult } from "@/lib/muapi";
+import toast from "react-hot-toast";
+import { InpaintWorkspace }          from "@/components/tools/InpaintWorkspace";
+import { SketchWorkspace }           from "@/components/tools/SketchWorkspace";
+import { OutpaintWorkspace }         from "@/components/tools/OutpaintWorkspace";
+import { AngleWorkspace }            from "@/components/tools/AngleWorkspace";
+import { RelightWorkspace }          from "@/components/tools/RelightWorkspace";
+import { MultiSceneWorkspace }       from "@/components/tools/MultiSceneWorkspace";
+import { ChangeClothesWorkspace }    from "@/components/tools/ChangeClothesWorkspace";
+import { FashionDesignerWorkspace }  from "@/components/tools/FashionDesignerWorkspace";
+import { FaceSwapWorkspace }         from "@/components/tools/FaceSwapWorkspace";
+import { WhatsNextWorkspace }        from "@/components/tools/WhatsNextWorkspace";
+import { SketchToVideoWorkspace }    from "@/components/tools/SketchToVideoWorkspace";
+import { VideoTransitionsWorkspace } from "@/components/tools/VideoTransitionsWorkspace";
 
 function findToolById(toolId: string): { tool: Tool; categoryKey: ToolCategory } | null {
   for (const catKey of Object.keys(STUDIO_CATEGORIES) as ToolCategory[]) {
@@ -34,10 +49,81 @@ export default function ToolPage({ params }: { params: Promise<{ toolId: string 
   const { tool, categoryKey } = result;
   const config = STUDIO_CATEGORIES[categoryKey];
 
-  if (tool.layout === "centered") {
-    return <CenteredToolInterface tool={tool} config={config} categoryKey={categoryKey} />;
+  if (tool.comingSoon) {
+    return <ComingSoonInterface tool={tool} config={config} categoryKey={categoryKey} />;
   }
-  return <ToolInterface tool={tool} config={config} categoryKey={categoryKey} />;
+
+  // Custom-layout workspaces (each has its own canvas / drawing UI)
+  switch (tool.layout) {
+    case "inpaint":           return <InpaintWorkspace          tool={tool} config={config} />;
+    case "sketch":            return <SketchWorkspace           tool={tool} config={config} />;
+    case "outpaint":          return <OutpaintWorkspace         tool={tool} config={config} />;
+    case "angle":             return <AngleWorkspace            tool={tool} config={config} />;
+    case "relight":           return <RelightWorkspace          tool={tool} config={config} />;
+    case "multi-scene":       return <MultiSceneWorkspace       tool={tool} config={config} />;
+    case "change-clothes":    return <ChangeClothesWorkspace    tool={tool} config={config} />;
+    case "fashion-designer":  return <FashionDesignerWorkspace  tool={tool} config={config} />;
+    case "face-swap":         return <FaceSwapWorkspace         tool={tool} config={config} />;
+    case "whats-next":        return <WhatsNextWorkspace        tool={tool} config={config} />;
+    case "sketch-to-video":   return <SketchToVideoWorkspace    tool={tool} config={config} />;
+    case "video-transitions": return <VideoTransitionsWorkspace tool={tool} config={config} />;
+    case "centered":          return <CenteredToolInterface tool={tool} config={config} categoryKey={categoryKey} />;
+    default:                  return <ToolInterface         tool={tool} config={config} categoryKey={categoryKey} />;
+  }
+}
+
+// ─── Coming Soon Interface ────────────────────────────────────────────────────
+
+function ComingSoonInterface({
+  tool,
+  config,
+  categoryKey,
+}: {
+  tool: Tool;
+  config: (typeof STUDIO_CATEGORIES)[ToolCategory];
+  categoryKey: ToolCategory;
+}) {
+  const colorRgb = config.shadowColor;
+  return (
+    <div className="pb-20">
+      <Breadcrumb categoryKey={categoryKey} config={config} tool={tool} />
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="max-w-xl mx-auto text-center pt-12"
+      >
+        <div
+          className="w-20 h-20 rounded-3xl flex items-center justify-center border border-white/10 mx-auto mb-6"
+          style={{ backgroundColor: `rgba(${colorRgb}, 0.1)` }}
+        >
+          <tool.icon className={cn("w-9 h-9", config.colorClass)} />
+        </div>
+        <h1 className="text-3xl md:text-4xl font-black text-white mb-3 leading-snug">{tool.title}</h1>
+        <p className="text-gray-400 mb-6">{tool.desc}</p>
+        <div
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-bold"
+          style={{
+            color: `rgb(${colorRgb})`,
+            borderColor: `rgba(${colorRgb}, 0.3)`,
+            backgroundColor: `rgba(${colorRgb}, 0.08)`,
+          }}
+        >
+          <Sparkles className="w-4 h-4" />
+          قريباً
+        </div>
+        <p className="text-gray-500 text-sm mt-6 max-w-md mx-auto leading-relaxed">
+          هذه الأداة في طور التطوير وسنطلقها قريباً. تابعنا للحصول على آخر التحديثات.
+        </p>
+        <Link
+          href="/tools"
+          className="inline-flex items-center gap-2 mt-8 text-sm font-bold text-gray-400 hover:text-white transition-colors"
+        >
+          ← استعرض الأدوات المتاحة
+        </Link>
+      </motion.div>
+    </div>
+  );
 }
 
 // ─── Breadcrumb ───────────────────────────────────────────────────────────────
@@ -87,6 +173,8 @@ function CenteredToolInterface({
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
+  const [result, setResult] = useState<MuapiResult | null>(null);
+  const [progress, setProgress] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<string>("");
 
@@ -120,10 +208,43 @@ function CenteredToolInterface({
   const onDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
   const onDragLeave = () => setIsDragging(false);
 
-  const handleGenerate = () => {
-    if (phase !== "ready") return;
+  const handleGenerate = async () => {
+    if (phase !== "ready" || !file) return;
+
+    if (!isExecutable(tool)) {
+      toast.error("هذه الأداة لم تُربط بعد بالـ AI backend");
+      return;
+    }
+
     setPhase("processing");
-    setTimeout(() => setPhase("result"), 3000);
+    setProgress("جاري رفع الملف...");
+    setResult(null);
+
+    try {
+      // 1. Upload the file to muapi storage
+      const { url } = await uploadFile(file);
+
+      // 2. Build values: the upload field gets the URL, plus default model
+      const values: Record<string, unknown> = {
+        [uploadInput?.id ?? "image"]: url,
+      };
+      // Pre-select the first model so executeTool knows where to send
+      if (tool.muapi?.models[0]?.id) values.model = tool.muapi.models[0]!.id;
+
+      setProgress("جاري التوليد بالذكاء الاصطناعي…");
+      const { result: r } = await executeTool(tool, values, {
+        onStatus: (s) => setProgress(statusToArabic(s)),
+      });
+
+      setResult(r);
+      setPhase("result");
+      toast.success("تم بنجاح ✨");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "حدث خطأ غير متوقع");
+      setPhase("ready");
+    } finally {
+      setProgress("");
+    }
   };
 
   const handleReset = () => {
@@ -131,6 +252,7 @@ function CenteredToolInterface({
     setFile(null);
     setPreview("");
     setPhase("idle");
+    setResult(null);
   };
 
   const colorRgb = config.shadowColor;
@@ -367,8 +489,8 @@ function CenteredToolInterface({
                     </div>
                   </div>
                   <div className="text-center">
-                    <p className="text-white font-bold text-lg mb-1">جاري التحسين...</p>
-                    <p className="text-gray-400 text-sm">يتم رفع جودة الصورة بالذكاء الاصطناعي</p>
+                    <p className="text-white font-bold text-lg mb-1">{progress || "جاري التحسين..."}</p>
+                    <p className="text-gray-400 text-sm">المعالجة قد تأخذ من ثوانٍ إلى دقائق</p>
                   </div>
                 </div>
               </div>
@@ -444,13 +566,11 @@ function CenteredToolInterface({
                     >
                       بعد
                     </div>
-                    {/* In production this would be the API result. Using preview as demo. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={preview}
+                      src={(pickResultMedia(result, preview) as string) || preview}
                       alt="بعد"
                       className="w-full object-cover max-h-[50vh]"
-                      style={{ filter: "brightness(1.08) contrast(1.06) saturate(1.1) sharpen(1)" }}
                     />
                   </div>
                 </div>
@@ -458,12 +578,16 @@ function CenteredToolInterface({
 
               {/* Action buttons */}
               <div className="flex gap-3">
-                <button
+                <a
+                  href={pickDownloadUrl(result) || "#"}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex-1 h-13 rounded-2xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-lg"
                   style={{ height: "52px" }}
                 >
-                  <Download className="w-4 h-4" /> تحميل الصورة المحسّنة
-                </button>
+                  <Download className="w-4 h-4" /> تحميل النتيجة
+                </a>
                 <button
                   onClick={handleReset}
                   className="h-13 px-5 rounded-2xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors"
@@ -497,6 +621,8 @@ function ToolInterface({
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasResult, setHasResult] = useState(false);
+  const [result, setResult] = useState<MuapiResult | null>(null);
+  const [progress, setProgress] = useState<string>("");
 
   const state: InputValues = { values, files, previews };
   const setters: InputSetters = {
@@ -507,10 +633,45 @@ function ToolInterface({
 
   const valid = isFormValid(tool.inputs, values, files);
 
-  const handleGenerate = () => {
-    if (!valid) return;
+  const handleGenerate = async () => {
+    if (!valid || isProcessing) return;
+
+    if (!isExecutable(tool)) {
+      toast.error("هذه الأداة لم تُربط بعد بالـ AI backend");
+      return;
+    }
+
     setIsProcessing(true);
-    setTimeout(() => { setIsProcessing(false); setHasResult(true); }, 3000);
+    setHasResult(false);
+    setResult(null);
+    setProgress("جاري التحضير…");
+
+    try {
+      // 1. Upload any File inputs first → muapi expects URLs in the payload
+      const merged: Record<string, unknown> = { ...values };
+      for (const [id, file] of Object.entries(files)) {
+        if (!file) continue;
+        setProgress(`جاري رفع ${file.name}…`);
+        const { url } = await uploadFile(file);
+        merged[id] = url;
+      }
+
+      // 2. Submit to muapi + poll
+      setProgress("جاري التوليد بالذكاء الاصطناعي…");
+      const { result: r } = await executeTool(tool, merged, {
+        onStatus: (s) => setProgress(statusToArabic(s)),
+      });
+
+      setResult(r);
+      setHasResult(true);
+      toast.success("تم التوليد بنجاح ✨");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "حدث خطأ غير متوقع";
+      toast.error(message);
+    } finally {
+      setIsProcessing(false);
+      setProgress("");
+    }
   };
 
   const handleReset = () => {
@@ -519,6 +680,7 @@ function ToolInterface({
     Object.values(previews).forEach((url) => URL.revokeObjectURL(url));
     setPreviews({});
     setHasResult(false);
+    setResult(null);
   };
 
   const colorRgb = config.shadowColor;
@@ -649,7 +811,7 @@ function ToolInterface({
                     </div>
                   </div>
                   <p className="text-white font-bold mb-1">المحرك يعمل...</p>
-                  <p className="text-gray-500 text-sm">يتم معالجة طلبك بالذكاء الاصطناعي</p>
+                  <p className="text-gray-500 text-sm">{progress || "يتم معالجة طلبك بالذكاء الاصطناعي"}</p>
                 </motion.div>
               ) : hasResult ? (
                 <motion.div
@@ -665,14 +827,20 @@ function ToolInterface({
                     style={{ boxShadow: `0 0 40px rgba(${colorRgb}, 0.12)` }}
                   >
                     <div className="w-full aspect-video bg-black relative">
-                      <MediaRenderer media={tool.image} alt="النتيجة" />
+                      <MediaRenderer media={pickResultMedia(result, tool.image)} alt="النتيجة" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <button className="flex-1 h-11 rounded-xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-lg">
+                    <a
+                      href={pickDownloadUrl(result) || "#"}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 h-11 rounded-xl bg-white text-black font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-lg"
+                    >
                       <Download className="w-4 h-4" /> تحميل
-                    </button>
+                    </a>
                     <button
                       onClick={handleReset}
                       className="h-11 px-4 rounded-xl border border-white/10 text-gray-400 font-bold text-sm flex items-center gap-2 hover:bg-white/5 hover:text-white transition-colors"
@@ -706,4 +874,41 @@ function ToolInterface({
       </motion.div>
     </div>
   );
+}
+
+// ─── helpers ──────────────────────────────────────────────────────────────
+
+function statusToArabic(s: string): string {
+  switch (s) {
+    case "queued":     return "في قائمة الانتظار…";
+    case "pending":    return "في قائمة الانتظار…";
+    case "processing": return "جاري التوليد…";
+    case "running":    return "جاري التوليد…";
+    case "completed":  return "تم التوليد";
+    default:           return "جاري المعالجة…";
+  }
+}
+
+function pickResultMedia(r: MuapiResult | null, fallback: string | string[]): string | string[] {
+  if (!r) return fallback;
+  // Common shapes: { url } | { urls: [] } | { outputs: [{ url }] } | { output: '...' }
+  const direct = (r.url as string) || (typeof r.output === "string" ? r.output : undefined);
+  if (direct) return direct;
+  if (Array.isArray(r.urls) && r.urls.length) return r.urls.length === 1 ? r.urls[0]! : r.urls;
+  const outputs = r.outputs as unknown;
+  if (Array.isArray(outputs)) {
+    const urls = outputs
+      .map((o) => (typeof o === "string" ? o : (o as { url?: string })?.url))
+      .filter((u): u is string => typeof u === "string");
+    if (urls.length === 1) return urls[0]!;
+    if (urls.length > 1) return urls;
+  }
+  return fallback;
+}
+
+function pickDownloadUrl(r: MuapiResult | null): string | null {
+  if (!r) return null;
+  const m = pickResultMedia(r, "");
+  if (Array.isArray(m)) return m[0] ?? null;
+  return m || null;
 }
