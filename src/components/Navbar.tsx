@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Terminal, User as UserIcon, LogOut, Settings, CreditCard, Zap,
   Shield, Crown, ChevronDown, Sparkles, LayoutGrid, Activity,
-  Film, Megaphone,
+  Film, Megaphone, Wand2, Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useUserStore } from "@/stores/useUserStore";
@@ -70,6 +70,20 @@ const Navbar = () => {
           >
             <Megaphone className="w-4 h-4 text-accent-400 group-hover:scale-110 transition-transform" />
             التسويق
+          </Link>
+          <Link
+            href="/templates"
+            className="group text-sm font-bold text-gray-400 hover:text-white transition-colors flex items-center gap-1.5"
+          >
+            <Wand2 className="w-4 h-4 text-accent-400 group-hover:scale-110 transition-transform" />
+            القوالب
+          </Link>
+          <Link
+            href="/agents"
+            className="group text-sm font-bold text-gray-400 hover:text-white transition-colors flex items-center gap-1.5"
+          >
+            <Bot className="w-4 h-4 text-violet-400 group-hover:scale-110 transition-transform" />
+            الوكلاء
           </Link>
           <Link
             href="/chat"
