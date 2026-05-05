@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import dynamic from "next/dynamic";
 import { ElasticModelsTicker } from "@/components/home/ElasticModelsTicker";
+import { tTemplate } from "@/lib/data/muapi-translations";
 
 // Lazy-load the Spaces live preview (React Flow adds ~100KB of JS)
 const SpacesLivePreview = dynamic(() => import("@/components/home/SpacesLivePreview"), {
@@ -301,99 +302,152 @@ const SpacesSection = () => {
   );
 };
 
-const CATEGORIES = [
-  "الكل", "عطر", "مجوهرات", "أي منتج", "حقيبة", "ساعة", "مكياج", "أحذية", "إلكترونيات", "مشروب", "طعام", "عناية بالبشرة", "موديل رجل/امرأة"
-];
+// Trending Gallery — pulls real workflow template thumbnails from
+// MuAPI (the same catalogue powering /templates) and links each card
+// to its template page. Falls back to a loading state when MuAPI
+// isn't reachable so the homepage never shows a blank section.
+interface TrendingTemplate {
+  id:        string;
+  name:      string;          // already Arabic
+  thumbnail: string;
+  category:  string;          // raw English category from MuAPI
+}
 
-const TRENDING_IMAGES = [
-  { id: 1, url: "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=600&q=80" },
-  { id: 2, url: "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=600&q=80" },
-  { id: 3, url: "https://images.unsplash.com/photo-1599643477874-95880468f763?auto=format&fit=crop&w=600&q=80" },
-  { id: 4, url: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80" },
-  { id: 5, url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80" },
-  { id: 6, url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80" },
-  { id: 7, url: "https://images.unsplash.com/photo-1512496015851-a1fbca69259c?auto=format&fit=crop&w=600&q=80" },
-  { id: 8, url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80" },
-  { id: 9, url: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=600&q=80" },
-  { id: 10, url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80" },
-  { id: 11, url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80" },
-  { id: 12, url: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=600&q=80" },
-  { id: 13, url: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=600&q=80" },
-  { id: 14, url: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=600&q=80" },
-  { id: 15, url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80" },
-  { id: 16, url: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80" },
-  { id: 17, url: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=600&q=80" },
-  { id: 18, url: "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=600&q=80" },
-  { id: 19, url: "https://images.unsplash.com/photo-1524312220945-19ae2f7c4a1e?auto=format&fit=crop&w=600&q=80" },
-  { id: 20, url: "https://images.unsplash.com/photo-1550029402-226115b7c579?auto=format&fit=crop&w=600&q=80" }
+// Arabic category → English category (matches the keys MuAPI returns).
+// Anything not listed maps to "الكل" / no filter.
+const CATEGORY_FILTER: { ar: string; en: string | null }[] = [
+  { ar: "الكل",          en: null         },
+  { ar: "مميزة",         en: "Featured"   },
+  { ar: "تجارة",         en: "E-Commerce" },
+  { ar: "أزياء",         en: "Fashion"    },
+  { ar: "ديكور",         en: "Home Decor" },
+  { ar: "سوشيال",        en: "Social Media" },
 ];
 
 const TrendingGallerySection = () => {
-  const [activeTab, setActiveTab] = useState("الكل");
+  const [activeTab, setActiveTab]   = useState("الكل");
+  const [templates, setTemplates]   = useState<TrendingTemplate[]>([]);
+  const [loaded,    setLoaded]      = useState(false);
+
+  // Fetch the live template catalogue and apply Arabic translations.
+  useEffect(() => {
+    fetch("/api/workflow/get-template-workflows", { cache: "force-cache" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!Array.isArray(d)) return;
+        const mapped: TrendingTemplate[] = d
+          .filter((t: { thumbnail?: string }) => Boolean(t.thumbnail))
+          .map((t: { id: string; name: string; thumbnail: string; category: string }) => ({
+            id:        t.id,
+            name:      tTemplate(t.id, { name: t.name }).name,
+            thumbnail: t.thumbnail,
+            category:  t.category ?? "",
+          }));
+        setTemplates(mapped);
+      })
+      .catch(() => { /* silent — fall through to "no results" UX */ })
+      .finally(() => setLoaded(true));
+  }, []);
+
+  const filterEn = CATEGORY_FILTER.find((c) => c.ar === activeTab)?.en ?? null;
+  const filtered = filterEn
+    ? templates.filter((t) => t.category === filterEn)
+    : templates;
+
   return (
     <section className="py-20 relative z-20 overflow-hidden" dir="rtl">
        <div className="site-container">
          {/* Header */}
          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 w-full pb-2">
             <h2 className="text-3xl md:text-5xl font-black text-white whitespace-nowrap">محتوى رائج</h2>
-            
+
             {/* Filter Tabs */}
             <div className="flex w-full overflow-x-auto hide-scroll gap-3 pb-2 items-center justify-start md:justify-end">
-               {CATEGORIES.map(cat => (
-                 <button 
-                   key={cat}
-                   onClick={() => setActiveTab(cat)}
-                   className={`shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${activeTab === cat ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-gray-400 border-white/5 hover:bg-white/5'}`}
-                 >
-                   {cat}
-                 </button>
-               ))}
+               {CATEGORY_FILTER.map(({ ar }) => {
+                 const count = ar === "الكل"
+                   ? templates.length
+                   : templates.filter((t) => t.category === CATEGORY_FILTER.find((c) => c.ar === ar)?.en).length;
+                 return (
+                   <button
+                     key={ar}
+                     onClick={() => setActiveTab(ar)}
+                     className={`shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${activeTab === ar ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-gray-400 border-white/5 hover:bg-white/5'}`}
+                   >
+                     <span>{ar}</span>
+                     {loaded && (
+                       <span className="text-[10px] tabular-nums text-gray-500 font-normal">
+                         {count}
+                       </span>
+                     )}
+                   </button>
+                 );
+               })}
             </div>
          </div>
 
          {/* Masonry Grid Wrapper with Fade Out */}
          <div className="relative">
-            <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
-               {TRENDING_IMAGES.map((img) => (
-                 <motion.div 
-                   key={img.id} 
-                   initial="rest"
-                   whileHover="hover"
-                   animate="rest"
-                   className="relative overflow-hidden bg-[#0A0A0F] border border-white/5 rounded-[1.5rem] break-inside-avoid shadow-xl cursor-default"
-                 >
-                    <motion.img 
-                      src={img.url} 
-                      variants={{ rest: { scale: 1, opacity: 0.8 }, hover: { scale: 1.1, opacity: 1 } }}
-                      transition={{ duration: 0.7, ease: "easeOut" }}
-                      className="w-full block h-auto object-cover" 
-                      loading="lazy" 
-                    />
-                    
-                    {/* Hover Overlay */}
-                    <motion.div 
-                      variants={{ rest: { opacity: 0 }, hover: { opacity: 1 } }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[2px]"
+            {!loaded ? (
+               <div className="py-20 flex justify-center">
+                  <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-accent-400 animate-spin" />
+               </div>
+            ) : filtered.length === 0 ? (
+               <div className="py-20 text-center text-gray-500 text-sm">لا توجد قوالب في هذه الفئة</div>
+            ) : (
+               <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+                  {filtered.map((t) => (
+                    <Link
+                      key={t.id}
+                      href={`/templates/${t.id}`}
+                      className="group block break-inside-avoid"
                     >
-                       <motion.div
-                          variants={{ rest: { y: 20, opacity: 0, scale: 0.9 }, hover: { y: 0, opacity: 1, scale: 1 } }}
-                          transition={{ duration: 0.4, ease: "easeOut" }}
-                       >
-                          <Button variant="cosmic" className="shadow-[0_0_30px_rgba(255,255,255,0.3)] px-8 h-12 text-sm font-bold tracking-widest cursor-pointer">
-                             تجربة
-                          </Button>
-                       </motion.div>
-                    </motion.div>
-                 </motion.div>
-               ))}
-            </div>
+                      <motion.div
+                        initial="rest"
+                        whileHover="hover"
+                        animate="rest"
+                        className="relative overflow-hidden bg-[#0A0A0F] border border-white/5 rounded-[1.5rem] shadow-xl cursor-pointer"
+                      >
+                         <motion.img
+                           src={t.thumbnail}
+                           alt={t.name}
+                           variants={{ rest: { scale: 1, opacity: 0.85 }, hover: { scale: 1.08, opacity: 1 } }}
+                           transition={{ duration: 0.7, ease: "easeOut" }}
+                           className="w-full block h-auto object-cover"
+                           loading="lazy"
+                         />
+
+                         {/* Hover Overlay — title + CTA */}
+                         <motion.div
+                           variants={{ rest: { opacity: 0 }, hover: { opacity: 1 } }}
+                           transition={{ duration: 0.3 }}
+                           className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10 flex flex-col items-center justify-end p-5 text-center backdrop-blur-[2px]"
+                         >
+                            <motion.div
+                               variants={{ rest: { y: 24, opacity: 0 }, hover: { y: 0, opacity: 1 } }}
+                               transition={{ duration: 0.4, ease: "easeOut" }}
+                               className="space-y-3 w-full"
+                            >
+                               <p className="text-white text-sm md:text-base font-bold leading-snug line-clamp-2">
+                                  {t.name}
+                               </p>
+                               <Button variant="cosmic" className="shadow-[0_0_30px_rgba(255,255,255,0.3)] px-8 h-11 text-sm font-bold tracking-widest cursor-pointer">
+                                  تجربة
+                               </Button>
+                            </motion.div>
+                         </motion.div>
+                      </motion.div>
+                    </Link>
+                  ))}
+               </div>
+            )}
 
             {/* Seamless Bottom Fade Mask */}
             <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-bg-primary via-bg-primary/80 to-transparent pointer-events-none flex items-end justify-center pb-8 z-10">
-               <Button variant="ghost" className="pointer-events-auto border border-white/10 bg-bg-primary/80 backdrop-blur-xl hover:bg-white/10 hover:scale-105 hover:border-white/20 px-10 h-14 rounded-2xl text-gray-200 font-bold tracking-widest transition-all">
-                  عرض جميع القوالب
-               </Button>
+               <Link href="/templates" className="pointer-events-auto">
+                  <Button variant="ghost" className="border border-white/10 bg-bg-primary/80 backdrop-blur-xl hover:bg-white/10 hover:scale-105 hover:border-white/20 px-10 h-14 rounded-2xl text-gray-200 font-bold tracking-widest transition-all">
+                     عرض جميع القوالب
+                  </Button>
+               </Link>
             </div>
          </div>
        </div>
