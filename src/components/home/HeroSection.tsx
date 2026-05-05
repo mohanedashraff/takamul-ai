@@ -8,7 +8,7 @@
 // The background asset lives at /public/hero-bg.mp4 with a poster
 // fallback at /public/hero-bg-poster.png.
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Play, Sparkles, Users, Shield, Zap, Star } from "lucide-react";
@@ -22,6 +22,55 @@ export function HeroSection() {
     setReduceMotion(mq.matches);
   }, []);
 
+  // ── Ping-pong loop ────────────────────────────────────────────────
+  // The video plays forward to the end, then plays *backward* via a
+  // requestAnimationFrame manual scrub (since negative playbackRate is
+  // unreliable across browsers), then forward again — creating a
+  // seamless boomerang loop that never visibly cuts back to frame 0.
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    let dir: 1 | -1 = 1;            // 1 = forward, -1 = reverse
+    let raf = 0;
+    let last = performance.now();
+    const speed = 1;                 // playback speed for the reverse pass
+
+    const tick = (now: number) => {
+      const dt = Math.max(0, (now - last) / 1000); // seconds since last frame
+      last = now;
+      // Only scrub manually while we're in reverse mode. In forward
+      // mode the browser plays the video natively.
+      if (dir === -1) {
+        const next = v.currentTime - dt * speed;
+        if (next <= 0) {
+          v.currentTime = 0;
+          dir = 1;
+          v.play().catch(() => {});
+        } else {
+          v.currentTime = next;
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+
+    const onEnded = () => {
+      // End reached → flip into reverse mode. Pause the underlying
+      // playback so the rAF loop is the only thing moving currentTime.
+      dir = -1;
+      v.pause();
+      last = performance.now();
+    };
+
+    v.addEventListener("ended", onEnded);
+    raf = requestAnimationFrame(tick);
+    return () => {
+      v.removeEventListener("ended", onEnded);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
   return (
     <section className="relative min-h-[88vh] flex items-center justify-center overflow-hidden bg-bg-primary pt-20 md:pt-24 pb-16 mt-6 md:mt-10">
       {/* ── Background video ─────────────────────────────────────────── */}
@@ -32,10 +81,10 @@ export function HeroSection() {
       */}
       <div className="absolute inset-0 z-0" style={{ paddingTop: 48 }}>
         <video
+          ref={videoRef}
           src="/hero-bg.mp4"
           poster="/hero-bg-poster.png"
           autoPlay
-          loop
           muted
           playsInline
           className="w-full h-full object-cover"
