@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Film, Sparkles, Camera, Image as ImageIcon, X, Loader2,
@@ -427,10 +428,29 @@ function SelectChip({
   onChange: (v: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const active = options.find((o) => o.value === value);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  // Recompute the dropdown's absolute position whenever it opens —
+  // anchored above the trigger so it works regardless of where the
+  // chip ends up on the page.
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const dropdownWidth = 220;
+    const left = Math.max(8, Math.min(window.innerWidth - dropdownWidth - 8, rect.right - dropdownWidth));
+    const bottom = window.innerHeight - rect.top + 8;
+    setPos({ left, bottom });
+  }, [open]);
+
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         onClick={() => setOpen((v) => !v)}
         className="h-10 px-3 rounded-xl border border-white/10 hover:bg-white/[0.03] text-xs font-bold text-white flex items-center gap-1.5 transition-colors"
         type="button"
@@ -439,10 +459,13 @@ function SelectChip({
         {active?.label ?? value}
         <ChevronDown className="w-3 h-3 text-gray-500" />
       </button>
-      {open && (
+      {open && mounted && pos && createPortal(
         <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden />
-          <div className="absolute bottom-full mb-2 right-0 z-40 min-w-[180px] bg-bg-primary border border-white/10 rounded-xl shadow-2xl p-1 max-h-72 overflow-y-auto">
+          <div className="fixed inset-0 z-[80]" onClick={() => setOpen(false)} aria-hidden />
+          <div
+            className="fixed z-[90] min-w-[200px] bg-bg-primary border border-white/10 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-1 max-h-72 overflow-y-auto"
+            style={{ left: pos.left, bottom: pos.bottom, width: 220 }}
+          >
             {options.map((o) => (
               <button
                 key={o.value}
@@ -457,7 +480,8 @@ function SelectChip({
               </button>
             ))}
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   );

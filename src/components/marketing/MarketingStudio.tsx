@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Megaphone, Sparkles, Loader2, Plus, X, ChevronDown,
@@ -486,6 +487,17 @@ function UploadSlot({
   );
 }
 
+/**
+ * Renders into <body> via a portal so the dropdown isn't clipped by
+ * the bottom bar's `backdrop-blur` / `rounded-3xl` stacking context.
+ * `usePortal` returns null on the server (SSR), then mounts on client.
+ */
+function usePortalReady() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => { setReady(true); }, []);
+  return ready;
+}
+
 function FormatGalleryDropdown({
   selected, onPick, onClose,
 }: {
@@ -493,10 +505,28 @@ function FormatGalleryDropdown({
   onPick:  (id: string) => void;
   onClose: () => void;
 }) {
-  return (
+  const ready = usePortalReady();
+  if (!ready) return null;
+
+  return createPortal(
     <>
-      <div className="fixed inset-0 z-30" onClick={onClose} aria-hidden />
-      <div className="absolute bottom-full mb-2 right-0 z-40 w-[480px] max-w-[92vw] bg-bg-primary border border-white/10 rounded-2xl shadow-2xl p-3">
+      {/* Click-outside backdrop */}
+      <div className="fixed inset-0 z-[80]" onClick={onClose} aria-hidden />
+      {/* Dropdown panel — sits above the bottom bar, centred. */}
+      <div
+        className="fixed left-1/2 -translate-x-1/2 z-[90] w-[640px] max-w-[94vw] bg-bg-primary border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-3"
+        style={{ bottom: 110 }}
+      >
+        <div className="flex items-center justify-between px-1 pb-2 mb-2 border-b border-white/5">
+          <h4 className="text-sm font-black text-white">اختر قالب الإعلان</h4>
+          <button
+            onClick={onClose}
+            className="text-[10px] font-bold text-gray-500 hover:text-white transition-colors"
+            type="button"
+          >
+            إغلاق
+          </button>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {MARKETING_FORMATS.map((f) => (
             <button
@@ -530,7 +560,8 @@ function FormatGalleryDropdown({
           ))}
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
 
@@ -541,10 +572,26 @@ function AvatarGalleryDropdown({
   onPick:  (url: string) => void;
   onClose: () => void;
 }) {
-  return (
+  const ready = usePortalReady();
+  if (!ready) return null;
+
+  return createPortal(
     <>
-      <div className="fixed inset-0 z-30" onClick={onClose} aria-hidden />
-      <div className="absolute bottom-full mb-2 right-0 z-40 w-[360px] max-w-[92vw] bg-bg-primary border border-white/10 rounded-2xl shadow-2xl p-3">
+      <div className="fixed inset-0 z-[80]" onClick={onClose} aria-hidden />
+      <div
+        className="fixed left-1/2 -translate-x-1/2 z-[90] w-[420px] max-w-[94vw] bg-bg-primary border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-3"
+        style={{ bottom: 110 }}
+      >
+        <div className="flex items-center justify-between px-1 pb-2 mb-2 border-b border-white/5">
+          <h4 className="text-sm font-black text-white">اختر العارض</h4>
+          <button
+            onClick={onClose}
+            className="text-[10px] font-bold text-gray-500 hover:text-white transition-colors"
+            type="button"
+          >
+            إغلاق
+          </button>
+        </div>
         <div className="grid grid-cols-4 gap-2">
           {MARKETING_AVATARS.map((a) => (
             <button
@@ -565,7 +612,8 @@ function AvatarGalleryDropdown({
           ))}
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
 
