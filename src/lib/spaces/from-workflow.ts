@@ -167,6 +167,11 @@ export function workflowToSpace(workflow: {
     const cat = (n.category ?? "").toLowerCase();
     const model = (n.model ?? "").toLowerCase();
     const isPassthrough = model.endsWith("-passthrough") || model === "passthrough";
+    // MuAPI uses `any-llm`, `gpt-4o-mini`, etc. for in-graph LLM calls.
+    // We render those as our Assistant node instead of a sticky note,
+    // so the user keeps the inline prompt-rewriting capability that
+    // MuAPI templates lean on heavily.
+    const isLlm = cat === "text" && /^(any-llm|gpt-|claude-|gemini-|llama-)/.test(model);
 
     let type = "sticky-note";
     const data: Record<string, unknown> = {};
@@ -175,6 +180,18 @@ export function workflowToSpace(workflow: {
       type = "text";
       const prompt = n.input_params?.prompt;
       if (typeof prompt === "string") data.text = prompt;
+    } else if (isLlm) {
+      type = "assistant";
+      // MuAPI exposes the LLM's "system prompt"-equivalent as
+      // `instruction` or, for some templates, just `prompt`. Fall back
+      // through both keys so the assistant node arrives pre-configured.
+      const prompt = (n.input_params?.prompt as string)
+                  ?? (n.input_params?.instruction as string)
+                  ?? "";
+      data.instruction = prompt;
+      // Most templates feed the LLM via an upstream `text-in` edge,
+      // so we leave `data.input` empty and let runtime piping fill it.
+      data.input = "";
     } else if (cat === "image" && isPassthrough) {
       type = "upload";
       const url = n.input_params?.image_url ?? n.input_params?.url;
@@ -215,11 +232,16 @@ export function workflowToSpace(workflow: {
       data.text  = (n.input_params?.text ?? n.input_params?.prompt ?? "") as string;
       data.params = { ...(n.input_params ?? {}) };
     } else {
-      // Unknown — leave a sticky note so the user can see what was here.
+      // Unknown — leave a sticky note so the user can see what was
+      // here. Surface the actual prompt content (truncated) instead
+      // of just the parameter names so the user can read what the
+      // template was doing.
       type = "sticky-note";
-      data.text = `[${cat || "node"}] ${model || "(unknown model)"}\n${
-        n.input_params ? Object.keys(n.input_params).join(", ") : ""
-      }`;
+      const prompt = (n.input_params?.prompt ?? n.input_params?.text ?? "") as string;
+      const head   = `${cat || "node"} · ${model || "?"}`;
+      data.text    = prompt
+        ? `${head}\n\n${String(prompt).slice(0, 240)}${String(prompt).length > 240 ? "…" : ""}`
+        : head;
     }
 
     nodeTypeById[n.id] = type;

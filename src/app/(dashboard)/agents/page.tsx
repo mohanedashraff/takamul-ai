@@ -49,7 +49,7 @@ function gradientFor(slug: string): string {
 }
 
 function normalise(raws: RawAgent[]): AgentRow[] {
-  return raws
+  const list = raws
     .filter((a) => a && a.agent_id)
     .map((a) => {
       const ar = tAgent(a.agent_id, { name: a.name, description: a.description });
@@ -62,6 +62,14 @@ function normalise(raws: RawAgent[]): AgentRow[] {
         icon:        icon && icon.trim() ? icon : null,
       };
     });
+  // Stable sort: agents with a real thumbnail surface first, the
+  // initials-fallback ones land at the end. Within each bucket the
+  // original MuAPI order is preserved so "featured" stays curated.
+  return list.sort((a, b) => {
+    const aHas = a.icon ? 1 : 0;
+    const bHas = b.icon ? 1 : 0;
+    return bHas - aHas;
+  });
 }
 
 export default function AgentsPage() {
