@@ -78,6 +78,11 @@ const Navbar = () => {
   const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
 
   return (
+    // Wrap nav + drawer in a fragment so the drawer is a *sibling* of the
+    // nav rather than a descendant. Otherwise the nav's backdrop-blur-2xl
+    // creates a stacking context that makes the drawer's solid bg render
+    // weirdly transparent on Safari/iOS.
+    <>
     <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-bg-primary/20 backdrop-blur-2xl border-b border-border-glass">
       <div className="site-container h-16 md:h-20 flex items-center justify-between gap-3">
         {/* Logo — wordmark only (terminal icon removed per design) */}
@@ -247,24 +252,35 @@ const Navbar = () => {
           )}
         </div>
       </div>
+    </nav>
 
       {/* ── Mobile drawer ─────────────────────────────────────────────
           A right-side slide-in (RTL natural side) with the same nav
           links as desktop plus quick-links to dashboard/settings/
-          billing/admin and a sign-out CTA. */}
+          billing/admin and a sign-out CTA. Lives OUTSIDE the <nav>
+          element so the nav's backdrop-blur stacking context doesn't
+          bleed through the drawer's solid background. */}
       <AnimatePresence>
         {drawerOpen && (
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm lg:hidden"
+              // Pure-black dim layer (no blur — blur on the backdrop combined
+              // with backdrop-blur on the nav above it has caused render
+              // issues in the past).
+              style={{ backgroundColor: "rgba(0, 0, 0, 0.78)" }}
+              className="fixed inset-0 z-[60] lg:hidden"
               onClick={() => setDrawerOpen(false)}
             />
             <motion.aside
               initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
               transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed top-0 right-0 bottom-0 z-[70] w-[88%] max-w-sm bg-[#0a0a0f] border-l border-white/10 shadow-[-12px_0_60px_rgba(0,0,0,0.6)] flex flex-col lg:hidden"
+              // Inline bg + opacity to bypass any tailwind JIT or backdrop-
+              // blur stacking-context weirdness — the drawer must always
+              // read as a fully opaque dark panel.
+              style={{ backgroundColor: "#0a0a0f" }}
+              className="fixed top-0 right-0 bottom-0 z-[70] w-[88%] max-w-sm border-l border-white/10 shadow-[-12px_0_60px_rgba(0,0,0,0.6)] flex flex-col lg:hidden"
             >
               {/* Drawer header */}
               <div className="flex items-center justify-between px-5 h-16 border-b border-white/[0.06] flex-shrink-0">
@@ -374,7 +390,7 @@ const Navbar = () => {
           </>
         )}
       </AnimatePresence>
-    </nav>
+    </>
   );
 };
 
