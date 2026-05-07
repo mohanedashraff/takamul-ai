@@ -105,17 +105,17 @@ export function MoodboardPicker({ open, value, onChange, onClose, onBuildOwn }: 
             <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 flex items-start justify-between gap-3 flex-shrink-0">
               <div className="min-w-0 flex-1">
                 <h3 className="text-lg sm:text-2xl font-black text-white tracking-tight">
-                  CREATE YOUR MOODBOARD
+                  اصنع موود بورد بصري
                 </h3>
                 <p className="text-xs sm:text-sm text-gray-400 leading-relaxed mt-1 max-w-md">
-                  حوّل مراجعك إلى مودبورد مركّز يحدد الستايل والنغمة والاتجاه الإبداعي.
+                  حوّل مراجعك إلى موود بورد مركّز يحدد الستايل والنغمة والاتجاه الإبداعي.
                 </p>
                 <button
                   onClick={onBuildOwn}
                   type="button"
                   className="mt-3 inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-accent-400 text-black font-bold text-sm hover:scale-[1.02] active:scale-95 transition-transform shadow-[0_0_20px_rgba(254,228,64,0.3)]"
                 >
-                  Build your moodboard
+                  ابنِ موود بورد بنفسك
                   <Sparkles className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -132,9 +132,9 @@ export function MoodboardPicker({ open, value, onChange, onClose, onBuildOwn }: 
             {/* Tabs + search */}
             <div className="flex items-center gap-3 px-5 sm:px-6 pb-3 flex-shrink-0">
               <div className="flex bg-white/[0.04] border border-white/10 rounded-xl p-1 gap-1">
-                <TabBtn active={tab === "curated"} onClick={() => setTab("curated")}>Curated</TabBtn>
+                <TabBtn active={tab === "curated"} onClick={() => setTab("curated")}>مختارة</TabBtn>
                 <TabBtn active={tab === "mine"}    onClick={() => setTab("mine")}>
-                  My Moodboards {mine.length > 0 && <span className="opacity-60">({mine.length})</span>}
+                  موود بوردزي {mine.length > 0 && <span className="opacity-60">({mine.length})</span>}
                 </TabBtn>
               </div>
               <div className="relative flex-1 max-w-sm">
@@ -142,7 +142,7 @@ export function MoodboardPicker({ open, value, onChange, onClose, onBuildOwn }: 
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search presets..."
+                  placeholder="ابحث في الستايلز…"
                   className="w-full h-9 pr-9 pl-3 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-accent-400/40"
                 />
               </div>
@@ -158,9 +158,9 @@ export function MoodboardPicker({ open, value, onChange, onClose, onBuildOwn }: 
                 ) : (
                   <div className="py-16 flex flex-col items-center gap-3 text-center">
                     <Sparkles className="w-8 h-8 text-accent-400" />
-                    <p className="text-sm text-white font-bold">لسه ما عملتش مودبورد خاص بيك</p>
+                    <p className="text-sm text-white font-bold">لسه ما عملتش موود بورد خاص بيك</p>
                     <p className="text-xs text-gray-500 max-w-xs">
-                      اضغط <span className="text-accent-400 font-bold">Build your moodboard</span> فوق لرفع ٥+ صور وعمل مودبورد مخصص.
+                      اضغط <span className="text-accent-400 font-bold">ابنِ موود بورد بنفسك</span> فوق لرفع ٥+ صور وعمل موود بورد مخصص.
                     </p>
                   </div>
                 )

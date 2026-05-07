@@ -18,7 +18,7 @@ export const runtime = "nodejs";
 
 const CreateSchema = z.object({
   name:      z.string().min(1).max(100),
-  variant:   z.enum(["soul", "soul-2.0", "soul-cinema"]).default("soul-2.0"),
+  variant:   z.enum(["soul", "soul-cinema"]).default("soul"),
   imageUrls: z.array(z.string().url()).min(20, "نحتاج ٢٠ صورة على الأقل لتدريب الشخصية").max(40),
   hintText:  z.string().max(280).optional(),
 });

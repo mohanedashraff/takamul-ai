@@ -21,7 +21,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, X, Loader2, Download, Maximize2, Plus, Image as ImageIcon,
-  ChevronDown, Palette, User, Wand2,
+  ChevronDown, Palette, User, Wand2, Aperture,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
@@ -214,14 +214,14 @@ export function SoulStudio() {
       {/* Hero */}
       <div className="relative pt-12 md:pt-16 pb-10 text-center px-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent-400/30 bg-accent-400/5 text-accent-400 text-xs font-black mb-5">
-          <Sparkles className="w-3 h-3" />
-          Soul 2.0
+          <Aperture className="w-3 h-3" />
+          Soul
         </div>
         <h1 className="text-5xl sm:text-7xl md:text-8xl font-black text-accent-400 mb-4 tracking-tight">
-          SOUL<span className="text-white/85">2</span>
+          SOUL
         </h1>
         <p className="text-gray-400 text-sm md:text-base max-w-md mx-auto leading-relaxed">
-          مصمّم للصور الفاشن-فوروورد بقوة اللغة الثقافية الحديثة. اختر مودبورد، لون، وشخصية ثابتة.
+          صور إديتوريال فاشن بحس ثقافي حديث. اختار موود بورد ولوحة ألوان وشخصية ثابتة.
         </p>
       </div>
 
@@ -342,7 +342,7 @@ export function SoulStudio() {
                 <textarea
                   value={config.prompt}
                   onChange={(e) => setConfig((c) => ({ ...c, prompt: e.target.value }))}
-                  placeholder="Describe the scene you imagine"
+                  placeholder="اوصف المشهد اللي عاوز تصوّره"
                   rows={2}
                   className="flex-1 bg-transparent text-white placeholder-gray-500 text-sm resize-none focus:outline-none px-1"
                   style={{ maxHeight: 160 }}
@@ -352,10 +352,10 @@ export function SoulStudio() {
 
               {/* Chips row — primary axes + utility */}
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Soul 2.0 model badge (display-only, future-proofing for
+                {/* Soul model badge (display-only, future-proofing for
                     the model picker) */}
                 <span className="h-10 px-3 rounded-xl border border-white/10 bg-accent-400/8 text-accent-400 text-xs font-black flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" /> Soul 2.0
+                  <Aperture className="w-3.5 h-3.5" /> Soul
                 </span>
 
                 {/* Aspect */}
@@ -385,7 +385,7 @@ export function SoulStudio() {
                   title="تعزيز البرومبت تلقائياً"
                 >
                   <Wand2 className="w-3.5 h-3.5" />
-                  {config.enhancePrompt ? "On" : "Off"}
+                  {config.enhancePrompt ? "تعزيز" : "بدون"}
                 </button>
                 {/* Variations counter */}
                 <div className="h-10 px-2 rounded-xl border border-white/10 flex items-center gap-2">
@@ -411,7 +411,7 @@ export function SoulStudio() {
                   onClick={() => setColorOpen(true)}
                   type="button"
                   className="h-10 px-3 rounded-xl border border-white/10 hover:bg-white/[0.03] text-xs font-bold text-white flex items-center gap-1.5 transition-colors"
-                  title="Soul HEX — Color Signature"
+                  title="Soul HEX — لوحة الألوان"
                 >
                   <Palette className="w-3.5 h-3.5 text-accent-400" />
                   <span className="truncate max-w-[120px]">{colorLabel}</span>
@@ -430,7 +430,7 @@ export function SoulStudio() {
                       ? "border-accent-400/40 bg-accent-400/8"
                       : "border-white/10 hover:bg-white/[0.03]",
                   )}
-                  title="Soul ID — Character"
+                  title="Soul ID — الشخصية"
                 >
                   {characterThumb ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -438,8 +438,8 @@ export function SoulStudio() {
                   ) : (
                     <Plus className="w-3.5 h-3.5 text-gray-300" />
                   )}
-                  <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider truncate max-w-[60px]">
-                    {characterLabel ?? "CHARACTER"}
+                  <span className="text-[8px] text-gray-400 font-bold tracking-wider truncate max-w-[60px]">
+                    {characterLabel ?? "شخصية"}
                   </span>
                 </button>
 
@@ -448,7 +448,7 @@ export function SoulStudio() {
                   onClick={() => setMoodOpen(true)}
                   type="button"
                   className="h-12 px-2 rounded-xl border border-white/10 hover:bg-white/[0.03] flex flex-col items-center justify-center gap-0.5 transition-colors min-w-[80px] relative overflow-hidden"
-                  title="Mood Board"
+                  title="موود بورد"
                 >
                   {moodboardThumb && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -456,9 +456,9 @@ export function SoulStudio() {
                   )}
                   <div className="relative z-10 flex flex-col items-center gap-0.5">
                     <span className="text-[8px] text-white/80 font-bold flex items-center gap-1">
-                      <ChevronDown className="w-2.5 h-2.5" /> Change
+                      <ChevronDown className="w-2.5 h-2.5" /> تغيير
                     </span>
-                    <span className="text-[10px] font-black text-accent-400 uppercase tracking-wider truncate max-w-[80px]">
+                    <span className="text-[10px] font-black text-accent-400 tracking-wider truncate max-w-[80px]">
                       {moodboardLabel}
                     </span>
                   </div>
@@ -479,7 +479,7 @@ export function SoulStudio() {
                   {generating ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> {progress || "جاري…"}</>
                   ) : (
-                    <><Sparkles className="w-4 h-4" /> Generate</>
+                    <><Sparkles className="w-4 h-4" /> توليد</>
                   )}
                 </button>
               </div>

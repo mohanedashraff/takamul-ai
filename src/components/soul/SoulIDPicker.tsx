@@ -25,7 +25,7 @@ import type { SoulCharacterRow } from "./types";
 const MIN_PHOTOS = 20;
 const MAX_PHOTOS = 40;
 
-type Variant = "all" | "soul" | "soul-2.0" | "soul-cinema";
+type Variant = "all" | "soul" | "soul-cinema";
 
 interface Props {
   open:     boolean;
@@ -103,7 +103,7 @@ export function SoulIDPicker({ open, value, onChange, onClose }: Props) {
               <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 flex items-start justify-between gap-3 flex-shrink-0">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg sm:text-2xl font-black text-white tracking-tight">
-                    MAKE YOUR OWN CHARACTER
+                    اصنع شخصيتك الخاصة
                   </h3>
                   <p className="text-xs sm:text-sm text-gray-400 leading-relaxed mt-1 max-w-md">
                     ارفع صور للشخصية من زوايا مختلفة لتدريبها، وبعدها استخدمها بشكل ثابت في كل توليد.
@@ -113,7 +113,7 @@ export function SoulIDPicker({ open, value, onChange, onClose }: Props) {
                     type="button"
                     className="mt-3 inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-accent-400 text-black font-bold text-sm hover:scale-[1.02] active:scale-95 transition-transform shadow-[0_0_20px_rgba(254,228,64,0.3)]"
                   >
-                    Create character
+                    أنشئ شخصية
                     <Sparkles className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -130,7 +130,7 @@ export function SoulIDPicker({ open, value, onChange, onClose }: Props) {
               {/* Variant tabs */}
               <div className="px-5 sm:px-6 pb-3 flex-shrink-0">
                 <div className="flex bg-white/[0.04] border border-white/10 rounded-xl p-1 gap-1 w-fit">
-                  {(["all", "soul", "soul-2.0", "soul-cinema"] as Variant[]).map((v) => (
+                  {(["all", "soul", "soul-cinema"] as Variant[]).map((v) => (
                     <button
                       key={v}
                       onClick={() => setTab(v)}
@@ -140,8 +140,7 @@ export function SoulIDPicker({ open, value, onChange, onClose }: Props) {
                         tab === v ? "bg-white/10 text-white" : "text-gray-400 hover:text-white",
                       )}
                     >
-                      {v === "all" ? "All" :
-                       v === "soul-2.0" ? "Soul 2.0" :
+                      {v === "all" ? "الكل" :
                        v === "soul-cinema" ? "Soul Cinema" : "Soul"}
                     </button>
                   ))}
@@ -157,9 +156,9 @@ export function SoulIDPicker({ open, value, onChange, onClose }: Props) {
                     <div className="w-16 h-16 rounded-2xl bg-accent-400/10 border border-accent-400/30 flex items-center justify-center">
                       <User className="w-8 h-8 text-accent-400" />
                     </div>
-                    <p className="text-sm text-white font-bold">No characters yet. Create your first one!</p>
+                    <p className="text-sm text-white font-bold">لسه ما عملتش شخصيات. أنشئ أول شخصية!</p>
                     <p className="text-xs text-gray-500 max-w-xs">
-                      اضغط <span className="text-accent-400 font-bold">Create character</span> فوق لرفع ٢٠+ صورة من زوايا مختلفة.
+                      اضغط <span className="text-accent-400 font-bold">أنشئ شخصية</span> فوق لرفع ٢٠+ صورة من زوايا مختلفة.
                     </p>
                   </div>
                 ) : (
@@ -194,7 +193,7 @@ export function SoulIDPicker({ open, value, onChange, onClose }: Props) {
                         {!c.trained && (
                           <div className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md text-[9px] font-black bg-amber-400/90 text-black flex items-center gap-1">
                             <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                            تدريب
+                            جاري التدريب
                           </div>
                         )}
                         {c.trained && (
@@ -252,7 +251,7 @@ function CreateCharacterModal({
 }) {
   const [files,   setFiles]   = useState<UploadingFile[]>([]);
   const [name,    setName]    = useState("");
-  const [variant, setVariant] = useState<"soul" | "soul-2.0" | "soul-cinema">("soul-2.0");
+  const [variant, setVariant] = useState<"soul" | "soul-cinema">("soul");
   const [saving,  setSaving]  = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -356,7 +355,7 @@ function CreateCharacterModal({
             {/* Header */}
             <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 flex items-start justify-between gap-3 flex-shrink-0">
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg sm:text-xl font-black text-white">Create character</h3>
+                <h3 className="text-lg sm:text-xl font-black text-white">أنشئ شخصية</h3>
                 <p className="text-xs sm:text-sm text-gray-400 mt-1">
                   ارفع على الأقل {MIN_PHOTOS} صورة (وجه + جسم بزوايا متعددة).
                 </p>
@@ -448,9 +447,8 @@ function CreateCharacterModal({
                     onChange={(e) => setVariant(e.target.value as typeof variant)}
                     className="w-full h-10 px-3 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white focus:outline-none focus:border-accent-400/40"
                   >
-                    <option value="soul-2.0">Soul 2.0</option>
-                    <option value="soul-cinema">Soul Cinema</option>
                     <option value="soul">Soul</option>
+                    <option value="soul-cinema">Soul Cinema</option>
                   </select>
                 </div>
               </div>

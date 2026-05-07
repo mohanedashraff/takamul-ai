@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   User as UserIcon, LogOut, Settings, CreditCard, Zap,
   Shield, Crown, ChevronDown, Sparkles, LayoutGrid, Activity,
-  Film, Megaphone, Wand2, Bot, Menu, X, Home,
+  Film, Megaphone, Wand2, Bot, Menu, X, Home, Aperture, Frame,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useUserStore } from "@/stores/useUserStore";
@@ -30,13 +30,15 @@ interface NavItem {
 const PRIMARY_NAV: NavItem[] = [
   { href: "/",          label: "الرئيسية",   icon: Home                                       },
   { href: "/tools",     label: "الأدوات",    icon: LayoutGrid                                  },
-  { href: "/soul",      label: "Soul 2.0",  icon: Sparkles,  iconClass: "text-accent-400"      },
+  { href: "/soul",      label: "Soul",      icon: Aperture,  iconClass: "text-accent-400"      },
   { href: "/cinema",    label: "السينما",    icon: Film,      iconClass: "text-accent-400"      },
   { href: "/marketing", label: "التسويق",    icon: Megaphone, iconClass: "text-accent-400"      },
   { href: "/templates", label: "القوالب",    icon: Wand2,     iconClass: "text-accent-400"      },
   { href: "/agents",    label: "الوكلاء",    icon: Bot,       iconClass: "text-accent-400"      },
   { href: "/chat",      label: "Yilow AI",  icon: Sparkles,  iconClass: "text-fuchsia-400", gradient: true },
-  { href: "/spaces",    label: "Spaces",    icon: LayoutGrid                                  },
+  // /spaces is the same backend canvas studio — we just relabel it
+  // "Canvas" in the header to match the user-facing terminology.
+  { href: "/spaces",    label: "Canvas",    icon: Frame,     iconClass: "text-accent-400"      },
 ];
 
 const Navbar = () => {

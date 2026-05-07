@@ -1,7 +1,7 @@
 import {
   Sparkles, Zap, Frame, Radio, Layers,
   Wand2, Image as ImageIcon, Video, Music, Film, Megaphone,
-  Music2, Disc3, FileText,
+  Music2, Disc3, FileText, Aperture,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -412,16 +412,16 @@ export const IMAGE_TOOLS: Tool[] = [
     ],
   },
 
-  // ── Soul 2.0 — Higgsfield's flagship aesthetic image model ──────────
-  // Full-fidelity port of higgsfield.ai/ai/image?model=soul-v2 with all
-  // 33 mood boards, 6 color signatures, Soul ID character consistency,
-  // Build-your-own moodboard upload (5+ photos), and HEX color
+  // ── Soul — Higgsfield-style aesthetic image model ──────────────────
+  // Full-fidelity port of Higgsfield's flagship aesthetic generator
+  // with 33 mood boards, 6 color signatures, Soul ID character
+  // consistency, build-your-own moodboards (≥5 photos), and HEX color
   // extraction from any reference image. Bespoke studio at /soul.
   {
-    id: "soul-2",
-    title: "Soul 2.0 — صور Editorial",
-    desc: "موديل Higgsfield الرائد — Mood Boards، Soul HEX للألوان، Soul ID لشخصية ثابتة، وأكتر من ٣٣ ستايل جاهز.",
-    icon: Sparkles,
+    id: "soul",
+    title: "Soul — صور Editorial",
+    desc: "موديل صور إديتوريال راقي — موود بوردز، Soul HEX للألوان، Soul ID لشخصية ثابتة، وأكتر من ٣٣ ستايل جاهز.",
+    icon: Aperture,
     image: "/tool-thumbnails/soul-2.mp4",
     credits: 8,
     isNew: true,

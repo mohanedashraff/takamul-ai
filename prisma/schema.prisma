@@ -456,10 +456,9 @@ model SoulCharacter {
   id          String   @id @default(cuid())
   userId      String
   name        String                          // "Ahmed (me)", "Brand model Sarah"
-  // Which Soul model this character was trained against — "soul-2.0",
-  // "soul-cinema", "soul" — so we can filter the picker UI exactly
-  // like Higgsfield does (All / Soul / Soul 2.0 / Soul Cinema tabs).
-  variant     String   @default("soul-2.0")
+  // Which Soul model this character was trained against — "soul" or
+  // "soul-cinema" — so we can filter the picker UI to its parent tool.
+  variant     String   @default("soul")
   // Up to ~30 reference photos. The first one is also the avatar.
   imageUrls   String[]
   thumbnail   String?

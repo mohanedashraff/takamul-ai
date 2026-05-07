@@ -95,8 +95,8 @@ export function ColorSignaturePicker({ open, value, onChange, onClose }: Props) 
             <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 flex items-start justify-between gap-3 flex-shrink-0">
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg sm:text-2xl font-black text-white tracking-tight leading-tight">
-                  CONTROL YOUR COLORS<br />
-                  <span className="text-white/70">WITH SOUL HEX</span>
+                  تحكّم في ألوان صورتك<br />
+                  <span className="text-white/70">مع Soul HEX</span>
                 </h3>
                 <p className="text-xs sm:text-sm text-gray-400 leading-relaxed mt-2 max-w-md">
                   ارفع صورة مرجعية وSoul HEX يستخرج لوحتها اللونية ويطبّقها على الستايل بتاعك.
@@ -113,7 +113,7 @@ export function ColorSignaturePicker({ open, value, onChange, onClose }: Props) 
                   )}
                 >
                   {extracting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                  {extracting ? "جاري الاستخراج…" : "Upload & Create"}
+                  {extracting ? "جاري الاستخراج…" : "ارفع واستخرج"}
                 </button>
                 <input
                   ref={fileRef}

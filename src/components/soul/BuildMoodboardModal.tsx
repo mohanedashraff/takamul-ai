@@ -159,9 +159,9 @@ export function BuildMoodboardModal({ open, onClose, onSaved }: Props) {
             {/* Header */}
             <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 flex items-start justify-between gap-3 flex-shrink-0">
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg sm:text-xl font-black text-white">Build your moodboard</h3>
+                <h3 className="text-lg sm:text-xl font-black text-white">ابنِ موود بورد بنفسك</h3>
                 <p className="text-xs sm:text-sm text-gray-400 mt-1">
-                  Upload at least {MIN_PHOTOS} photos to continue.
+                  ارفع على الأقل {MIN_PHOTOS} صور للمتابعة.
                 </p>
               </div>
               <button
@@ -179,7 +179,7 @@ export function BuildMoodboardModal({ open, onClose, onSaved }: Props) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <UploadButton
                   icon={<Upload className="w-5 h-5" />}
-                  title="Upload from device"
+                  title="ارفع من جهازك"
                   onClick={() => fileInputRef.current?.click()}
                 />
                 {/* Future: hook this up to /assets browser. For v1 it
@@ -187,7 +187,7 @@ export function BuildMoodboardModal({ open, onClose, onSaved }: Props) {
                     placeholder. */}
                 <UploadButton
                   icon={<Sparkles className="w-5 h-5" />}
-                  title="Upload from assets"
+                  title="ارفع من ملفاتك"
                   onClick={() => fileInputRef.current?.click()}
                 />
               </div>
@@ -205,11 +205,11 @@ export function BuildMoodboardModal({ open, onClose, onSaved }: Props) {
               <div className="flex flex-wrap gap-x-6 gap-y-2 text-[11px]">
                 <span className="inline-flex items-center gap-1.5 text-emerald-400">
                   <Check className="w-3.5 h-3.5" />
-                  20+ photos, one cohesive style, no faces.
+                  ٢٠+ صورة، ستايل موحّد، بدون وجوه.
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-red-400">
                   <X className="w-3.5 h-3.5" />
-                  Faces, mixed styles, blurry or low-quality images.
+                  الوجوه أو الستايلات المختلطة أو الصور المشوّشة.
                 </span>
               </div>
 
@@ -277,7 +277,7 @@ export function BuildMoodboardModal({ open, onClose, onSaved }: Props) {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="اسم الموود بورد (مثال: Y2K vibes)"
+                placeholder="اسم الموود بورد (مثال: حنين Y2K)"
                 maxLength={100}
                 className="flex-1 h-11 px-4 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-accent-400/40"
               />
