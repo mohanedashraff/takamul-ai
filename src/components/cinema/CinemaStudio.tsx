@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Film, Sparkles, Camera, Image as ImageIcon, X, Loader2,
-  Download, Maximize2, Plus, ChevronDown,
+  Download, Maximize2, Plus, ChevronDown, Drama, Palette, Bot,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
@@ -13,9 +13,13 @@ import {
   CAMERAS, LENSES, FOCAL_LENGTHS, APERTURES,
   CINEMA_ASPECTS, CINEMA_RESOLUTIONS,
   CINEMA_DEFAULTS,
+  GENRES, COLOR_PALETTES, LIGHTING_STYLES, MOVESETS,
   buildCinemaPrompt,
 } from "@/lib/data/cinema";
 import { CameraSettingsOverlay, type CameraConfig } from "./CameraSettingsOverlay";
+import { GenrePicker } from "./GenrePicker";
+import { StylePicker, type StyleValue } from "./StylePicker";
+import { AiDirectorSidebar, type DirectorPicks } from "./AiDirectorSidebar";
 import { uploadFile } from "@/lib/muapi";
 import { runMuapiTool } from "@/lib/run-tool";
 
@@ -27,7 +31,15 @@ export interface CinemaShot {
   url:       string;
   timestamp: number;
   prompt:    string;
-  config:    CameraConfig & { aspect: string; resolution: string; reference?: string };
+  config:    CameraConfig & {
+    aspect:     string;
+    resolution: string;
+    reference?: string;
+    genreId?:   string;
+    paletteId?: string;
+    lightingId?:string;
+    movesetId?: string;
+  };
 }
 
 export function CinemaStudio() {
@@ -40,6 +52,15 @@ export function CinemaStudio() {
   });
   const [aspect,     setAspect]     = useState<string>(CINEMA_DEFAULTS.aspect);
   const [resolution, setResolution] = useState<string>(CINEMA_DEFAULTS.resolution);
+  // Higgsfield-parity layers — each picker writes its id here. The
+  // prompt builder treats "auto"/"general" as no-op so previous prompts
+  // keep working until the user explicitly opts in.
+  const [genreId,    setGenreId]    = useState<string>(CINEMA_DEFAULTS.genreId);
+  const [style,      setStyle]      = useState<StyleValue>({
+    paletteId:  CINEMA_DEFAULTS.paletteId,
+    lightingId: CINEMA_DEFAULTS.lightingId,
+    movesetId:  CINEMA_DEFAULTS.movesetId,
+  });
   const [prompt,     setPrompt]     = useState("");
   const [reference,  setReference]  = useState<string | null>(null); // uploaded image URL
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -47,7 +68,10 @@ export function CinemaStudio() {
   const [isGenerating,   setIsGenerating]   = useState(false);
   const [progress,       setProgress]       = useState("");
   const [history, setHistory] = useState<CinemaShot[]>([]);
-  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [overlayOpen,  setOverlayOpen]  = useState(false);
+  const [genreOpen,    setGenreOpen]    = useState(false);
+  const [styleOpen,    setStyleOpen]    = useState(false);
+  const [directorOpen, setDirectorOpen] = useState(false);
   const [fullscreen,  setFullscreen]  = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -59,23 +83,28 @@ export function CinemaStudio() {
       const parsed = JSON.parse(saved) as Partial<{
         config: CameraConfig; aspect: string; resolution: string;
         reference: string | null; history: CinemaShot[];
+        genreId: string; style: StyleValue;
       }>;
       if (parsed.config)     setConfig(parsed.config);
       if (parsed.aspect)     setAspect(parsed.aspect);
       if (parsed.resolution) setResolution(parsed.resolution);
       if (typeof parsed.reference === "string" || parsed.reference === null) setReference(parsed.reference);
       if (Array.isArray(parsed.history)) setHistory(parsed.history);
+      if (typeof parsed.genreId === "string") setGenreId(parsed.genreId);
+      if (parsed.style)      setStyle(parsed.style);
     } catch {}
   }, []);
 
   useEffect(() => {
     const t = setTimeout(() => {
       try {
-        localStorage.setItem(PERSIST_KEY, JSON.stringify({ config, aspect, resolution, reference, history }));
+        localStorage.setItem(PERSIST_KEY, JSON.stringify({
+          config, aspect, resolution, reference, history, genreId, style,
+        }));
       } catch {}
     }, 500);
     return () => clearTimeout(t);
-  }, [config, aspect, resolution, reference, history]);
+  }, [config, aspect, resolution, reference, history, genreId, style]);
 
   // ── derived ───────────────────────────────────────────────────────────
   const camera   = useMemo(() => CAMERAS.find((c) => c.id === config.cameraId)!, [config.cameraId]);
@@ -109,6 +138,10 @@ export function CinemaStudio() {
       lensId:     config.lensId,
       focal:      config.focal,
       apertureId: config.apertureId,
+      genreId,
+      paletteId:  style.paletteId,
+      lightingId: style.lightingId,
+      movesetId:  style.movesetId,
     });
 
     const endpoint = reference ? "nano-banana-pro-edit" : "nano-banana-pro";
@@ -142,7 +175,15 @@ export function CinemaStudio() {
         url,
         timestamp: Date.now(),
         prompt,
-        config:    { ...config, aspect, resolution, reference: reference ?? undefined },
+        config:    {
+          ...config,
+          aspect, resolution,
+          reference:  reference ?? undefined,
+          genreId,
+          paletteId:  style.paletteId,
+          lightingId: style.lightingId,
+          movesetId:  style.movesetId,
+        },
       };
       setHistory((h) => [shot, ...h].slice(0, HISTORY_LIMIT));
       toast.success("تم تصوير اللقطة 🎬");
@@ -165,7 +206,41 @@ export function CinemaStudio() {
     setAspect(shot.config.aspect);
     setResolution(shot.config.resolution);
     if (shot.config.reference) setReference(shot.config.reference);
+    if (shot.config.genreId)    setGenreId(shot.config.genreId);
+    if (shot.config.paletteId || shot.config.lightingId || shot.config.movesetId) {
+      setStyle({
+        paletteId:  shot.config.paletteId  ?? CINEMA_DEFAULTS.paletteId,
+        lightingId: shot.config.lightingId ?? CINEMA_DEFAULTS.lightingId,
+        movesetId:  shot.config.movesetId  ?? CINEMA_DEFAULTS.movesetId,
+      });
+    }
     toast.success("تم استرجاع الإعدادات");
+  };
+
+  // ── AI Director hand-off ──────────────────────────────────────────────
+  // The sidebar returns a pick set; we replace state with whatever the
+  // model chose (only fields it filled). The user can still tweak any
+  // chip after — the picker overlays read directly from this state.
+  const applyDirectorPicks = (picks: DirectorPicks) => {
+    if (picks.prompt)     setPrompt(picks.prompt);
+    if (picks.cameraId || picks.lensId || picks.focal !== undefined || picks.apertureId) {
+      setConfig((c) => ({
+        cameraId:   picks.cameraId   ?? c.cameraId,
+        lensId:     picks.lensId     ?? c.lensId,
+        focal:      picks.focal      ?? c.focal,
+        apertureId: picks.apertureId ?? c.apertureId,
+      }));
+    }
+    if (picks.aspect)     setAspect(picks.aspect);
+    if (picks.resolution) setResolution(picks.resolution);
+    if (picks.genreId)    setGenreId(picks.genreId);
+    if (picks.paletteId || picks.lightingId || picks.movesetId) {
+      setStyle((s) => ({
+        paletteId:  picks.paletteId  ?? s.paletteId,
+        lightingId: picks.lightingId ?? s.lightingId,
+        movesetId:  picks.movesetId  ?? s.movesetId,
+      }));
+    }
   };
 
   // ── render ────────────────────────────────────────────────────────────
@@ -266,6 +341,19 @@ export function CinemaStudio() {
               />
 
               <div className="flex items-center gap-2 flex-wrap">
+                {/* AI Director — opens the right-side chat sidebar that
+                    picks every Cinema setting from a natural-language
+                    prompt. Same pattern Higgsfield exposes. */}
+                <button
+                  onClick={() => setDirectorOpen(true)}
+                  type="button"
+                  className="h-10 px-3 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-300 hover:bg-violet-500/20 hover:text-white transition-colors text-xs font-bold flex items-center gap-1.5"
+                  title="افتح المخرج الذكي"
+                >
+                  <Bot className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">المخرج الذكي</span>
+                </button>
+
                 {/* upload */}
                 <input
                   ref={fileRef}
@@ -306,6 +394,22 @@ export function CinemaStudio() {
                     )}
                   </button>
                 )}
+
+                {/* Genre + Style preview chips. Both open full overlays;
+                    each chip shows the active pick(s) in its label so
+                    the user always knows what's wired in. */}
+                <PickerChip
+                  icon={<Drama className="w-3.5 h-3.5" />}
+                  label="نوع"
+                  value={GENRES.find((g) => g.id === genreId)?.name ?? "عام"}
+                  onClick={() => setGenreOpen(true)}
+                />
+                <PickerChip
+                  icon={<Palette className="w-3.5 h-3.5" />}
+                  label="أسلوب"
+                  value={summarizeStyle(style)}
+                  onClick={() => setStyleOpen(true)}
+                />
 
                 {/* aspect dropdown */}
                 <SelectChip
@@ -369,6 +473,25 @@ export function CinemaStudio() {
         onClose={() => setOverlayOpen(false)}
       />
 
+      {/* Genre + Style overlays + AI Director sidebar */}
+      <GenrePicker
+        open={genreOpen}
+        value={genreId}
+        onChange={setGenreId}
+        onClose={() => setGenreOpen(false)}
+      />
+      <StylePicker
+        open={styleOpen}
+        value={style}
+        onChange={setStyle}
+        onClose={() => setStyleOpen(false)}
+      />
+      <AiDirectorSidebar
+        open={directorOpen}
+        onApply={applyDirectorPicks}
+        onClose={() => setDirectorOpen(false)}
+      />
+
       {/* Fullscreen */}
       <AnimatePresence>
         {fullscreen && (
@@ -415,6 +538,42 @@ function pickUrl(r: { url?: string; urls?: string[]; outputs?: unknown }): strin
     if (typeof first === "object" && first && "url" in first) return (first as { url: string }).url;
   }
   return null;
+}
+
+// ── chip that opens an overlay (genre / style) ─────────────────────────
+function PickerChip({
+  icon, label, value, onClick,
+}: {
+  icon:    React.ReactNode;
+  label:   string;
+  value:   string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      type="button"
+      className="h-10 px-3 rounded-xl border border-white/10 hover:bg-white/[0.03] text-xs font-bold text-white flex items-center gap-1.5 transition-colors max-w-[180px]"
+    >
+      <span className="text-gray-400">{icon}</span>
+      <span className="text-gray-500">{label}:</span>
+      <span className="truncate">{value}</span>
+    </button>
+  );
+}
+
+// Summarise the active style picks for the chip label. "Auto" means
+// the model is free to choose; we surface only the layers the user
+// has explicitly tweaked.
+function summarizeStyle(s: StyleValue): string {
+  const parts: string[] = [];
+  const palette  = COLOR_PALETTES.find((p) => p.id === s.paletteId);
+  const lighting = LIGHTING_STYLES.find((l) => l.id === s.lightingId);
+  const moveset  = MOVESETS.find((m)        => m.id === s.movesetId);
+  if (palette  && palette.id  !== "auto") parts.push(palette.name);
+  if (lighting && lighting.id !== "auto") parts.push(lighting.name);
+  if (moveset  && moveset.id  !== "auto") parts.push(moveset.name);
+  return parts.length === 0 ? "تلقائي" : parts.slice(0, 2).join("، ") + (parts.length > 2 ? "…" : "");
 }
 
 // ── tiny chip <Select> ────────────────────────────────────────────────

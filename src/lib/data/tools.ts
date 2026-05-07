@@ -1,6 +1,7 @@
 import {
   Sparkles, Zap, Frame, Radio, Layers,
   Wand2, Image as ImageIcon, Video, Music, Film, Megaphone,
+  Music2, Disc3, FileText,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -1695,6 +1696,175 @@ export const AUDIO_TOOLS: Tool[] = [
         accept: "audio/*",
         required: true,
         hint: "MP3 أو WAV",
+      },
+    ],
+  },
+
+  // ── Music creation (Suno via MuAPI) ─────────────────────────────────────────
+  {
+    id: "music-create",
+    title: "أنشئ أغنية كاملة",
+    desc: "ولّد أغنية أصلية بكلمات وموسيقى من وصف الستايل اللي عاوزه — Suno V5.",
+    icon: Music2,
+    image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=600&auto=format&fit=crop",
+    credits: 8,
+    isNew: true,
+    customRunner: {
+      endpoint: "/api/audio/music-create",
+      paramMap: {
+        style:         "style",
+        prompt:        "prompt",
+        title:         "title",
+        instrumental:  "instrumental",
+        custom_mode:   "custom_mode",
+        negative_tags: "negative_tags",
+        model:         "model",
+      },
+    },
+    inputs: [
+      {
+        id: "style",
+        type: "prompt",
+        label: "الستايل / النوع الموسيقي",
+        placeholder: "مثال: pop, upbeat, female vocals, modern arabic",
+        required: true,
+        hint: "اوصف نوع الموسيقى — البيت، السرعة، الآلات، المزاج",
+      },
+      {
+        id: "prompt",
+        type: "prompt",
+        label: "كلمات الأغنية (اختياري)",
+        placeholder: "اكتب كلمات الأغنية هنا… سيبه فاضي لو عاوز موسيقى بدون كلام",
+      },
+      {
+        id: "title",
+        type: "prompt",
+        label: "اسم الأغنية",
+        placeholder: "مثال: حلم الصحراء",
+      },
+      {
+        id: "instrumental",
+        type: "toggle",
+        label: "موسيقى بدون كلام",
+        defaultValue: false,
+      },
+      {
+        id: "model",
+        type: "select",
+        label: "موديل Suno",
+        options: [
+          { value: "V5",      label: "V5 — الأحدث (موصى)" },
+          { value: "V5_5",    label: "V5.5 — تجريبي" },
+          { value: "V4_5ALL", label: "V4.5 ALL — متوازن" },
+          { value: "V4_5",    label: "V4.5" },
+          { value: "V4",      label: "V4" },
+          { value: "V3_5",    label: "V3.5" },
+        ],
+        defaultValue: "V5",
+      },
+      {
+        id: "negative_tags",
+        type: "prompt",
+        label: "ما يجب تجنّبه (اختياري)",
+        placeholder: "مثال: heavy metal, distorted vocals",
+      },
+    ],
+  },
+
+  // ── Music remix (Suno) ──────────────────────────────────────────────────────
+  {
+    id: "music-remix",
+    title: "ريميكس لأغنية",
+    desc: "حوّل أغنية موجودة لأسلوب مختلف — احتفظ بالهوية الموسيقية وغيّر الـ vibe.",
+    icon: Disc3,
+    image: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=600&auto=format&fit=crop",
+    credits: 8,
+    isNew: true,
+    customRunner: {
+      endpoint: "/api/audio/music-remix",
+      paramMap: {
+        audio_url: "audio_url",
+        style:     "style",
+        prompt:    "prompt",
+        title:     "title",
+        model:     "model",
+      },
+    },
+    inputs: [
+      {
+        id: "audio_url",
+        type: "upload",
+        label: "ارفع الأغنية الأصلية",
+        accept: "audio/*",
+        required: true,
+        hint: "MP3 أو WAV — حد أقصى ٦٠ ثانية للأفضل",
+      },
+      {
+        id: "style",
+        type: "prompt",
+        label: "الستايل الجديد",
+        placeholder: "مثال: lo-fi hiphop, dreamy, slow tempo",
+        required: true,
+        hint: "اوصف الأسلوب اللي عاوزها بيه بعد الريميكس",
+      },
+      {
+        id: "title",
+        type: "prompt",
+        label: "اسم الإصدار الجديد",
+        placeholder: "مثال: Sahara Dream — Remix",
+      },
+      {
+        id: "model",
+        type: "select",
+        label: "موديل Suno",
+        options: [
+          { value: "V5",      label: "V5 — الأحدث" },
+          { value: "V4_5ALL", label: "V4.5 ALL" },
+          { value: "V4",      label: "V4" },
+        ],
+        defaultValue: "V5",
+      },
+    ],
+  },
+
+  // ── Speech-to-Text / Transcription (Whisper) ────────────────────────────────
+  {
+    id: "transcribe",
+    title: "تحويل صوت إلى نص",
+    desc: "ارفع تسجيل وحوّله لنص دقيق — داعم للعربي والإنجليزي وأكتر.",
+    icon: FileText,
+    image: "https://images.unsplash.com/photo-1589903308904-1010c2294adc?q=80&w=600&auto=format&fit=crop",
+    credits: 1,
+    isNew: true,
+    layout: "centered",
+    customRunner: {
+      endpoint: "/api/audio/transcribe",
+      paramMap: { audio: "audio_url", language: "language" },
+    },
+    inputs: [
+      {
+        id: "audio",
+        type: "upload",
+        label: "ارفع الملف الصوتي أو الفيديو",
+        accept: "audio/*,video/*",
+        required: true,
+        hint: "MP3، WAV، MP4، WEBM…",
+      },
+      {
+        id: "language",
+        type: "select",
+        label: "اللغة (اختياري)",
+        options: [
+          { value: "auto", label: "تلقائي" },
+          { value: "ar",   label: "عربي" },
+          { value: "en",   label: "إنجليزي" },
+          { value: "fr",   label: "فرنسي" },
+          { value: "es",   label: "إسباني" },
+          { value: "de",   label: "ألماني" },
+          { value: "tr",   label: "تركي" },
+          { value: "fa",   label: "فارسي" },
+        ],
+        defaultValue: "auto",
       },
     ],
   },

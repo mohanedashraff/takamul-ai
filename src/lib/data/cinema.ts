@@ -163,6 +163,227 @@ export interface AperturePreset {
   thumbnail:  string;
 }
 
+// ── Genre presets (mirrors Higgsfield's Cinema Studio 3.5 genre wheel) ──
+//
+// Each genre stamps a tonal/narrative direction onto the prompt. The
+// English `descriptor` is what gets concatenated into the muapi prompt
+// — keep it untranslated.
+export interface GenrePreset {
+  id:          string;
+  name:        string;        // Arabic display
+  englishName: string;        // English label
+  descriptor:  string;        // English fragment for the prompt
+  /** mp4 preview clip in /public/cinema/genres/ */
+  preview:     string;
+}
+
+export const GENRES: GenrePreset[] = [
+  {
+    id:          "general",
+    name:        "عام",
+    englishName: "General",
+    descriptor:  "balanced cinematic mood, no genre bias",
+    preview:     "/cinema/genres/general.mp4",
+  },
+  {
+    id:          "action",
+    name:        "أكشن",
+    englishName: "Action",
+    descriptor:  "high-energy action cinema, kinetic motion, bold contrast, dynamic composition",
+    preview:     "/cinema/genres/action.mp4",
+  },
+  {
+    id:          "horror",
+    name:        "رعب",
+    englishName: "Horror",
+    descriptor:  "horror cinema atmosphere, dread, low-key shadows, unsettling framing",
+    preview:     "/cinema/genres/horror.mp4",
+  },
+  {
+    id:          "comedy",
+    name:        "كوميدي",
+    englishName: "Comedy",
+    descriptor:  "comedy cinema feel, bright energetic palette, playful framing, charming light",
+    preview:     "/cinema/genres/comedy.mp4",
+  },
+  {
+    id:          "noir",
+    name:        "نوار",
+    englishName: "Noir",
+    descriptor:  "classic film noir aesthetic, hard shadows, venetian-blind light, moral ambiguity",
+    preview:     "/cinema/genres/noir.mp4",
+  },
+  {
+    id:          "drama",
+    name:        "درامي",
+    englishName: "Drama",
+    descriptor:  "intimate dramatic cinema, emotional close-ups, restrained color, naturalistic light",
+    preview:     "/cinema/genres/drama.mp4",
+  },
+  {
+    id:          "epic",
+    name:        "ملحمي",
+    englishName: "Epic",
+    descriptor:  "epic cinema scale, grand vistas, heroic blocking, atmospheric depth",
+    preview:     "/cinema/genres/epic.mp4",
+  },
+];
+
+// ── Style presets (split into 3 axes like Higgsfield's Style Settings) ──
+//
+// Higgsfield's Style picker has three independent wheels: Color Palette,
+// Lighting, and Camera Moveset Style. We mirror that 1:1 so the resulting
+// prompt language is compatible with the same look-up tables those models
+// were trained on.
+
+export interface StylePreset {
+  id:          string;
+  name:        string;       // Arabic display
+  englishName: string;       // English label
+  descriptor:  string;       // prompt fragment
+  /** webp / jpg / mp4 in /public/cinema/{palette,lighting,moveset}/ */
+  thumbnail:   string;
+}
+
+export const COLOR_PALETTES: StylePreset[] = [
+  {
+    id: "auto",                  name: "تلقائي",            englishName: "Auto",
+    descriptor: "natural color palette",
+    thumbnail:  "",
+  },
+  {
+    id: "naturalistic-clean",    name: "طبيعي نقي",         englishName: "Naturalistic Clean",
+    descriptor: "naturalistic clean color palette, true-to-life skin tones",
+    thumbnail:  "/cinema/palette/naturalistic-clean.jpg",
+  },
+  {
+    id: "bleached-warm",         name: "دافئ مبيّض",         englishName: "Bleached Warm",
+    descriptor: "bleached warm tones, sun-faded highlights, golden mid-tones",
+    thumbnail:  "/cinema/palette/bleached-warm.jpg",
+  },
+  {
+    id: "hyper-neon",            name: "نيون عالي",          englishName: "Hyper Neon",
+    descriptor: "hyper-saturated neon palette, electric magenta and cyan, glowing rim light",
+    thumbnail:  "/cinema/palette/hyper-neon.jpg",
+  },
+  {
+    id: "teal-orange-epic",      name: "تيل وبرتقالي ملحمي", englishName: "Teal Orange Epic",
+    descriptor: "teal and orange epic blockbuster grade, rich highlights, deep teal shadows",
+    thumbnail:  "/cinema/palette/teal-orange-epic.jpg",
+  },
+  {
+    id: "sodium-decay",          name: "اضمحلال صوديومي",   englishName: "Sodium Decay",
+    descriptor: "sodium-vapor street palette, amber-yellow highlights, muddy shadows",
+    thumbnail:  "/cinema/palette/sodium-decay.jpg",
+  },
+  {
+    id: "cold-steel",            name: "صلب بارد",           englishName: "Cold Steel",
+    descriptor: "cold steel palette, desaturated blue-grey, clinical highlights",
+    thumbnail:  "/cinema/palette/cold-steel.jpg",
+  },
+  {
+    id: "bleach-bypass",         name: "بليتش بايباس",       englishName: "Bleach Bypass",
+    descriptor: "bleach-bypass film process, crushed contrast, low chroma, gritty highlights",
+    thumbnail:  "/cinema/palette/bleach-bypass.jpg",
+  },
+  {
+    id: "classic-bw",            name: "أبيض وأسود كلاسيكي",  englishName: "Classic BW",
+    descriptor: "classic black-and-white cinema, rich silver tones, deep blacks",
+    thumbnail:  "/cinema/palette/classic-bw.jpg",
+  },
+];
+
+export const LIGHTING_STYLES: StylePreset[] = [
+  {
+    id: "auto",            name: "تلقائي",       englishName: "Auto",
+    descriptor: "natural lighting",
+    thumbnail:  "",
+  },
+  {
+    id: "soft-cross",      name: "كروس ناعم",    englishName: "Soft Cross",
+    descriptor: "soft cross lighting, gentle key/fill ratio, flattering portrait look",
+    thumbnail:  "/cinema/lighting/soft-cross.jpg",
+  },
+  {
+    id: "contre-jour",     name: "ضد الضوء",     englishName: "Contre Jour",
+    descriptor: "contre-jour backlight, glowing rim, lens halation around the subject",
+    thumbnail:  "/cinema/lighting/contre-jour.jpg",
+  },
+  {
+    id: "overhead-fall",   name: "إضاءة من فوق",  englishName: "Overhead Fall",
+    descriptor: "harsh overhead light, dramatic falloff, deep shadows under brow and chin",
+    thumbnail:  "/cinema/lighting/overhead-fall.jpg",
+  },
+  {
+    id: "window",          name: "ضوء نافذة",    englishName: "Window",
+    descriptor: "natural window light, soft directional key, painterly falloff",
+    thumbnail:  "/cinema/lighting/window.jpg",
+  },
+  {
+    id: "practicals",      name: "إضاءة عملية",   englishName: "Practicals",
+    descriptor: "lit by practicals only — lamps, neon signs, screens — naturalistic mood",
+    thumbnail:  "/cinema/lighting/practicals.jpg",
+  },
+  {
+    id: "silhouette",      name: "ظل خلفي",       englishName: "Silhouette",
+    descriptor: "silhouette lighting, subject backlit to near-black against bright background",
+    thumbnail:  "/cinema/lighting/silhouette.jpg",
+  },
+];
+
+export const MOVESETS: StylePreset[] = [
+  {
+    id: "auto",              name: "تلقائي",          englishName: "Auto",
+    descriptor: "natural camera movement",
+    thumbnail:  "",
+  },
+  {
+    id: "classic-static",    name: "ثابت كلاسيكي",     englishName: "Classic Static",
+    descriptor: "classic locked-off static frame, composed, no camera movement",
+    thumbnail:  "/cinema/moveset/classic-static.mp4",
+  },
+  {
+    id: "silent-machine",    name: "آلة صامتة",        englishName: "Silent Machine",
+    descriptor: "silent machine-like dolly motion, ultra-smooth, mechanical precision",
+    thumbnail:  "/cinema/moveset/silent-machine.mp4",
+  },
+  {
+    id: "one-take",          name: "لقطة واحدة",       englishName: "One Take",
+    descriptor: "single-take continuous camera move, choreographed blocking, immersive flow",
+    thumbnail:  "/cinema/moveset/one-take.mp4",
+  },
+  {
+    id: "epic-scale",        name: "حجم ملحمي",         englishName: "Epic Scale",
+    descriptor: "epic scale camera move, sweeping crane, vast establishing reveal",
+    thumbnail:  "/cinema/moveset/epic-scale.mp4",
+  },
+  {
+    id: "intimate-observer", name: "مراقب حميمي",      englishName: "Intimate Observer",
+    descriptor: "intimate observer perspective, slow handheld push-in, breathing close-ups",
+    thumbnail:  "/cinema/moveset/intimate-observer.mp4",
+  },
+  {
+    id: "impossible-camera", name: "كاميرا مستحيلة",   englishName: "Impossible Camera",
+    descriptor: "impossible camera move, gravity-defying paths, through walls and objects",
+    thumbnail:  "/cinema/moveset/impossible-camera.mp4",
+  },
+  {
+    id: "documentary-snap",  name: "وثائقي مفاجئ",     englishName: "Documentary Snap",
+    descriptor: "documentary-style handheld with sudden whip pans and rack-focus snaps",
+    thumbnail:  "/cinema/moveset/documentary-snap.mp4",
+  },
+  {
+    id: "raw-chaos",         name: "فوضى خام",          englishName: "Raw Chaos",
+    descriptor: "raw chaotic handheld energy, unpredictable framing, kinetic disarray",
+    thumbnail:  "/cinema/moveset/raw-chaos.mp4",
+  },
+  {
+    id: "dreamy-flow",       name: "تدفق حالم",         englishName: "Dreamy Flow",
+    descriptor: "dreamy floating flow, weightless camera glide, surreal pacing",
+    thumbnail:  "/cinema/moveset/dreamy-flow.mp4",
+  },
+];
+
 export const APERTURES: AperturePreset[] = [
   { id: "f/1.4", label: "f/1.4", descriptor: "shallow depth of field, creamy bokeh",  thumbnail: "/cinema/f_1_4.webp" },
   { id: "f/4",   label: "f/4",   descriptor: "balanced depth of field",                thumbnail: "/cinema/f_4.webp"   },
@@ -193,20 +414,40 @@ export function buildCinemaPrompt(opts: {
   lensId:     string;
   focal:      number;
   apertureId: string;
+  /** Optional style/genre layers — when "auto" or omitted we skip the
+   *  fragment so the model gets a cleaner prompt. */
+  genreId?:    string;
+  paletteId?:  string;
+  lightingId?: string;
+  movesetId?:  string;
 }): string {
   const camera   = CAMERAS.find((c) => c.id === opts.cameraId)   ?? CAMERAS[0]!;
   const lens     = LENSES.find((l)  => l.id === opts.lensId)     ?? LENSES[0]!;
   const focal    = FOCAL_LENGTHS.find((f) => f.id === opts.focal) ?? FOCAL_LENGTHS[3]!;
   const aperture = APERTURES.find((a) => a.id === opts.apertureId) ?? APERTURES[0]!;
+  const genre    = opts.genreId    ? GENRES.find((g)          => g.id === opts.genreId)    : undefined;
+  const palette  = opts.paletteId && opts.paletteId !== "auto"
+                   ? COLOR_PALETTES.find((p) => p.id === opts.paletteId) : undefined;
+  const lighting = opts.lightingId && opts.lightingId !== "auto"
+                   ? LIGHTING_STYLES.find((l) => l.id === opts.lightingId) : undefined;
+  const moveset  = opts.movesetId && opts.movesetId !== "auto"
+                   ? MOVESETS.find((m)        => m.id === opts.movesetId) : undefined;
 
+  // Order matters: subject → genre vibe → camera/lens optics → light/grade
+  // → motion → finishing. Higgsfield's prompt grammar follows this order
+  // and the model responds well to it.
   return [
     opts.basePrompt.trim(),
+    genre    && genre.id !== "general" ? genre.descriptor : null,
     `shot on a ${camera.descriptor}`,
     `using a ${lens.descriptor} at ${focal.label} (${focal.descriptor})`,
     `aperture ${aperture.id}, ${aperture.descriptor}`,
+    lighting?.descriptor ?? null,
+    palette?.descriptor  ?? null,
+    moveset?.descriptor  ?? null,
     "cinematic lighting, natural color science, high dynamic range",
     "professional photography, ultra-detailed, 8K resolution",
-  ].join(", ");
+  ].filter(Boolean).join(", ");
 }
 
 export const CINEMA_DEFAULTS = {
@@ -216,4 +457,10 @@ export const CINEMA_DEFAULTS = {
   apertureId:  APERTURES[0]!.id,         // f/1.4
   aspect:      "16:9" as string,
   resolution:  "2k"   as string,
+  // New layers default to "auto/general" so behaviour is unchanged
+  // until the user explicitly opts in.
+  genreId:     "general"                   as string,
+  paletteId:   "auto"                      as string,
+  lightingId:  "auto"                      as string,
+  movesetId:   "auto"                      as string,
 };
