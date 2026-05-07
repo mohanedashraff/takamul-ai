@@ -218,7 +218,7 @@ const ToolSliderSection = ({ title, desc, colorClass, shadowColor, items }: { ti
               style={{ ...baseStyle, ...activeStyle }}
               className={`shrink-0 w-[280px] md:w-[340px] snap-center bento-card rounded-[2rem] p-3 group hover:scale-[1.02] hover:-translate-y-2 transition-all duration-500 cursor-pointer`}
             >
-            <div className="w-full h-[200px] rounded-[1.5rem] bg-black mb-5 overflow-hidden relative">
+            <div className="w-full h-[280px] md:h-[300px] rounded-[1.5rem] bg-black mb-5 overflow-hidden relative">
               <MediaRenderer media={tool.image} alt={tool.title} />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-5">
                 <tool.icon className={`w-7 h-7 ${colorClass}`} />

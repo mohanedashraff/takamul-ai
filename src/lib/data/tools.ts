@@ -411,6 +411,97 @@ export const IMAGE_TOOLS: Tool[] = [
       },
     ],
   },
+
+  // ── Soul Cinema (Higgsfield-style cinematic image gen) ──────────────
+  // Replicates Higgsfield's "Soul Cinema" model on top of nano-banana-pro
+  // by injecting their signature cinematic descriptor into the prompt.
+  // The actual MuAPI call lives in /api/tools/soul-cinema.
+  {
+    id: "soul-cinema",
+    title: "Soul Cinema — صور سينمائية",
+    desc: "صور بجودة هوليوود — drama lighting, anamorphic frame, color grade سينمائي ودقة 4K.",
+    icon: Film,
+    image: "/tool-thumbnails/soul-cinema.png",
+    credits: 6,
+    isNew: true,
+    customRunner: {
+      endpoint: "/api/tools/soul-cinema",
+      paramMap: {
+        prompt:             "prompt",
+        aspect_ratio:       "aspect_ratio",
+        quality:            "quality",
+        character_url:      "character_url",
+        color_transfer_url: "color_transfer_url",
+        enhance_prompt:     "enhance_prompt",
+        num_outputs:        "num_outputs",
+      },
+    },
+    inputs: [
+      {
+        id: "prompt",
+        type: "prompt",
+        label: "اوصف المشهد",
+        placeholder: "مثال: امرأة بمعطف أحمر تقف على سطح ناطحة سحاب وقت الغروب",
+        required: true,
+        attachments: { accept: "image/*", max: 1 },
+      },
+      {
+        id: "aspect_ratio",
+        type: "ratio-picker",
+        label: "نسبة الأبعاد",
+        options: [
+          { value: "16:9", label: "16:9", aspect: [16, 9] },
+          { value: "9:16", label: "9:16", aspect: [9, 16] },
+          { value: "1:1",  label: "1:1",  aspect: [1, 1]  },
+          { value: "4:5",  label: "4:5",  aspect: [4, 5]  },
+          { value: "3:4",  label: "3:4",  aspect: [3, 4]  },
+          { value: "21:9", label: "21:9" },
+          { value: "4:3",  label: "4:3",  aspect: [4, 3]  },
+          { value: "3:2",  label: "3:2",  aspect: [3, 2]  },
+        ],
+        defaultValue: "16:9",
+      },
+      {
+        id: "quality",
+        type: "button-group",
+        label: "الجودة",
+        options: [
+          { value: "1.5k", label: "1.5K — أسرع وأرخص" },
+          { value: "2k",   label: "2K — موصى به" },
+          { value: "4k",   label: "4K — أعلى جودة" },
+        ],
+        defaultValue: "2k",
+      },
+      {
+        id: "character_url",
+        type: "upload",
+        label: "صورة شخصية مرجعية (اختياري)",
+        accept: "image/*",
+        hint: "هتحافظ على ملامح الشخصية في النتيجة",
+      },
+      {
+        id: "color_transfer_url",
+        type: "upload",
+        label: "صورة لنقل الألوان (اختياري)",
+        accept: "image/*",
+        hint: "هتنقل لوحة الألوان والـ grade من الصورة دي",
+      },
+      {
+        id: "enhance_prompt",
+        type: "toggle",
+        label: "تعزيز الـ prompt",
+        defaultValue: true,
+      },
+      {
+        id: "num_outputs",
+        type: "counter",
+        label: "عدد المخرجات",
+        min: 1,
+        max: 4,
+        defaultValue: 1,
+      },
+    ],
+  },
   {
     id: "text-to-image",
     title: "توليد صورة",

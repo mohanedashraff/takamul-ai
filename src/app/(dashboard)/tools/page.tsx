@@ -180,8 +180,8 @@ function ToolsContent() {
                       </div>
                     ) : null}
 
-                    {/* Image */}
-                    <div className="w-full h-[180px] rounded-[1.5rem] bg-black mb-4 overflow-hidden relative pointer-events-none">
+                    {/* Image — taller card for a more cinematic look */}
+                    <div className="w-full h-[260px] sm:h-[280px] rounded-[1.5rem] bg-black mb-4 overflow-hidden relative pointer-events-none">
                       <MediaRenderer media={tool.image} alt={tool.title} />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-5">
                         <tool.icon className={`w-7 h-7 ${tool.colorClass}`} />

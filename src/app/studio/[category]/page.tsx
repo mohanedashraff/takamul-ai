@@ -62,7 +62,7 @@ export default function StudioCategoryPage({ params }: { params: Promise<{ categ
               style={{ ...baseStyle, ...activeStyle }}
               className={`w-full h-full bento-card rounded-[2rem] p-3 group hover:scale-[1.02] hover:-translate-y-2 transition-all duration-500 cursor-pointer relative`}
             >
-              <div className="w-full h-[180px] rounded-[1.5rem] bg-black mb-5 overflow-hidden relative pointer-events-none">
+              <div className="w-full h-[260px] sm:h-[280px] rounded-[1.5rem] bg-black mb-5 overflow-hidden relative pointer-events-none">
                 <MediaRenderer media={tool.image} alt={tool.title} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-5">
                   <tool.icon className={`w-7 h-7 ${config.colorClass}`} />
