@@ -35,7 +35,7 @@ export default function SettingsPage() {
   return (
     <div className="site-container py-8 pb-20 space-y-8">
       <div>
-        <h1 className="text-4xl font-black text-white mb-2">الإعدادات</h1>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white mb-2">الإعدادات</h1>
         <p className="text-gray-400">إدارة حسابك وإعداداتك</p>
       </div>
 
@@ -402,7 +402,7 @@ function BillingTab() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <div className="text-4xl font-black text-accent-400 tabular-nums">
+            <div className="text-2xl sm:text-3xl md:text-4xl font-black text-accent-400 tabular-nums">
               {user.creditsBalance.toLocaleString("en")}
             </div>
             <p className="text-xs text-gray-500 mt-1">من أصل {user.creditsLimit.toLocaleString("en")}</p>
@@ -573,14 +573,14 @@ function ReferralsTab() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <div className="text-3xl font-black text-white tabular-nums">
+            <div className="text-2xl sm:text-3xl font-black text-white tabular-nums">
               {data.stats.totalReferrals.toLocaleString("en")}
             </div>
             <p className="text-xs text-gray-500 mt-1">أصدقاء انضموا</p>
           </div>
           <div className="h-px bg-white/5" />
           <div>
-            <div className="text-3xl font-black text-accent-400 tabular-nums flex items-center gap-1.5">
+            <div className="text-2xl sm:text-3xl font-black text-accent-400 tabular-nums flex items-center gap-1.5">
               <Zap className="w-5 h-5" />
               {data.stats.totalEarnedCredits.toLocaleString("en")}
             </div>

@@ -112,7 +112,7 @@ function RegisterInner() {
 
         {/* Form Container */}
         <div className="w-full max-w-sm mx-auto my-auto py-12">
-          <h1 className="text-3xl font-black text-white mb-2">إنشاء حساب جديد</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-white mb-2">إنشاء حساب جديد</h1>
           <p className="text-gray-400 text-sm mb-6">ابدأ رحلتك في بناء وتوليد إبداعاتك باستخدام أحدث النماذج.</p>
 
           {referralCode && (

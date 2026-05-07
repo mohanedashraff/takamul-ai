@@ -249,10 +249,10 @@ export function InpaintWorkspace({ tool, config }: Props) {
     <div className="flex flex-col min-h-screen bg-bg-primary">
       <Navbar />
 
-      <div className="flex flex-1 overflow-hidden pt-16 md:pt-20">
+      <div className="flex flex-col md:flex-row flex-1 md:overflow-hidden pt-16 md:pt-20">
 
         {/* ── RIGHT SIDEBAR ────────────────────────────────────────────── */}
-        <aside className="w-[340px] shrink-0 border-l border-white/5 bg-black/50 backdrop-blur-3xl flex flex-col z-10">
+        <aside className="w-full md:w-[340px] md:shrink-0 border-t md:border-t-0 md:border-l border-white/5 bg-black/50 backdrop-blur-3xl flex flex-col z-10">
           <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5 hide-scroll">
 
             {/* Prompt */}

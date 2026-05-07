@@ -38,7 +38,7 @@ export default function AdminBillingPage() {
 
   if (loading) {
     return (
-      <div className="p-20 flex items-center justify-center">
+      <div className="p-8 sm:p-20 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-accent-400" />
       </div>
     );
@@ -167,7 +167,7 @@ export default function AdminBillingPage() {
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {recentSubscriptions.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">لا توجد اشتراكات بعد</div>
+            <div className="p-6 sm:p-12 text-center text-gray-500">لا توجد اشتراكات بعد</div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-white/[0.02] text-xs font-bold text-gray-500 uppercase tracking-wider">

@@ -124,7 +124,7 @@ export default function SpacesPage() {
       <div className="site-container relative z-10 py-12 flex flex-col gap-10">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-[#0a0a0f]/50 backdrop-blur-3xl border border-white/5 p-8 rounded-[2.5rem]">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-[#0a0a0f]/50 backdrop-blur-3xl border border-white/5 p-5 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem]">
           <div className="flex items-start md:items-center gap-5">
             <div className="w-16 h-16 rounded-2xl bg-black/50 border border-white/10 flex items-center justify-center shrink-0">
               <Frame className="w-8 h-8 text-accent-400" />

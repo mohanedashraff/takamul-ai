@@ -349,7 +349,7 @@ function EmptyState({ onPick }: { onPick: (s: string) => void }) {
         <div className="w-16 h-16 rounded-2xl bg-accent-400/10 border border-accent-400/30 flex items-center justify-center mx-auto mb-5">
           <Bot className="w-9 h-9 text-accent-400" />
         </div>
-        <h2 className="text-3xl font-black text-white mb-2">إزيك! إيه اللي ممكن أساعدك فيه؟</h2>
+        <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">إزيك! إيه اللي ممكن أساعدك فيه؟</h2>
         <p className="text-gray-500 mb-8">اسأل في أي حاجة، تحليل، برمجة، تلخيص، أفكار…</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {SUGGESTIONS.map((s, i) => (

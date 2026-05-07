@@ -74,7 +74,7 @@ function LoginInner() {
 
         {/* Form Container */}
         <div className="w-full max-w-sm mx-auto my-auto py-12">
-          <h1 className="text-3xl font-black text-white mb-2">تسجيل الدخول</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-white mb-2">تسجيل الدخول</h1>
           <p className="text-gray-400 text-sm mb-10">مرحباً بعودتك! أدخل بياناتك للوصول إلى مساحة العمل الخاصة بك.</p>
           
           <form className="space-y-5" onSubmit={handleSubmit}>

@@ -181,7 +181,7 @@ export default function PricingPage() {
 
                     <div className="mb-6">
                       {isFree ? (
-                        <span className="text-4xl font-black text-white">مجاني</span>
+                        <span className="text-3xl sm:text-4xl font-black text-white">مجاني</span>
                       ) : (
                         <>
                           <span className="text-4xl font-black text-white">${plan.monthlyUsd}</span>
@@ -257,7 +257,7 @@ export default function PricingPage() {
                   <Package className="w-5 h-5 text-accent-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white">{p.name}</h4>
-                <p className="text-3xl font-black text-accent-400 mt-2">{p.credits.toLocaleString("en")}</p>
+                <p className="text-2xl sm:text-3xl font-black text-accent-400 mt-2">{p.credits.toLocaleString("en")}</p>
                 <p className="text-xs text-gray-500 mb-2">كريديت {p.bonus > 0 && <span className="text-emerald-400">+ {p.bonus} مكافأة</span>}</p>
                 <p className="text-2xl font-black text-white mb-4">${p.usd}</p>
                 <Button

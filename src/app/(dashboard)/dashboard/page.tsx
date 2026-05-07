@@ -134,7 +134,7 @@ export default function DashboardOverview() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-2">
-              <div className="text-5xl font-black text-white tabular-nums">
+              <div className="text-3xl sm:text-4xl md:text-5xl font-black text-white tabular-nums">
                 {user.creditsBalance.toLocaleString("en")}
               </div>
               <div className="text-sm text-gray-500 mb-2 font-medium">
@@ -284,7 +284,7 @@ export default function DashboardOverview() {
             return (
               <Link key={i} href={tool.customRoute ?? `/tools/${tool.id}`}>
                 <Card className="group cursor-pointer border-white/5 hover:border-primary-400/50 hover:-translate-y-2 transition-all duration-500 h-full">
-                  <CardContent className="p-8 flex flex-col items-center text-center">
+                  <CardContent className="p-5 sm:p-8 flex flex-col items-center text-center">
                     <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 border border-white/10 bg-accent-400/10 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(254,228,64,0.4)] transition-all duration-500">
                       <Icon className="w-8 h-8 text-accent-400" />
                     </div>

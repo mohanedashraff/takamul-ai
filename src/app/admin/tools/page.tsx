@@ -64,7 +64,7 @@ export default function AdminToolsPage() {
 
   if (loading) {
     return (
-      <div className="p-20 flex items-center justify-center">
+      <div className="p-8 sm:p-20 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-accent-400" />
       </div>
     );
@@ -126,7 +126,7 @@ export default function AdminToolsPage() {
       <Card className="border-border-glass">
         <CardContent className="p-0 overflow-x-auto">
           {filtered.length === 0 ? (
-            <div className="p-20 text-center text-gray-500">لا توجد أدوات مطابقة</div>
+            <div className="p-8 sm:p-20 text-center text-gray-500">لا توجد أدوات مطابقة</div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-white/[0.02] text-xs font-bold text-gray-500 uppercase tracking-wider">

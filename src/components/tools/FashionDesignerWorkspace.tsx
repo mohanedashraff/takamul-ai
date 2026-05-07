@@ -317,10 +317,10 @@ export function FashionDesignerWorkspace({ tool, config }: {
     <div className="h-screen flex flex-col bg-bg-primary overflow-hidden">
       <Navbar />
 
-      <div className="flex flex-1 min-h-0 pt-16 md:pt-20">
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 pt-16 md:pt-20">
 
         {/* ── RIGHT SIDEBAR (first child = right side in RTL) ──────────────── */}
-        <aside className="w-[288px] shrink-0 border-l border-white/5 bg-black/50 backdrop-blur-3xl flex flex-col overflow-hidden">
+        <aside className="w-full md:w-[288px] md:shrink-0 border-t md:border-t-0 md:border-l border-white/5 bg-black/50 backdrop-blur-3xl flex flex-col overflow-hidden">
 
           {/* Gender + Reset */}
           <div className="shrink-0 px-3 pt-3 pb-2.5 flex items-center justify-between border-b border-white/5">

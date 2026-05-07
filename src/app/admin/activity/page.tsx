@@ -55,11 +55,11 @@ export default function AdminActivityPage() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-20 flex items-center justify-center">
+            <div className="p-8 sm:p-20 flex items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-accent-400" />
             </div>
           ) : events.length === 0 ? (
-            <div className="p-20 text-center text-gray-500">لا يوجد نشاط</div>
+            <div className="p-8 sm:p-20 text-center text-gray-500">لا يوجد نشاط</div>
           ) : (
             <ul className="divide-y divide-white/5">
               {events.map((ev) => (

@@ -243,7 +243,7 @@ function KpiCard({
             <Icon className="w-4 h-4" />
           </div>
         </div>
-        <div className="text-3xl font-black text-white tabular-nums">{value.toLocaleString("en")}</div>
+        <div className="text-2xl sm:text-3xl font-black text-white tabular-nums">{value.toLocaleString("en")}</div>
         {footer && <div className="mt-2">{footer}</div>}
       </CardContent>
     </Card>
