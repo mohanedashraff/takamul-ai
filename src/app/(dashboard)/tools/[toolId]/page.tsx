@@ -33,6 +33,7 @@ import { FaceSwapWorkspace }         from "@/components/tools/FaceSwapWorkspace"
 import { WhatsNextWorkspace }        from "@/components/tools/WhatsNextWorkspace";
 import { SketchToVideoWorkspace }    from "@/components/tools/SketchToVideoWorkspace";
 import { VideoTransitionsWorkspace } from "@/components/tools/VideoTransitionsWorkspace";
+import { SidebarToolWorkspace }      from "@/components/tools/SidebarToolWorkspace";
 
 function findToolById(toolId: string): { tool: Tool; categoryKey: ToolCategory } | null {
   for (const catKey of Object.keys(STUDIO_CATEGORIES) as ToolCategory[]) {
@@ -67,8 +68,12 @@ export default function ToolPage({ params }: { params: Promise<{ toolId: string 
     case "whats-next":        return <WhatsNextWorkspace        tool={tool} config={config} />;
     case "sketch-to-video":   return <SketchToVideoWorkspace    tool={tool} config={config} />;
     case "video-transitions": return <VideoTransitionsWorkspace tool={tool} config={config} />;
-    case "centered":          return <CenteredToolInterface tool={tool} config={config} categoryKey={categoryKey} />;
-    default:                  return <ToolInterface         tool={tool} config={config} categoryKey={categoryKey} />;
+    // Both `centered` and the default form layout now share the
+    // SidebarToolWorkspace — sidebar with all the inputs anchored
+    // right (RTL), big result canvas filling the rest of the page.
+    case "centered":
+    default:
+      return <SidebarToolWorkspace tool={tool} config={config} categoryKey={categoryKey} />;
   }
 }
 
