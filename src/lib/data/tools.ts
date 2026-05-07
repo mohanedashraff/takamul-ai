@@ -412,6 +412,28 @@ export const IMAGE_TOOLS: Tool[] = [
     ],
   },
 
+  // ── Soul 2.0 — Higgsfield's flagship aesthetic image model ──────────
+  // Full-fidelity port of higgsfield.ai/ai/image?model=soul-v2 with all
+  // 33 mood boards, 6 color signatures, Soul ID character consistency,
+  // Build-your-own moodboard upload (5+ photos), and HEX color
+  // extraction from any reference image. Bespoke studio at /soul.
+  {
+    id: "soul-2",
+    title: "Soul 2.0 — صور Editorial",
+    desc: "موديل Higgsfield الرائد — Mood Boards، Soul HEX للألوان، Soul ID لشخصية ثابتة، وأكتر من ٣٣ ستايل جاهز.",
+    icon: Sparkles,
+    image: "/tool-thumbnails/soul-2.mp4",
+    credits: 8,
+    isNew: true,
+    studio: true,
+    customRoute: "/soul",
+    inputs: [
+      // The studio at /soul has its own bespoke shoot bar — these are
+      // kept minimal so it still satisfies the Tool schema.
+      { id: "prompt", type: "prompt", label: "اوصف المشهد", required: true },
+    ],
+  },
+
   // ── Soul Cinema (Higgsfield-style cinematic image gen) ──────────────
   // Replicates Higgsfield's "Soul Cinema" model on top of nano-banana-pro
   // by injecting their signature cinematic descriptor into the prompt.

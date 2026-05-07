@@ -56,6 +56,8 @@ model User {
   referralsGiven     Referral[]    @relation("Referrer")
   referralsReceived  Referral[]    @relation("Referee")
   referralCode       String?       @unique
+  soulMoodboards     SoulMoodboard[]
+  soulCharacters     SoulCharacter[]
 }
 
 enum Plan {
@@ -413,3 +415,67 @@ model Referral {
   @@index([referrerId])
 }
 
+
+// ════════════════════════════════════════════════════════════════════
+// SOUL 2.0 — user-created moodboards and Soul ID characters.
+// ════════════════════════════════════════════════════════════════════
+// We don't fine-tune an actual model on the user's photos (no infra
+// for that yet) — we store the references and pass them at generation
+// time as `images_list` to the underlying image model. From the user's
+// perspective the experience is the same: "build my moodboard" → see
+// it in a list → use it on future generations.
+
+// A user-built moodboard. Hard minimum is 5 reference images per the
+// Higgsfield UX; we don't enforce a max but the picker recommends
+// 20–30 for cohesion.
+model SoulMoodboard {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String                          // "My Y2K vibes", "Brand book Q1"
+  description String?                         // optional caption
+  // Full URLs of the user's reference images stored on muapi.
+  imageUrls   String[]
+  // The synthesized prompt fragment we extract from the references at
+  // creation time (e.g. via a Vision LLM). Falls back to a generic
+  // descriptor if extraction fails.
+  descriptor  String?
+  thumbnail   String?                         // first image, used in the picker card
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// A "Soul ID" — a saved character the user wants to keep consistent
+// across generations. Higgsfield's flow asks for ≥20 photos from
+// multiple angles; we store them all and pick a smart subset (3–5)
+// to pass as references on each generation.
+model SoulCharacter {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String                          // "Ahmed (me)", "Brand model Sarah"
+  // Which Soul model this character was trained against — "soul-2.0",
+  // "soul-cinema", "soul" — so we can filter the picker UI exactly
+  // like Higgsfield does (All / Soul / Soul 2.0 / Soul Cinema tabs).
+  variant     String   @default("soul-2.0")
+  // Up to ~30 reference photos. The first one is also the avatar.
+  imageUrls   String[]
+  thumbnail   String?
+  // Free-form note appended to prompts when this character is active
+  // (e.g. "the same young man with curly black hair from the
+  // reference"). Auto-generated from the photos when possible.
+  hintText    String?
+  // Whether the (fake) training has finished. We flip this to true
+  // ~3 minutes after creation to mirror Higgsfield's UX, even though
+  // there's no real training happening backstage.
+  trained     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, variant])
+}

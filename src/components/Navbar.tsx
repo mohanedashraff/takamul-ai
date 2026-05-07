@@ -30,10 +30,11 @@ interface NavItem {
 const PRIMARY_NAV: NavItem[] = [
   { href: "/",          label: "الرئيسية",   icon: Home                                       },
   { href: "/tools",     label: "الأدوات",    icon: LayoutGrid                                  },
+  { href: "/soul",      label: "Soul 2.0",  icon: Sparkles,  iconClass: "text-accent-400"      },
   { href: "/cinema",    label: "السينما",    icon: Film,      iconClass: "text-accent-400"      },
   { href: "/marketing", label: "التسويق",    icon: Megaphone, iconClass: "text-accent-400"      },
   { href: "/templates", label: "القوالب",    icon: Wand2,     iconClass: "text-accent-400"      },
-  { href: "/agents",    label: "الوكلاء",    icon: Bot,       iconClass: "text-violet-400"      },
+  { href: "/agents",    label: "الوكلاء",    icon: Bot,       iconClass: "text-accent-400"      },
   { href: "/chat",      label: "Yilow AI",  icon: Sparkles,  iconClass: "text-fuchsia-400", gradient: true },
   { href: "/spaces",    label: "Spaces",    icon: LayoutGrid                                  },
 ];

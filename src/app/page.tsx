@@ -779,20 +779,22 @@ export default function PremiumLanding() {
           whileInView="show"
           viewport={{ once: true, margin: "-100px" }}
           variants={staggerVar}
-          className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-6 md:gap-8 auto-rows-[280px]"
+          className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-6 md:gap-8 auto-rows-[460px] sm:auto-rows-[420px] md:auto-rows-[280px]"
         >
           {/* Card 1: Video (Large) */}
-          <motion.div variants={fadeUpVar} style={{ '--hover-border': 'rgba(254, 228, 64, 0.5)', '--hover-shadow': 'rgba(254, 228, 64, 0.2)' } as React.CSSProperties} className="bento-card col-span-1 md:col-span-4 lg:col-span-4 row-span-1 md:row-span-2 p-8 md:p-10 flex flex-col">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-14 h-14 rounded-2xl bg-accent-500/10 border border-accent-500/20 flex items-center justify-center shrink-0">
-                <Video className="w-7 h-7 text-accent-400" />
+          <motion.div variants={fadeUpVar} style={{ '--hover-border': 'rgba(254, 228, 64, 0.5)', '--hover-shadow': 'rgba(254, 228, 64, 0.2)' } as React.CSSProperties} className="bento-card col-span-1 md:col-span-4 lg:col-span-4 row-span-1 md:row-span-2 p-5 sm:p-7 md:p-10 flex flex-col">
+            <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-accent-500/10 border border-accent-500/20 flex items-center justify-center shrink-0">
+                <Video className="w-6 h-6 sm:w-7 sm:h-7 text-accent-400" />
               </div>
-              <h3 className="text-2xl md:text-3xl font-bold text-white">إنتاج الفيديو السينمائي</h3>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">إنتاج الفيديو السينمائي</h3>
             </div>
-            <p className="text-gray-400 text-lg leading-relaxed max-w-lg mb-4">قم بتوليد مقاطع فيديو متحركة عالية الدقة من مجرد وصف نصي، مع مزامنة الشفاه لأي وجه ليتحدث بكلماتك فوراً.</p>
-            
-            {/* Visual Abstract - Auto playing Video */}
-            <div className="mt-auto relative w-full h-72 md:h-80 rounded-xl flex items-center justify-center overflow-hidden">
+            <p className="text-sm sm:text-base md:text-lg text-gray-400 leading-relaxed max-w-lg mb-3 sm:mb-4">قم بتوليد مقاطع فيديو متحركة عالية الدقة من مجرد وصف نصي، مع مزامنة الشفاه لأي وجه ليتحدث بكلماتك فوراً.</p>
+
+            {/* Visual Abstract - Auto playing Video.
+                Heights tuned per breakpoint so the thumbnail stays tall enough
+                to be the visual anchor of the card on every device. */}
+            <div className="mt-auto relative w-full h-56 sm:h-64 md:h-80 rounded-xl flex items-center justify-center overflow-hidden">
               <video 
                 autoPlay={true} 
                 loop={true} 
@@ -806,17 +808,17 @@ export default function PremiumLanding() {
           </motion.div>
 
            {/* Card 2: Image Studio (Tall) - SWAPPED */}
-           <motion.div variants={fadeUpVar} style={{ '--hover-border': 'rgba(254, 228, 64, 0.5)', '--hover-shadow': 'rgba(254, 228, 64, 0.2)' } as React.CSSProperties} className="bento-card col-span-1 md:col-span-2 lg:col-span-2 row-span-1 md:row-span-2 p-8 md:p-10 flex flex-col">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-14 h-14 rounded-2xl bg-neon-pink/10 border border-neon-pink/20 flex items-center justify-center shrink-0">
-                <ImageIcon className="w-7 h-7 text-neon-pink" />
+           <motion.div variants={fadeUpVar} style={{ '--hover-border': 'rgba(254, 228, 64, 0.5)', '--hover-shadow': 'rgba(254, 228, 64, 0.2)' } as React.CSSProperties} className="bento-card col-span-1 md:col-span-2 lg:col-span-2 row-span-1 md:row-span-2 p-5 sm:p-7 md:p-10 flex flex-col">
+            <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-neon-pink/10 border border-neon-pink/20 flex items-center justify-center shrink-0">
+                <ImageIcon className="w-6 h-6 sm:w-7 sm:h-7 text-neon-pink" />
               </div>
-              <h3 className="text-2xl md:text-3xl font-bold text-white">استوديو الصور 4K</h3>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">استوديو الصور 4K</h3>
             </div>
-            <p className="text-gray-400 text-lg leading-relaxed mb-4">توليد، تكبير، وإزالة للخلفيات بدقة خرافية ومذهلة.</p>
-            
+            <p className="text-sm sm:text-base md:text-lg text-gray-400 leading-relaxed mb-3 sm:mb-4">توليد، تكبير، وإزالة للخلفيات بدقة خرافية ومذهلة.</p>
+
             {/* Visual: Sequential Videos Playlist */}
-            <div className="mt-auto relative w-full h-72 md:h-80 rounded-xl flex items-center justify-center overflow-hidden">
+            <div className="mt-auto relative w-full h-56 sm:h-64 md:h-80 rounded-xl flex items-center justify-center overflow-hidden">
               {IMAGE_VIDEOS.map((src, idx) => (
                 <video 
                   key={src}
