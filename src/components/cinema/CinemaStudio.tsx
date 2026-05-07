@@ -245,7 +245,7 @@ export function CinemaStudio() {
 
   // ── render ────────────────────────────────────────────────────────────
   return (
-    <div className="relative min-h-[calc(100vh-80px)] pb-40">
+    <div className="relative min-h-[calc(100vh-80px)] pb-72 sm:pb-56 md:pb-40">
       {/* Hero header */}
       <div className="relative pt-10 md:pt-16 pb-10 text-center px-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent-400/30 bg-accent-400/5 text-accent-400 text-xs font-black mb-5">
@@ -425,28 +425,31 @@ export function CinemaStudio() {
                   onChange={setResolution}
                 />
 
-                {/* camera summary card */}
+                {/* camera summary card — collapses to icon-only on
+                    very narrow screens so the rest of the chips have
+                    room to breathe. */}
                 <button
                   onClick={() => setOverlayOpen(true)}
-                  className="flex-1 min-w-[180px] flex items-center gap-3 px-3.5 h-10 rounded-xl border border-white/10 hover:bg-white/[0.03] transition-colors"
+                  className="flex-1 min-w-0 sm:min-w-[180px] flex items-center gap-3 px-3.5 h-10 rounded-xl border border-white/10 hover:bg-white/[0.03] transition-colors"
                   type="button"
                 >
-                  <img src={camera.thumbnail} alt="" className="w-7 h-7 rounded-md object-cover border border-white/10" />
-                  <div className="flex-1 text-right min-w-0">
+                  <img src={camera.thumbnail} alt="" className="w-7 h-7 rounded-md object-cover border border-white/10 shrink-0" />
+                  <div className="flex-1 text-right min-w-0 hidden sm:block">
                     <div className="text-[10px] text-gray-500">{camera.englishName}</div>
                     <div className="text-xs font-bold text-white truncate">
                       {lens.englishName} · {focal.label} · {aperture.id}
                     </div>
                   </div>
-                  <Camera className="w-4 h-4 text-gray-500" />
+                  <Camera className="w-4 h-4 text-gray-500 shrink-0" />
                 </button>
 
-                {/* shoot button */}
+                {/* shoot button — full-width on the smallest screens so
+                    it always reads as the primary CTA. */}
                 <button
                   onClick={onShoot}
                   disabled={!prompt.trim() || isGenerating}
                   className={cn(
-                    "h-10 px-5 rounded-xl font-black text-sm flex items-center gap-2 transition-all",
+                    "h-10 px-5 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all w-full sm:w-auto",
                     !prompt.trim() || isGenerating
                       ? "bg-white/5 text-gray-600 cursor-not-allowed"
                       : "bg-accent-400 text-black hover:scale-[1.02] active:scale-95 shadow-[0_0_24px_rgba(254,228,64,0.35)]",

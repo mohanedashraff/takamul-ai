@@ -179,7 +179,13 @@ function SpacesCanvasInner() {
   const [loaded, setLoaded] = useState(false);
   const [spaceId, setSpaceId] = useState<string | null>(null);
   const [spotlightOpen, setSpotlightOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Auto-collapse the sidebar on narrow viewports — at 360–768px the
+  // 260px sidebar covers most of the canvas and makes the studio
+  // unusable. The user can always toggle it back open with the FAB.
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.innerWidth >= 1024;
+  });
 
   // History for Undo/Redo
   const historyRef = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);

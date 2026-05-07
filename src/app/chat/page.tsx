@@ -46,7 +46,12 @@ export default function ChatPage() {
 
   const [activeModelId, setActiveModelId] = useState<string>(DEFAULT_MODEL_ID);
   const [modelOpen,     setModelOpen]     = useState(false);
-  const [sidebarOpen,   setSidebarOpen]   = useState(true);
+  // Default the conversations sidebar to OPEN on desktop, CLOSED on
+  // mobile/tablet — at < md its 280px panel covers the main column.
+  const [sidebarOpen,   setSidebarOpen]   = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.innerWidth >= 768;
+  });
   const activeModel = CHAT_MODELS.find((m) => m.id === activeModelId) ?? CHAT_MODELS[0]!;
 
   // ── Load conversations on mount ───────────────────────────────────────

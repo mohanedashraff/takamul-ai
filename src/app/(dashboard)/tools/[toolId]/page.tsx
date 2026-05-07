@@ -269,13 +269,13 @@ function CenteredToolInterface({
         className="text-center mb-10"
       >
         <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center border border-white/10 mx-auto mb-4"
+          className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center border border-white/10 mx-auto mb-4"
           style={{ backgroundColor: `rgba(${colorRgb}, 0.1)` }}
         >
-          <tool.icon className={cn("w-8 h-8", config.colorClass)} />
+          <tool.icon className={cn("w-7 h-7 sm:w-8 sm:h-8", config.colorClass)} />
         </div>
-        <h1 className="text-3xl font-black text-white mb-2">{tool.title}</h1>
-        <p className="text-gray-400 mb-4">{tool.desc}</p>
+        <h1 className="text-2xl sm:text-3xl font-black text-white mb-2 px-4">{tool.title}</h1>
+        <p className="text-sm sm:text-base text-gray-400 mb-4 px-4">{tool.desc}</p>
         <div className="flex items-center justify-center gap-3">
           <span
             className="px-3 py-1 rounded-full text-xs font-bold border"
