@@ -106,12 +106,12 @@ export function SoulStudio() {
       .catch(() => {});
   }, [moodOpen, charOpen, buildOpen]);
 
-  // ── Derived chip labels ────────────────────────────────────────────
+  // ── Derived chip labels (Arabic-first) ─────────────────────────────
   const moodboardLabel = useMemo(() => {
     const curated = MOODBOARDS.find((m) => m.id === config.moodboardId);
-    if (curated) return curated.englishName;
+    if (curated) return curated.name;
     const mine = userMoodboards.find((m) => m.id === config.moodboardId);
-    return mine?.name ?? "GENERAL";
+    return mine?.name ?? "عام";
   }, [config.moodboardId, userMoodboards]);
 
   const moodboardThumb = useMemo(() => {
@@ -122,9 +122,9 @@ export function SoulStudio() {
   }, [config.moodboardId, userMoodboards]);
 
   const colorLabel = useMemo(() => {
-    if (config.customPaletteHexes && config.customPaletteHexes.length > 0) return "Custom";
+    if (config.customPaletteHexes && config.customPaletteHexes.length > 0) return "مخصصة";
     const palette = COLOR_PALETTES.find((p) => p.id === config.paletteId);
-    return palette?.englishName ?? "Auto";
+    return palette?.name ?? "تلقائي";
   }, [config.paletteId, config.customPaletteHexes]);
 
   const characterLabel = useMemo(() => {
@@ -285,10 +285,11 @@ export function SoulStudio() {
             <Sparkles className="w-10 h-10 text-accent-400" />
           </div>
           <p className="text-white text-base sm:text-lg font-bold mb-1">صورتك الأولى تنتظرك</p>
-          <p className="text-gray-500 text-sm max-w-sm">
-            اوصف المشهد، اختار <span className="text-accent-400 font-bold">Mood Board</span> +{" "}
-            <span className="text-accent-400 font-bold">Color</span> +{" "}
-            <span className="text-accent-400 font-bold">Character</span> واضغط Generate.
+          <p className="text-gray-500 text-sm max-w-sm leading-relaxed">
+            اوصف المشهد، اختار <span className="text-accent-400 font-bold">موود بورد</span> و
+            <span className="text-accent-400 font-bold"> لوحة ألوان</span> و
+            <span className="text-accent-400 font-bold"> شخصية</span>، واضغط
+            <span className="text-accent-400 font-bold"> توليد</span>.
           </p>
         </div>
       )}

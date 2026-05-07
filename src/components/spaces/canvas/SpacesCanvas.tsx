@@ -405,7 +405,7 @@ function SpacesCanvasInner() {
   }
 
   return (
-    <div className="relative w-full h-full bg-[#0a0a0f] overflow-hidden text-white font-sans">
+    <div dir="rtl" className="relative w-full h-full bg-[#0a0a0f] overflow-hidden text-white font-sans">
       {/* ====== FLOATING RIGHT SIDEBAR (Nodes) ====== */}
       <div
         className={`

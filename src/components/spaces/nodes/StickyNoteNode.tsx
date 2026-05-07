@@ -20,6 +20,8 @@ export function StickyNoteNode({ id, data, selected }: NodeProps) {
 
   return (
     <div
+      // Re-anchor RTL — ReactFlow's container is direction: ltr.
+      dir="rtl"
       className={`
         rounded-2xl ${color.bg} ${color.border} border min-w-[200px] max-w-[280px]
         backdrop-blur-sm transition-all duration-200

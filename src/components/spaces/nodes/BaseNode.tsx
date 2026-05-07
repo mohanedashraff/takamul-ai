@@ -69,6 +69,11 @@ export function BaseNode({
 
   return (
     <div
+      // ReactFlow's container forces direction: ltr to keep its
+      // coordinate system stable. We re-anchor RTL on every node so
+      // Arabic labels and form controls inside read in the correct
+      // visual order regardless of the canvas flip.
+      dir="rtl"
       className={`
         group relative rounded-2xl border transition-all duration-200
         ${selected
