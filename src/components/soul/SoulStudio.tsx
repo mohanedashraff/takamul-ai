@@ -295,7 +295,7 @@ export function SoulStudio() {
       )}
 
       {/* ── Bottom shoot bar ────────────────────────────────────────── */}
-      <div className="fixed bottom-0 inset-x-0 z-40 px-4 pb-5 pointer-events-none">
+      <div className="fixed bottom-0 inset-x-0 z-40 px-4 pb-5 pointer-events-none" dir="rtl">
         <div className="max-w-5xl mx-auto pointer-events-auto">
           <div className="bento-card rounded-3xl border border-white/10 p-3 md:p-4 backdrop-blur-2xl bg-black/60 shadow-[0_-12px_40px_rgba(0,0,0,0.5)]">
             <div className="flex flex-col gap-3">
@@ -345,9 +345,9 @@ export function SoulStudio() {
                   onChange={(e) => setConfig((c) => ({ ...c, prompt: e.target.value }))}
                   placeholder="اوصف المشهد اللي عاوز تصوّره"
                   rows={2}
-                  className="flex-1 bg-transparent text-white placeholder-gray-500 text-sm resize-none focus:outline-none px-1"
+                  className="flex-1 bg-transparent text-white placeholder-gray-500 text-sm resize-none focus:outline-none px-1 text-right"
                   style={{ maxHeight: 160 }}
-                  dir="auto"
+                  dir="rtl"
                 />
               </div>
 
