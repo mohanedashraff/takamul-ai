@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Yilow.ai — Primary Wordmark
+  ──────────────────────────
+  Same styling as the navbar logo: "Yilow" in white, ".ai" in
+  brand yellow (#fee440), Alexandria 900 with tight tracking.
+  Use this on dark backgrounds. For light backgrounds use
+  logo-on-light.svg.
+
+  ViewBox is 1200x320 — scales cleanly to any size.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 1200 320"
+     preserveAspectRatio="xMidYMid meet"
+     role="img"
+     aria-label="Yilow.ai">
+  <defs>
+    <style type="text/css">
+      @import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@900&amp;display=swap');
+      .yilow-wordmark {
+        font-family: 'Alexandria', 'Inter', system-ui, -apple-system, 'Segoe UI', 'Arial Black', sans-serif;
+        font-weight: 900;
+        letter-spacing: -0.045em;
+      }
+    </style>
+  </defs>
+  <!-- Centred horizontally; baseline 230 keeps descenders comfortably inside -->
+  <text x="600" y="230"
+        class="yilow-wordmark"
+        font-size="240"
+        text-anchor="middle">
+    <tspan fill="#ffffff">Yilow</tspan><tspan fill="#fee440">.ai</tspan>
+  </text>
+</svg>

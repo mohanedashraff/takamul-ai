@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Yilow.ai — Compact favicon mark
+  ──────────────────────────────
+  When the wordmark is too small to read (≤32px), we fall back to a
+  monogram: a yellow "Y." stamp on a dark rounded square. Keeps the
+  ".ai" hint via the trailing dot and stays legible at 16px.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 64 64"
+     preserveAspectRatio="xMidYMid meet"
+     role="img"
+     aria-label="Yilow.ai">
+  <defs>
+    <style type="text/css">
+      @import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@900&amp;display=swap');
+      .yilow-mark {
+        font-family: 'Alexandria', 'Inter', system-ui, -apple-system, 'Segoe UI', 'Arial Black', sans-serif;
+        font-weight: 900;
+        letter-spacing: -0.06em;
+      }
+    </style>
+  </defs>
+
+  <rect width="64" height="64" rx="14" ry="14" fill="#0a0a0f"/>
+  <text x="32" y="46"
+        class="yilow-mark"
+        font-size="44"
+        text-anchor="middle">
+    <tspan fill="#ffffff">Y</tspan><tspan fill="#fee440">.</tspan>
+  </text>
+</svg>

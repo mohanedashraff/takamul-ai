@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Yilow.ai — Wordmark for LIGHT backgrounds
+  ────────────────────────────────────────
+  "Yilow" in dark ink (#0a0a0f, the site's bg color), ".ai" stays
+  brand yellow #fee440. For white/cream/light brand surfaces.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 1200 320"
+     preserveAspectRatio="xMidYMid meet"
+     role="img"
+     aria-label="Yilow.ai">
+  <defs>
+    <style type="text/css">
+      @import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@900&amp;display=swap');
+      .yilow-wordmark {
+        font-family: 'Alexandria', 'Inter', system-ui, -apple-system, 'Segoe UI', 'Arial Black', sans-serif;
+        font-weight: 900;
+        letter-spacing: -0.045em;
+      }
+    </style>
+  </defs>
+  <text x="600" y="230"
+        class="yilow-wordmark"
+        font-size="240"
+        text-anchor="middle">
+    <tspan fill="#0a0a0f">Yilow</tspan><tspan fill="#fee440">.ai</tspan>
+  </text>
+</svg>
