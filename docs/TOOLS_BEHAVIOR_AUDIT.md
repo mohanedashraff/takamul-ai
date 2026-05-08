@@ -137,6 +137,70 @@
 
 ---
 
+## 🔬 جولة تالتة (Mirror Higgsfield) — 2026-05-09
+
+اعتمدت تقنية "اعرض زر Generate في Higgsfield + اشدّ الـnetwork call" علشان نعرف الموديل + الـpayload الفعلي بتاع كل أداة. فتحت /apps/<tool> في كل واحد من ٤٧ أداة عندهم، حقنت fetch hook، وقارنت بإعداداتنا.
+
+### اكتشاف ضخم رقم 1 — change-angle
+**Higgsfield بيستخدمو موديل اسمه `qwen_camera_control_job` لأداة Angles 2.0.**
+عبر تتبع الـnetwork call شوفت الـpayload الفعلي:
+```json
+{
+  "params": {
+    "input_image": { "type": "qwen_camera_control_job", "url": "..." },
+    "rotate_degree": 0,
+    "vertical_angle": 1,
+    "move_forward_level": 0
+  }
+}
+```
+
+مقابلتُه في MuAPI: `qwen-image-edit-plus-lora` — **نفس الموديل** بنفس الحقول الـstructured:
+- `rotate_right_left`: integer ∈ [-90, +90]
+- `vertical_angle`: number ∈ [-1, +1]
+- `move_forward`: number
+- `wide_angle_lens`: boolean
+
+طبقت الفيكس: change-angle بقا يتوجّه لـqwen-image-edit-plus-lora والـworkspace بيحوّل الـUI sliders للنطاقات الصحيحة. **ده الفيكس الجذري للشكوى الأصلية بتاع اليوزر.**
+
+### اكتشاف رقم 2 — Higgsfield Billboard Ad فعلاً عندهم!
+عند `/apps/billboard` فيه أداة اسمها "Billboard Ad" — تاخد:
+- صورة + نص (Billboard Text) + toggle (image/video) + Generate (16 كريديت)
+- الناتج: شخص/منتج فعلاً معروض على بيلبورد فيه crowds/cars/cinematic timelapse
+
+ده pipeline أصعب بيتعمل في خطوتين (compose عبر flux-kontext + animate عبر i2v). **مؤجّل** كميزة كاملة. حالياً سمّيناه "حرّك صورتك" لأن موديلنا الحالي بيحرّك بس.
+
+### اكتشاف رقم 3 — Relight UX مطابق ١٠٠٪
+Higgsfield Relight: presets quick-select (Top/Front/Right/Left/Back/Bottom) + sphere drag + Soft/Hard + Brightness slider + Color picker.
+**أداتنا عندها كل ده بالفعل** بنفس الترتيب. مفيش UI gap.
+
+### اكتشاف رقم 4 — Higgsfield apps أكتر من ٤٧:
+Apps هم مش ستديوهات منفصلة بل أدوات one-click. عناوين مفيدة لاحظتها مش عندنا:
+- **Color grading** — تصحيح ألوان احترافي للصور
+- **Behind the Scenes** — لقطات BTS من صورة
+- **Zooms** — زوم في صورة بطريقة سينمائية
+- **Style Snap** — تحويل أسلوب الصورة
+- **Headshot Generator** — صور رسمية للسيرة الذاتية
+- **AI Stylist** — fitting room تجريب ملابس
+- **Outfit Swap** — تبديل ملابس احترافي
+- **Recast / Character Swap 2.0** — character swap في الفيديوهات
+
+دي ميزات يمكن نضيفها لاحقاً.
+
+---
+
+## 🛠️ ملخّص الـCommits المتعلّقة
+
+| Commit | اللي اتعمل |
+|---|---|
+| `Tools: full paramMap audit fixes` | ٧ أدوات paramMap بقت متطابقة مع MuAPI الحالية |
+| `executeTool: auto-wrap singletons into images_list` | dorm helper للأدوات اللي MuAPI طلبها كـarray |
+| `video-editor: switch to real v2v editors` | runway-aleph-v2v بدل kling-motion-control |
+| `Tools: semantic audit fixes` | ٦ أدوات (video-vfx, video-transitions, restore-image, إلخ) |
+| `Tools: 5 deeper semantic fixes` | qwen camera control + NL lighting + smart fashion routing |
+
+---
+
 ## 🔮 خطّة المستقبل لباقي الأدوات
 
 ### مؤجّل لإصدار قادم:
