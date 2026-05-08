@@ -406,6 +406,74 @@ export const CINEMA_RESOLUTIONS = [
   { id: "4k", label: "4K — جودة عالية" },
 ] as const;
 
+// ── Video mode (Cinema Studio also produces motion clips, mirroring
+//    Higgsfield's Cinema Studio image/video toggle). ────────────────────
+
+export type CinemaMode = "image" | "video";
+
+/**
+ * Aspect ratios offered when the user is generating a video. Kling
+ * v3.0-pro accepts these three; we omit ultra-wide because the motion
+ * model crops badly on 21:9.
+ */
+export const CINEMA_VIDEO_ASPECTS = [
+  { id: "16:9", label: "16:9 سينمائي" },
+  { id: "9:16", label: "9:16 عمودي"   },
+  { id: "1:1",  label: "1:1 مربع"     },
+] as const;
+
+/** Kling supports 5s and 10s; longer clips cost ~2× the credits. */
+export const CINEMA_VIDEO_DURATIONS = [
+  { id: 5,  label: "5 ثواني"  },
+  { id: 10, label: "10 ثواني" },
+] as const;
+
+/** Video resolution choices — 720p is the cheap path, 1080p the headline. */
+export const CINEMA_VIDEO_RESOLUTIONS = [
+  { id: "720p",  label: "720p — أرخص" },
+  { id: "1080p", label: "1080p — أعلى جودة 🔥", recommended: true },
+] as const;
+
+/**
+ * Pick the right MuAPI endpoint for a given Cinema generation:
+ *   - image w/o reference → nano-banana-pro
+ *   - image w/  reference → nano-banana-pro-edit
+ *   - video w/o reference → kling-v3.0-pro-text-to-video
+ *   - video w/  reference → kling-v2.1-pro-i2v
+ *
+ * (kling-v3.0-pro-text-to-video doesn't accept image references; for
+ *  image-to-video we drop down to the v2.1 image-to-video endpoint.)
+ */
+export function resolveCinemaEndpoint(opts: {
+  mode:      CinemaMode;
+  hasReference: boolean;
+}): string {
+  if (opts.mode === "video") {
+    return opts.hasReference ? "kling-v2.1-pro-i2v" : "kling-v3.0-pro-text-to-video";
+  }
+  return opts.hasReference ? "nano-banana-pro-edit" : "nano-banana-pro";
+}
+
+/**
+ * Cost calculator. Image cost is flat (8 credits). Video cost scales
+ * with duration × resolution (1080p ≈ 2× 720p). Calibrated against
+ * the static `credits: 12` ceiling in tools.ts but goes higher when
+ * the user picks longer/larger video.
+ */
+export function computeCinemaCost(opts: {
+  mode:        CinemaMode;
+  duration?:   number;       // seconds (video only)
+  resolution:  string;
+}): number {
+  if (opts.mode === "image") {
+    return opts.resolution === "4k" ? 12 : opts.resolution === "2k" ? 8 : 5;
+  }
+  // Video: per-second base × resolution multiplier
+  const perSec = opts.resolution === "1080p" ? 5 : 2.5;
+  const dur    = opts.duration ?? 5;
+  return Math.ceil(dur * perSec);
+}
+
 // ── Prompt builder (English fragment) ─────────────────────────────────
 
 export function buildCinemaPrompt(opts: {
@@ -457,6 +525,12 @@ export const CINEMA_DEFAULTS = {
   apertureId:  APERTURES[0]!.id,         // f/1.4
   aspect:      "16:9" as string,
   resolution:  "2k"   as string,
+  // Cinema studio defaults to image mode for back-compat with existing
+  // history. Users opt into video via the segmented control.
+  mode:           "image"  as CinemaMode,
+  videoAspect:    "16:9"   as string,
+  videoResolution: "1080p" as string,
+  videoDuration:  5,
   // New layers default to "auto/general" so behaviour is unchanged
   // until the user explicitly opts in.
   genreId:     "general"                   as string,

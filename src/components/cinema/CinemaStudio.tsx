@@ -6,15 +6,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Film, Sparkles, Camera, Image as ImageIcon, X, Loader2,
   Download, Maximize2, Plus, ChevronDown, Drama, Palette, Bot,
+  Video as VideoIcon, Zap,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import {
   CAMERAS, LENSES, FOCAL_LENGTHS, APERTURES,
   CINEMA_ASPECTS, CINEMA_RESOLUTIONS,
+  CINEMA_VIDEO_ASPECTS, CINEMA_VIDEO_DURATIONS, CINEMA_VIDEO_RESOLUTIONS,
   CINEMA_DEFAULTS,
   GENRES, COLOR_PALETTES, LIGHTING_STYLES, MOVESETS,
-  buildCinemaPrompt,
+  buildCinemaPrompt, resolveCinemaEndpoint, computeCinemaCost,
+  type CinemaMode,
 } from "@/lib/data/cinema";
 import { CameraSettingsOverlay, type CameraConfig } from "./CameraSettingsOverlay";
 import { GenrePicker } from "./GenrePicker";
@@ -23,18 +26,26 @@ import { AiDirectorSidebar, type DirectorPicks } from "./AiDirectorSidebar";
 import { uploadFile } from "@/lib/muapi";
 import { runMuapiTool } from "@/lib/run-tool";
 
-const PERSIST_KEY = "yilow_cinema_studio_v1";
+// Bumped to v2 when the image/video toggle landed — old v1 history
+// rows didn't carry a `mode` field, so we fall back to "image" when
+// reading them back.
+const PERSIST_KEY = "yilow_cinema_studio_v2";
 const HISTORY_LIMIT = 50;
 
 export interface CinemaShot {
   id:        string;
   url:       string;
+  /** Whether the saved url is a still image or a motion clip. Older
+   *  rows (pre-video-mode) won't have this — they're always images. */
+  mode?:     CinemaMode;
   timestamp: number;
   prompt:    string;
   config:    CameraConfig & {
     aspect:     string;
     resolution: string;
     reference?: string;
+    /** Video-mode duration in seconds. Undefined for image shots. */
+    duration?:  number;
     genreId?:   string;
     paletteId?: string;
     lightingId?:string;
@@ -50,8 +61,15 @@ export function CinemaStudio() {
     focal:      CINEMA_DEFAULTS.focal,
     apertureId: CINEMA_DEFAULTS.apertureId,
   });
+  // Image-mode controls
   const [aspect,     setAspect]     = useState<string>(CINEMA_DEFAULTS.aspect);
   const [resolution, setResolution] = useState<string>(CINEMA_DEFAULTS.resolution);
+  // Video-mode controls (separate state so flipping the toggle preserves
+  // each side's last selection)
+  const [mode,            setMode]            = useState<CinemaMode>(CINEMA_DEFAULTS.mode);
+  const [videoAspect,     setVideoAspect]     = useState<string>(CINEMA_DEFAULTS.videoAspect);
+  const [videoResolution, setVideoResolution] = useState<string>(CINEMA_DEFAULTS.videoResolution);
+  const [videoDuration,   setVideoDuration]   = useState<number>(CINEMA_DEFAULTS.videoDuration);
   // Higgsfield-parity layers — each picker writes its id here. The
   // prompt builder treats "auto"/"general" as no-op so previous prompts
   // keep working until the user explicitly opts in.
@@ -72,7 +90,7 @@ export function CinemaStudio() {
   const [genreOpen,    setGenreOpen]    = useState(false);
   const [styleOpen,    setStyleOpen]    = useState(false);
   const [directorOpen, setDirectorOpen] = useState(false);
-  const [fullscreen,  setFullscreen]  = useState<string | null>(null);
+  const [fullscreen,  setFullscreen]  = useState<{ url: string; mode: CinemaMode } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // ── persistence ───────────────────────────────────────────────────────
@@ -84,6 +102,8 @@ export function CinemaStudio() {
         config: CameraConfig; aspect: string; resolution: string;
         reference: string | null; history: CinemaShot[];
         genreId: string; style: StyleValue;
+        mode: CinemaMode;
+        videoAspect: string; videoResolution: string; videoDuration: number;
       }>;
       if (parsed.config)     setConfig(parsed.config);
       if (parsed.aspect)     setAspect(parsed.aspect);
@@ -92,6 +112,10 @@ export function CinemaStudio() {
       if (Array.isArray(parsed.history)) setHistory(parsed.history);
       if (typeof parsed.genreId === "string") setGenreId(parsed.genreId);
       if (parsed.style)      setStyle(parsed.style);
+      if (parsed.mode === "image" || parsed.mode === "video") setMode(parsed.mode);
+      if (typeof parsed.videoAspect === "string")     setVideoAspect(parsed.videoAspect);
+      if (typeof parsed.videoResolution === "string") setVideoResolution(parsed.videoResolution);
+      if (typeof parsed.videoDuration === "number")   setVideoDuration(parsed.videoDuration);
     } catch {}
   }, []);
 
@@ -100,11 +124,13 @@ export function CinemaStudio() {
       try {
         localStorage.setItem(PERSIST_KEY, JSON.stringify({
           config, aspect, resolution, reference, history, genreId, style,
+          mode, videoAspect, videoResolution, videoDuration,
         }));
       } catch {}
     }, 500);
     return () => clearTimeout(t);
-  }, [config, aspect, resolution, reference, history, genreId, style]);
+  }, [config, aspect, resolution, reference, history, genreId, style,
+      mode, videoAspect, videoResolution, videoDuration]);
 
   // ── derived ───────────────────────────────────────────────────────────
   const camera   = useMemo(() => CAMERAS.find((c) => c.id === config.cameraId)!, [config.cameraId]);
@@ -129,6 +155,20 @@ export function CinemaStudio() {
     }
   };
 
+  // Effective aspect/resolution depend on mode — video has its own
+  // axis set (no 21:9 / no 1k‑4k), so we route accordingly when
+  // composing the payload AND when the user clicks aspect/quality.
+  const effectiveAspect      = mode === "video" ? videoAspect      : aspect;
+  const effectiveResolution  = mode === "video" ? videoResolution  : resolution;
+  const cost = useMemo(
+    () => computeCinemaCost({
+      mode,
+      duration:   mode === "video" ? videoDuration : undefined,
+      resolution: effectiveResolution,
+    }),
+    [mode, videoDuration, effectiveResolution],
+  );
+
   const onShoot = async () => {
     if (!prompt.trim() || isGenerating) return;
 
@@ -144,26 +184,44 @@ export function CinemaStudio() {
       movesetId:  style.movesetId,
     });
 
-    const endpoint = reference ? "nano-banana-pro-edit" : "nano-banana-pro";
+    const endpoint = resolveCinemaEndpoint({ mode, hasReference: !!reference });
+
+    // Image vs video have different payload shapes. Kling expects
+    // `duration` (and `image_url` when seeded), nano-banana takes
+    // `aspect_ratio` + `resolution`.
     const payload: Record<string, unknown> = {
       prompt:          finalPrompt,
-      aspect_ratio:    aspect,
-      resolution,
+      aspect_ratio:    effectiveAspect,
       negative_prompt: "blurry, low quality, distortion, bad composition",
     };
-    if (reference) payload.images_list = [reference];
+    if (mode === "video") {
+      payload.duration   = videoDuration;
+      payload.resolution = videoResolution;        // "720p" | "1080p"
+      if (reference) payload.image_url = reference;
+    } else {
+      payload.resolution = resolution;             // "1k" | "2k" | "4k"
+      if (reference) payload.images_list = [reference];
+    }
 
     setIsGenerating(true);
-    setProgress("جاري التوليد…");
+    setProgress(mode === "video" ? "جاري إنشاء الفيديو…" : "جاري التوليد…");
 
     try {
       const { result } = await runMuapiTool({
         toolId:      "cinema-studio",
         endpoint,
         payload,
-        inputsForDb: { prompt, ...config, aspect, resolution, reference },
+        overrideCredits: cost,
+        inputsForDb: {
+          prompt, ...config,
+          mode,
+          aspect: effectiveAspect,
+          resolution: effectiveResolution,
+          duration:   mode === "video" ? videoDuration : undefined,
+          reference,
+        },
         pollOptions: {
-          onStatus: (s) => setProgress(statusToArabic(s)),
+          onStatus: (s) => setProgress(statusToArabic(s, mode)),
         },
       });
 
@@ -173,11 +231,14 @@ export function CinemaStudio() {
       const shot: CinemaShot = {
         id:        crypto.randomUUID(),
         url,
+        mode,
         timestamp: Date.now(),
         prompt,
         config:    {
           ...config,
-          aspect, resolution,
+          aspect:     effectiveAspect,
+          resolution: effectiveResolution,
+          duration:   mode === "video" ? videoDuration : undefined,
           reference:  reference ?? undefined,
           genreId,
           paletteId:  style.paletteId,
@@ -186,7 +247,7 @@ export function CinemaStudio() {
         },
       };
       setHistory((h) => [shot, ...h].slice(0, HISTORY_LIMIT));
-      toast.success("تم تصوير اللقطة 🎬");
+      toast.success(mode === "video" ? "تم تصوير الفيديو 🎬" : "تم تصوير اللقطة 🎬");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "فشل التوليد");
     } finally {
@@ -203,8 +264,18 @@ export function CinemaStudio() {
       focal:    shot.config.focal,
       apertureId: shot.config.apertureId,
     });
-    setAspect(shot.config.aspect);
-    setResolution(shot.config.resolution);
+    // Per-mode aspect/resolution restore so flipping the toggle later
+    // brings back the right axis values.
+    const shotMode = shot.mode ?? "image";
+    setMode(shotMode);
+    if (shotMode === "video") {
+      setVideoAspect(shot.config.aspect);
+      setVideoResolution(shot.config.resolution);
+      if (typeof shot.config.duration === "number") setVideoDuration(shot.config.duration);
+    } else {
+      setAspect(shot.config.aspect);
+      setResolution(shot.config.resolution);
+    }
     if (shot.config.reference) setReference(shot.config.reference);
     if (shot.config.genreId)    setGenreId(shot.config.genreId);
     if (shot.config.paletteId || shot.config.lightingId || shot.config.movesetId) {
@@ -273,11 +344,24 @@ export function CinemaStudio() {
               className="relative bento-card rounded-2xl overflow-hidden border border-white/10 group"
             >
               <div className="relative aspect-[4/3] bg-black">
-                <img src={shot.url} alt="" className="w-full h-full object-cover" />
+                {shot.mode === "video" ? (
+                  <video
+                    src={shot.url}
+                    muted
+                    loop
+                    playsInline
+                    onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                    onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={shot.url} alt="" className="w-full h-full object-cover" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
-                    onClick={() => setFullscreen(shot.url)}
+                    onClick={() => setFullscreen({ url: shot.url, mode: shot.mode ?? "image" })}
                     className="w-8 h-8 rounded-lg bg-black/60 backdrop-blur border border-white/15 flex items-center justify-center hover:bg-black/80 transition-colors"
                     aria-label="ملء الشاشة"
                     type="button"
@@ -295,7 +379,13 @@ export function CinemaStudio() {
                     <Download className="w-3.5 h-3.5 text-white" />
                   </a>
                 </div>
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  {shot.mode === "video" && (
+                    <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-violet-500/90 text-white flex items-center gap-1">
+                      <VideoIcon className="w-2.5 h-2.5" />
+                      {shot.config.duration ? `${shot.config.duration}s` : "فيديو"}
+                    </span>
+                  )}
                   <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-accent-400/90 text-black">
                     {CAMERAS.find((c) => c.id === shot.config.cameraId)?.englishName ?? ""}
                   </span>
@@ -327,17 +417,36 @@ export function CinemaStudio() {
       )}
 
       {/* ── Bottom shoot bar ─────────────────────────────────────────── */}
-      <div className="fixed bottom-0 inset-x-0 z-40 px-4 pb-5 pointer-events-none">
+      <div className="fixed bottom-0 inset-x-0 z-40 px-4 pb-5 pointer-events-none" dir="rtl">
         <div className="max-w-5xl mx-auto pointer-events-auto">
           <div className="bento-card rounded-3xl border border-white/10 p-3 md:p-4 backdrop-blur-2xl bg-black/60 shadow-[0_-12px_40px_rgba(0,0,0,0.5)]">
+            {/* Mode segmented control — Image / Video. Mirrors Higgsfield's
+                Cinema Studio toggle. Persists per side so flipping doesn't
+                reset the user's selections. */}
+            <div className="flex items-center gap-1 mb-3 p-1 rounded-2xl border border-white/10 bg-white/[0.02] w-fit">
+              <ModeTab
+                active={mode === "image"}
+                onClick={() => setMode("image")}
+                icon={<ImageIcon className="w-3.5 h-3.5" />}
+                label="صورة"
+              />
+              <ModeTab
+                active={mode === "video"}
+                onClick={() => setMode("video")}
+                icon={<VideoIcon className="w-3.5 h-3.5" />}
+                label="فيديو"
+              />
+            </div>
+
             <div className="flex flex-col gap-3">
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="اوصف مشهدك السينمائي..."
+                placeholder={mode === "video" ? "اوصف الفيديو السينمائي اللي عاوزه..." : "اوصف مشهدك السينمائي..."}
                 rows={2}
-                className="w-full bg-transparent text-white placeholder-gray-500 text-sm resize-none focus:outline-none px-1"
+                className="w-full bg-transparent text-white placeholder-gray-500 text-sm resize-none focus:outline-none px-1 text-right"
                 style={{ maxHeight: 160 }}
+                dir="rtl"
               />
 
               <div className="flex items-center gap-2 flex-wrap">
@@ -411,19 +520,30 @@ export function CinemaStudio() {
                   onClick={() => setStyleOpen(true)}
                 />
 
-                {/* aspect dropdown */}
+                {/* aspect dropdown — mode-aware (image gets 21:9 etc, video doesn't) */}
                 <SelectChip
                   label="نسبة"
-                  value={aspect}
-                  options={CINEMA_ASPECTS.map((a) => ({ value: a.id, label: a.label }))}
-                  onChange={setAspect}
+                  value={effectiveAspect}
+                  options={(mode === "video" ? CINEMA_VIDEO_ASPECTS : CINEMA_ASPECTS)
+                    .map((a) => ({ value: a.id, label: a.label }))}
+                  onChange={(v) => mode === "video" ? setVideoAspect(v) : setAspect(v)}
                 />
                 <SelectChip
                   label="جودة"
-                  value={resolution}
-                  options={CINEMA_RESOLUTIONS.map((r) => ({ value: r.id, label: r.label }))}
-                  onChange={setResolution}
+                  value={effectiveResolution}
+                  options={(mode === "video" ? CINEMA_VIDEO_RESOLUTIONS : CINEMA_RESOLUTIONS)
+                    .map((r) => ({ value: r.id, label: r.label }))}
+                  onChange={(v) => mode === "video" ? setVideoResolution(v) : setResolution(v)}
                 />
+                {/* Duration chip — video mode only */}
+                {mode === "video" && (
+                  <SelectChip
+                    label="مدة"
+                    value={String(videoDuration)}
+                    options={CINEMA_VIDEO_DURATIONS.map((d) => ({ value: String(d.id), label: d.label }))}
+                    onChange={(v) => setVideoDuration(Number(v))}
+                  />
+                )}
 
                 {/* camera summary card — collapses to icon-only on
                     very narrow screens so the rest of the chips have
@@ -444,12 +564,13 @@ export function CinemaStudio() {
                 </button>
 
                 {/* shoot button — full-width on the smallest screens so
-                    it always reads as the primary CTA. */}
+                    it always reads as the primary CTA. Inline cost
+                    badge mirrors Higgsfield's "GENERATE +96.80" UX. */}
                 <button
                   onClick={onShoot}
                   disabled={!prompt.trim() || isGenerating}
                   className={cn(
-                    "h-10 px-5 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all w-full sm:w-auto",
+                    "h-10 px-5 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all w-full sm:w-auto whitespace-nowrap",
                     !prompt.trim() || isGenerating
                       ? "bg-white/5 text-gray-600 cursor-not-allowed"
                       : "bg-accent-400 text-black hover:scale-[1.02] active:scale-95 shadow-[0_0_24px_rgba(254,228,64,0.35)]",
@@ -459,7 +580,13 @@ export function CinemaStudio() {
                   {isGenerating ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> {progress || "جاري التوليد…"}</>
                   ) : (
-                    <><Sparkles className="w-4 h-4" /> صوّر</>
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      {mode === "video" ? "صوّر فيديو" : "صوّر"}
+                      <span className="inline-flex items-center gap-0.5 text-[10px] opacity-75 px-1.5 py-0.5 rounded bg-black/20">
+                        <Zap className="w-2.5 h-2.5" />{cost}
+                      </span>
+                    </>
                   )}
                 </button>
               </div>
@@ -495,7 +622,7 @@ export function CinemaStudio() {
         onClose={() => setDirectorOpen(false)}
       />
 
-      {/* Fullscreen */}
+      {/* Fullscreen — handles both images and videos */}
       <AnimatePresence>
         {fullscreen && (
           <motion.div
@@ -511,7 +638,18 @@ export function CinemaStudio() {
             >
               <X className="w-5 h-5 text-white" />
             </button>
-            <img src={fullscreen} alt="" className="max-w-full max-h-full object-contain rounded-2xl" />
+            {fullscreen.mode === "video" ? (
+              <video
+                src={fullscreen.url}
+                controls
+                autoPlay
+                loop
+                className="max-w-full max-h-full rounded-2xl"
+              />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={fullscreen.url} alt="" className="max-w-full max-h-full object-contain rounded-2xl" />
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -521,12 +659,13 @@ export function CinemaStudio() {
 
 // ── helpers ──────────────────────────────────────────────────────────────
 
-function statusToArabic(s: string): string {
+function statusToArabic(s: string, mode: CinemaMode = "image"): string {
+  const verb = mode === "video" ? "إنشاء الفيديو" : "التوليد";
   switch (s) {
     case "queued":
     case "pending":    return "في قائمة الانتظار…";
     case "processing":
-    case "running":    return "جاري التوليد…";
+    case "running":    return `جاري ${verb}…`;
     case "completed":  return "تم!";
     default:            return "جاري المعالجة…";
   }
@@ -541,6 +680,32 @@ function pickUrl(r: { url?: string; urls?: string[]; outputs?: unknown }): strin
     if (typeof first === "object" && first && "url" in first) return (first as { url: string }).url;
   }
   return null;
+}
+
+// ── Mode segmented control (Image / Video) ─────────────────────────────
+function ModeTab({
+  active, onClick, icon, label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      type="button"
+      className={cn(
+        "h-8 px-3 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all",
+        active
+          ? "bg-accent-400 text-black shadow-[0_0_24px_rgba(254,228,64,0.35)]"
+          : "text-gray-300 hover:text-white hover:bg-white/5",
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
 }
 
 // ── chip that opens an overlay (genre / style) ─────────────────────────
