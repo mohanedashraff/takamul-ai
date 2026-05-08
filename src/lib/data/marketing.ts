@@ -126,9 +126,15 @@ export const MARKETING_FORMATS: MarketingFormat[] = [
 // scroll. Higgsfield groups them into "Stunt" (loud/dramatic) and "Subtle"
 // (talking-head etc).
 //
-// Note: video previews aren't mirrored yet — Higgsfield serves them via an
-// internal endpoint. For now we render a gradient + icon fallback. Add
-// `videoUrl` when we re-scrape with auth.
+// Categories verified by clicking each tab inside Higgsfield's hook modal:
+//   stunt:  Product Hit, Random Object Mic, Blizzard, Product Dodge
+//   subtle: Spicy, Interview, Product Crash, Camera Bump, Epic Fail
+//
+// Video previews mirrored from
+//   https://cdn.higgsfield.ai/marketing_studio_setup/{uuid}.mp4
+// to /public/marketing/hooks/.
+
+const HOOK = "/marketing/hooks";
 
 export type MarketingHookCategory = "stunt" | "subtle";
 
@@ -138,10 +144,9 @@ export interface MarketingHook {
   englishName:     string;
   category:        MarketingHookCategory;
   desc:            string;             // short Arabic
-  emoji:           string;             // shown in the fallback tile
-  gradient:        string;             // Tailwind gradient classes for the tile
+  englishDesc:     string;             // original Higgsfield blurb
   promptInjection: string;             // appended to user prompt
-  videoUrl?:       string;             // optional preview video
+  videoUrl:        string;             // local-mirrored preview
 }
 
 export const MARKETING_HOOKS: MarketingHook[] = [
@@ -150,104 +155,112 @@ export const MARKETING_HOOKS: MarketingHook[] = [
     name:            "ضربة المنتج",
     englishName:     "Product Hit",
     category:        "stunt",
-    desc:            "المنتج يقتحم اللقطة بقوة",
-    emoji:           "💥",
-    gradient:        "from-red-500/30 via-orange-500/20 to-yellow-500/10",
-    promptInjection: "open with the product slamming into frame in a single dramatic motion",
+    desc:            "المنتج يقتحم اللقطة بقوة ويقابله رد فعل سريع",
+    englishDesc:     "Object flies into frame, hits subject. Brief reaction → pivot to product.",
+    videoUrl:        `${HOOK}/product_hit.mp4`,
+    promptInjection: "open with an object flying into frame and hitting the subject; brief reaction, then pivot to the product",
   },
   {
     id:              "spicy",
     name:            "جريء",
     englishName:     "Spicy",
-    category:        "stunt",
-    desc:            "افتتاحية ساخنة وجريئة",
-    emoji:           "🌶️",
-    gradient:        "from-pink-500/30 via-red-500/20 to-orange-500/10",
-    promptInjection: "open with a confident, eye-catching reveal that flirts with the audience",
+    category:        "subtle",
+    desc:            "كلوز-أب جذّاب ثم سيلفي قبل وقفة قصيرة وعرض المنتج",
+    englishDesc:     "Extreme close-up tilts up to reveal a flawless makeup look, then pulls back into selfie framing before a silent pause leads into the product pitch.",
+    videoUrl:        `${HOOK}/spicy.mp4`,
+    promptInjection: "open with an extreme close-up on a stylish detail, slowly tilt up to a flawless look, then pull back to selfie framing — silent pause, then the product",
   },
   {
     id:              "interview",
     name:            "مقابلة",
     englishName:     "Interview",
     category:        "subtle",
-    desc:            "شخص يتحدث للكاميرا مباشرة",
-    emoji:           "🎙️",
-    gradient:        "from-sky-500/30 via-indigo-500/20 to-purple-500/10",
-    promptInjection: "open with a presenter on camera, talking-head style, looking straight at the lens",
+    desc:            "مقابلة شارع مع غريب يلاحظ المنتج ويعرضه بأسلوب طبيعي",
+    englishDesc:     "Interviewer asks a stranger a question; confusion builds until they notice the product and pivot into a casual review.",
+    videoUrl:        `${HOOK}/interview.mp4`,
+    promptInjection: "street-style interview format, presenter asks a stranger a question; the stranger naturally notices the product and pivots into a casual review",
   },
   {
     id:              "random_object_mic",
     name:            "ميكروفون عشوائي",
     englishName:     "Random Object Mic",
-    category:        "subtle",
-    desc:            "حمل غرض عشوائي كأنه ميكروفون",
-    emoji:           "🎤",
-    gradient:        "from-amber-500/30 via-yellow-500/20 to-lime-500/10",
-    promptInjection: "open with the talent holding a random everyday object as if it were a microphone",
+    category:        "stunt",
+    desc:            "غرض عشوائي يقع في يد الشخص ويستخدمه كميكروفون لمراجعة جدّية",
+    englishDesc:     "A random absurd object falls into the person's hand from above and they immediately use it as a microphone to continue a serious product review.",
+    videoUrl:        `${HOOK}/random_object_mic.mp4`,
+    promptInjection: "absurd everyday object drops into the talent's hand from above; they use it as a microphone to deliver a deadpan, serious product review",
   },
   {
     id:              "product_crash",
-    name:            "تحطم المنتج",
+    name:            "تحطّم المنتج",
     englishName:     "Product Crash",
-    category:        "stunt",
-    desc:            "المنتج يصطدم بشيء بقوة",
-    emoji:           "💢",
-    gradient:        "from-rose-500/30 via-red-500/20 to-zinc-500/10",
-    promptInjection: "open with the product violently crashing into a surface, debris flying",
+    category:        "subtle",
+    desc:            "المنتج يسقط ويسبب فوضى ثم تنتقل اللقطة لمشهد نظيف للمراجعة",
+    englishDesc:     "The product falls from above and creates chaos; harsh sharpness leads to a perfectly clean restored scene where someone calmly begins reviewing.",
+    videoUrl:        `${HOOK}/product_crash.mp4`,
+    promptInjection: "the product itself falls from above and creates chaos; cut to a perfectly clean restored scene, presenter calmly reviewing",
   },
   {
     id:              "blizzard",
-    name:            "عاصفة",
+    name:            "عاصفة ثلجية",
     englishName:     "Blizzard",
     category:        "stunt",
-    desc:            "ثلج/رياح تنفجر حول المنتج",
-    emoji:           "🌨️",
-    gradient:        "from-cyan-500/30 via-sky-500/20 to-blue-500/10",
-    promptInjection: "open with snow and wind blasting past the product, particles streaking the lens",
+    desc:            "غرفة هادئة تضربها عاصفة ثلجية مفاجئة والمنتج يبقى يعمل",
+    englishDesc:     "A cozy indoor scene is suddenly hit by a violent, impossible blizzard; chaos fills the room but the product remains intact and functioning.",
+    videoUrl:        `${HOOK}/blizzard.mp4`,
+    promptInjection: "cozy indoor scene struck by an impossible indoor blizzard, snow and wind everywhere — but the product stays intact and working through it",
   },
   {
     id:              "camera_bump",
     name:            "ارتجاج الكاميرا",
     englishName:     "Camera Bump",
     category:        "subtle",
-    desc:            "اهتزاز مفاجئ للكاميرا عند الكشف",
-    emoji:           "📸",
-    gradient:        "from-violet-500/30 via-fuchsia-500/20 to-pink-500/10",
-    promptInjection: "open with a sudden camera shake/bump that punctuates the product reveal",
+    desc:            "الكاميرا تصطدم بالشخص فيتعافى ويكشف عن المنتج بأسلوب عفوي",
+    englishDesc:     "The camera operator accidentally bumps into a person; they recover and naturally reveal the product while transitioning into a casual explanation.",
+    videoUrl:        `${HOOK}/camera_bump.mp4`,
+    promptInjection: "camera accidentally bumps into the talent; they recover, then naturally reveal the product and transition into a casual explanation",
   },
   {
     id:              "product_dodge",
     name:            "مراوغة المنتج",
     englishName:     "Product Dodge",
     category:        "stunt",
-    desc:            "المنتج يتفادى شيئاً قادماً",
-    emoji:           "🎯",
-    gradient:        "from-emerald-500/30 via-teal-500/20 to-cyan-500/10",
-    promptInjection: "open with the product dodging an incoming object in slow-motion",
+    desc:            "شخص يتفادى المنتج الطائر ثم يظهر يحمله ويراجعه بهدوء",
+    englishDesc:     "A product flies into a person's face, they bend down to dodge it, then stand up holding the product and begin reviewing as if nothing happened.",
+    videoUrl:        `${HOOK}/product_dodge.mp4`,
+    promptInjection: "a product flies toward the talent's face; they dodge in slow-motion, then in the next frame stand up holding the product and review as if nothing happened",
   },
   {
     id:              "epic_fail",
     name:            "فشل ملحمي",
     englishName:     "Epic Fail",
     category:        "subtle",
-    desc:            "موقف كوميدي يحدث فيه شيء غير متوقع",
-    emoji:           "🤡",
-    gradient:        "from-yellow-500/30 via-amber-500/20 to-red-500/10",
-    promptInjection: "open with a relatable, comedic mishap that immediately resolves into the product saving the day",
+    desc:            "محاولة فاشلة لخدعة بهلوانية ثم مراجعة هادئة وكأن شيئاً لم يحدث",
+    englishDesc:     "A person performs an unsuccessful backflip, lands badly, and immediately takes out the product to deliver an unflappable review.",
+    videoUrl:        `${HOOK}/epic_fail.mp4`,
+    promptInjection: "talent attempts an ambitious physical stunt and fails badly; without missing a beat they pull out the product and deliver a calm, unflappable review",
   },
 ];
 
 // ── Settings ─────────────────────────────────────────────────────
+//
+// Categories verified by clicking each tab inside Higgsfield's setting modal:
+//   realistic:    Bedroom, Nature, Gym, Bathroom, Kitchen, In Car, Street, Office
+//   unrealistic:  Airplane Wing, Roofing, Volcano Rim, Tiny Reviewer, Car Roof, Train Surf
+
+const SET = "/marketing/settings";
+
+export type MarketingSettingCategory = "realistic" | "unrealistic";
 
 export interface MarketingSetting {
   id:              string;
   name:            string;
   englishName:     string;
+  category:        MarketingSettingCategory;
   desc:            string;
-  emoji:           string;
-  gradient:        string;
+  englishDesc:     string;
   promptInjection: string;
-  videoUrl?:       string;
+  videoUrl:        string;
 }
 
 export const MARKETING_SETTINGS: MarketingSetting[] = [
@@ -255,127 +268,141 @@ export const MARKETING_SETTINGS: MarketingSetting[] = [
     id:              "bedroom",
     name:            "غرفة نوم",
     englishName:     "Bedroom",
-    desc:            "أجواء منزلية حميمة",
-    emoji:           "🛏️",
-    gradient:        "from-rose-500/25 via-pink-500/15 to-amber-500/10",
-    promptInjection: "set in a softly-lit modern bedroom, lifestyle vibe, warm tones",
+    category:        "realistic",
+    desc:            "إضاءة نافذة ناعمة وأجواء استرخاء صباحية أو مسائية",
+    englishDesc:     "On bed or propped against pillows, soft window light. Unmade bed, cozy textures. Relaxed morning or evening wind-down vibe.",
+    videoUrl:        `${SET}/bedroom.mp4`,
+    promptInjection: "set in a softly-lit bedroom, soft window light, cozy textures, relaxed morning/evening wind-down vibe",
   },
   {
     id:              "airplane_wing",
     name:            "جناح طائرة",
     englishName:     "Airplane Wing",
-    desc:            "مغامرة وسفر",
-    emoji:           "✈️",
-    gradient:        "from-sky-500/25 via-blue-500/15 to-indigo-500/10",
-    promptInjection: "set on the wing of a flying airplane high above the clouds, golden-hour light",
+    category:        "unrealistic",
+    desc:            "شخص جالس على جناح طائرة في الجو ويراجع المنتج بهدوء",
+    englishDesc:     "Person sits on airplane wing mid-flight at altitude. Casual product review — powerful wind, clouds, engine roar.",
+    videoUrl:        `${SET}/airplane_wing.mp4`,
+    promptInjection: "talent sits on the wing of an airplane mid-flight, clouds far below, wind whipping past, casually reviewing the product",
   },
   {
     id:              "nature",
     name:            "طبيعة",
     englishName:     "Nature",
-    desc:            "في الطبيعة المفتوحة",
-    emoji:           "🌲",
-    gradient:        "from-emerald-500/25 via-lime-500/15 to-yellow-500/10",
-    promptInjection: "set outdoors in lush nature, dappled sunlight, organic backdrop",
+    category:        "realistic",
+    desc:            "خارجي بين شجر أو شاطئ أو حديقة — ضوء طبيعي ومساحة مفتوحة",
+    englishDesc:     "Outdoors — trail, park, beach, or garden. Natural light, greenery or open sky. Active or peaceful mood.",
+    videoUrl:        `${SET}/nature.mp4`,
+    promptInjection: "set outdoors on a trail or park or beach, natural daylight, greenery and open sky",
   },
   {
     id:              "roofing",
-    name:            "سطح بناية",
+    name:            "سطح ناطحة سحاب",
     englishName:     "Roofing",
-    desc:            "سطح حضري مفتوح",
-    emoji:           "🏙️",
-    gradient:        "from-zinc-500/25 via-slate-500/15 to-blue-500/10",
-    promptInjection: "set on an urban rooftop, city skyline backdrop, dusk lighting",
+    category:        "unrealistic",
+    desc:            "حافة سطح ناطحة سحاب وخلفية أفق المدينة وقت الذروة",
+    englishDesc:     "Person on the edge of a skyscraper rooftop, city skyline behind, wind moving through hair, sun catching the buildings.",
+    videoUrl:        `${SET}/roofing.mp4`,
+    promptInjection: "set on the edge of a skyscraper rooftop, full city skyline behind, wind in hair, sun catching the buildings",
   },
   {
     id:              "gym",
     name:            "صالة رياضية",
     englishName:     "Gym",
-    desc:            "أجواء لياقة وقوة",
-    emoji:           "💪",
-    gradient:        "from-orange-500/25 via-red-500/15 to-zinc-500/10",
-    promptInjection: "set in a contemporary gym, athletic lighting, energy and motion",
+    category:        "realistic",
+    desc:            "أرضية صالة أو مقعد بعد تمرين — طاقة وجهد",
+    englishDesc:     "Gym floor, locker room, or post-workout bench. Bright overhead lighting. Sweaty / freshly finished energy.",
+    videoUrl:        `${SET}/gym.mp4`,
+    promptInjection: "set on a gym floor or post-workout bench, bright overhead lighting, equipment in background, athletic energy",
   },
   {
     id:              "volcano_rim",
     name:            "حافة بركان",
     englishName:     "Volcano Rim",
-    desc:            "إطلالة درامية وملحمية",
-    emoji:           "🌋",
-    gradient:        "from-red-600/30 via-orange-500/20 to-yellow-500/10",
-    promptInjection: "set on the rim of an active volcano, glowing lava, dramatic atmosphere",
+    category:        "unrealistic",
+    desc:            "حافة بركان نشط وحممه تحت — مراجعة هادئة بدون أي رد فعل",
+    englishDesc:     "Person sits on active volcano rim, lava below. Casual product review — lava bubbles, smoke drifts through, zero reaction.",
+    videoUrl:        `${SET}/volcano_rim.mp4`,
+    promptInjection: "talent sits on the rim of an active volcano with lava bubbling below, casually reviewing — completely calm reaction",
   },
   {
     id:              "bathroom",
     name:            "حمام",
     englishName:     "Bathroom",
-    desc:            "للعناية والجمال",
-    emoji:           "🛁",
-    gradient:        "from-cyan-500/25 via-sky-500/15 to-white/5",
-    promptInjection: "set in a luxurious modern bathroom, marble surfaces, spa-like ambience",
+    category:        "realistic",
+    desc:            "سيلفي مرآة في الحمام مع إضاءة فينيتي — أجواء روتين شخصي",
+    englishDesc:     "Mirror selfie or front camera in bathroom. Ring light or vanity lighting, tiles visible. Intimate getting-ready energy.",
+    videoUrl:        `${SET}/bathroom.mp4`,
+    promptInjection: "mirror selfie in a bathroom, vanity / ring lighting, tiles visible, intimate getting-ready energy",
   },
   {
     id:              "tiny_reviewer",
     name:            "المراجع المصغّر",
     englishName:     "Tiny Reviewer",
-    desc:            "مقياس مصغّر طريف",
-    emoji:           "🔍",
-    gradient:        "from-purple-500/25 via-violet-500/15 to-pink-500/10",
-    promptInjection: "miniature scale gimmick — the talent appears tiny next to the full-size product",
+    category:        "unrealistic",
+    desc:            "الشخص بحجم 15 سم بجانب المنتج بحجمه الكامل — مراجعة سيلفي بمقياس مستحيل",
+    englishDesc:     "Person shrunk to 15cm next to a product their full height. Normal selfie review at impossible scale — leans on it.",
+    videoUrl:        `${SET}/tiny_reviewer.mp4`,
+    promptInjection: "talent shrunk to 15cm next to the full-size product, leans on it, normal selfie review at impossible scale",
   },
   {
     id:              "kitchen",
     name:            "مطبخ",
     englishName:     "Kitchen",
-    desc:            "للأكل والأدوات المنزلية",
-    emoji:           "🍳",
-    gradient:        "from-yellow-500/25 via-orange-500/15 to-red-500/10",
-    promptInjection: "set in a bright modern kitchen, natural daylight through a window",
+    category:        "realistic",
+    desc:            "كاونتر مطبخ بضوء نهاري طبيعي وفنجان قهوة في الخلفية",
+    englishDesc:     "Standing at counter or leaning on island, natural daylight. Clean surface, mug or fruit in background. Casual mid-day energy.",
+    videoUrl:        `${SET}/kitchen.mp4`,
+    promptInjection: "set at a kitchen counter or island, natural daylight through a window, mug / fruit in the background, casual mid-day energy",
   },
   {
     id:              "car_roof",
     name:            "سقف سيارة",
     englishName:     "Car Roof",
-    desc:            "فوق سيارة متحركة",
-    emoji:           "🚗",
-    gradient:        "from-zinc-500/25 via-slate-500/15 to-amber-500/10",
-    promptInjection: "set on top of a moving car, motion blur in the background, action energy",
+    category:        "unrealistic",
+    desc:            "فوق سقف سيارة متحركة في طريق صحراوي — مراجعة بينما الطريق يتمايل",
+    englishDesc:     "Person on roof of moving car, desert highway, golden hour. Product review while swaying with the road. Semi truck passes — no flinch.",
+    videoUrl:        `${SET}/car_roof.mp4`,
+    promptInjection: "talent on the roof of a moving car, desert highway, golden hour, swaying with the road, deadpan review",
   },
   {
     id:              "in_car",
     name:            "داخل سيارة",
     englishName:     "In Car",
-    desc:            "POV من داخل السيارة",
-    emoji:           "🛞",
-    gradient:        "from-slate-500/25 via-zinc-500/15 to-orange-500/10",
-    promptInjection: "set inside a car, dashboard POV, road scrolling past through the windshield",
+    category:        "realistic",
+    desc:            "سيلفي من مقعد السائق أو الراكب وضوء النافذة على الوجه",
+    englishDesc:     "Selfie from passenger or driver seat, parked or cruising. Window light on face. Casual tone — talking to camera between errands.",
+    videoUrl:        `${SET}/in_car.mp4`,
+    promptInjection: "selfie from a car seat, parked or cruising, window light on face, casual between-errands tone",
   },
   {
     id:              "street",
     name:            "شارع",
     englishName:     "Street",
-    desc:            "شارع حضري عفوي",
-    emoji:           "🚶",
-    gradient:        "from-zinc-500/25 via-stone-500/15 to-amber-500/10",
-    promptInjection: "set on a candid city street, passersby, ambient urban noise",
+    category:        "realistic",
+    desc:            "ماشي على شارع المدينة بسيلفي — متاجر وحركة في الخلفية",
+    englishDesc:     "Walking on sidewalk or standing on urban street, handheld selfie. City backdrop — storefronts, traffic, pedestrians.",
+    videoUrl:        `${SET}/street.mp4`,
+    promptInjection: "handheld selfie walking on a city street, storefronts and pedestrians in background, energetic pace, talking while moving",
   },
   {
     id:              "office",
     name:            "مكتب",
     englishName:     "Office",
-    desc:            "أجواء مهنية وأعمال",
-    emoji:           "💼",
-    gradient:        "from-blue-500/25 via-indigo-500/15 to-zinc-500/10",
-    promptInjection: "set in a sleek modern office, B2B professional vibe, soft daylight",
+    category:        "realistic",
+    desc:            "مكتب عصري ولاب توب وقهوة — لحظة سريعة بين المهام",
+    englishDesc:     "Desk setup, laptop open, coffee nearby. Clean modern space, soft overhead or monitor glow. Hushed mid-workday tone.",
+    videoUrl:        `${SET}/office.mp4`,
+    promptInjection: "set at a modern desk with laptop open and coffee nearby, soft overhead lighting, hushed mid-workday tone",
   },
   {
     id:              "train_surf",
     name:            "ركوب القطار",
     englishName:     "Train Surf",
-    desc:            "حركة جريئة فوق قطار",
-    emoji:           "🚆",
-    gradient:        "from-red-500/25 via-orange-500/15 to-zinc-500/10",
-    promptInjection: "set on top of a moving train, wind whipping past, daring stunt energy",
+    category:        "unrealistic",
+    desc:            "متعلق خارج قطار متحرك ويراجع المنتج بينما الرياح تضربه",
+    englishDesc:     "Person hangs outside a moving train, filming selfie. Reviews product — wind pressing on them is the live demo.",
+    videoUrl:        `${SET}/train_surf.mp4`,
+    promptInjection: "talent hangs off the side of a moving train filming a selfie, wind pressing against them, reviewing the product",
   },
 ];
 

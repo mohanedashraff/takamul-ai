@@ -16,7 +16,8 @@ import {
   MARKETING_DEFAULTS, resolveMarketingEndpoint, computeMarketingCost, composeMarketingPrompt,
   getFormatsForVariant, getDefaultFormatId,
   type MarketingVariant, type MarketingFormat,
-  type MarketingHookCategory, type MarketingDeviceFrame,
+  type MarketingHookCategory, type MarketingSettingCategory,
+  type MarketingDeviceFrame,
 } from "@/lib/data/marketing";
 import { uploadFile } from "@/lib/muapi";
 import { runMuapiTool } from "@/lib/run-tool";
@@ -805,7 +806,7 @@ function HookPickerDropdown({
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[360px] overflow-y-auto pr-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[480px] overflow-y-auto pr-1">
           {filtered.map((h) => (
             <button
               key={h.id}
@@ -816,23 +817,29 @@ function HookPickerDropdown({
               )}
               type="button"
             >
-              <div className={cn(
-                "relative aspect-video flex items-center justify-center bg-gradient-to-br",
-                h.gradient,
-              )}>
-                <span className="text-4xl opacity-90 drop-shadow-md">{h.emoji}</span>
+              <div className="relative aspect-[3/4] bg-black">
+                <video
+                  src={h.videoUrl}
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                  onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                  className="w-full h-full object-cover"
+                />
                 {selected === h.id && (
                   <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-black bg-accent-400 text-black">
                     مختار
                   </span>
                 )}
-                <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-black/60 text-white/80 capitalize">
+                <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-black/60 text-white/80">
                   {h.category === "stunt" ? "مثير" : "هادئ"}
                 </span>
               </div>
               <div className="p-2">
                 <p className="text-xs font-bold text-white">{h.name}</p>
-                <p className="text-[10px] text-gray-500 truncate">{h.desc}</p>
+                <p className="text-[10px] text-gray-500 line-clamp-2 leading-relaxed">{h.desc}</p>
               </div>
             </button>
           ))}
@@ -868,13 +875,18 @@ function SettingPickerDropdown({
   onClose: () => void;
 }) {
   const ready = usePortalReady();
+  const [tab, setTab] = useState<"all" | MarketingSettingCategory>("all");
   if (!ready) return null;
+
+  const filtered = tab === "all"
+    ? MARKETING_SETTINGS
+    : MARKETING_SETTINGS.filter((s) => s.category === tab);
 
   return createPortal(
     <>
       <div className="fixed inset-0 z-[80]" onClick={onClose} aria-hidden />
       <div
-        className="fixed left-1/2 -translate-x-1/2 z-[90] w-[640px] max-w-[94vw] bg-bg-primary border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-3"
+        className="fixed left-1/2 -translate-x-1/2 z-[90] w-[760px] max-w-[94vw] bg-bg-primary border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-3"
         style={{ bottom: 110 }}
       >
         <div className="flex items-center justify-between px-1 pb-2 mb-2 border-b border-white/5">
@@ -882,28 +894,34 @@ function SettingPickerDropdown({
             <h4 className="text-sm font-black text-white">أماكن تصنع المشهد</h4>
             <p className="text-[10px] text-gray-500 mt-0.5">اختر بيئة الإعلان</p>
           </div>
-          <div className="flex items-center gap-2">
-            {selected && (
-              <button
-                onClick={() => onPick(null)}
-                className="text-[10px] font-bold text-gray-500 hover:text-white px-2 py-1 transition-colors"
-                type="button"
-              >
-                مسح
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              className="text-[10px] font-bold text-gray-500 hover:text-white transition-colors"
-              type="button"
-            >
-              إغلاق
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="text-[10px] font-bold text-gray-500 hover:text-white transition-colors"
+            type="button"
+          >
+            إغلاق
+          </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[360px] overflow-y-auto pr-1">
-          {MARKETING_SETTINGS.map((s) => (
+        {/* Tabs */}
+        <div className="flex items-center gap-1 mb-3 px-1">
+          <HookTab active={tab === "all"}         onClick={() => setTab("all")}         label="الكل"     />
+          <HookTab active={tab === "realistic"}   onClick={() => setTab("realistic")}   label="واقعي"    />
+          <HookTab active={tab === "unrealistic"} onClick={() => setTab("unrealistic")} label="غير واقعي" />
+          <div className="flex-1" />
+          {selected && (
+            <button
+              onClick={() => onPick(null)}
+              className="text-[10px] font-bold text-gray-500 hover:text-white px-2 py-1 transition-colors"
+              type="button"
+            >
+              مسح الاختيار
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[480px] overflow-y-auto pr-1">
+          {filtered.map((s) => (
             <button
               key={s.id}
               onClick={() => onPick(s.id)}
@@ -913,20 +931,29 @@ function SettingPickerDropdown({
               )}
               type="button"
             >
-              <div className={cn(
-                "relative aspect-video flex items-center justify-center bg-gradient-to-br",
-                s.gradient,
-              )}>
-                <span className="text-4xl opacity-90 drop-shadow-md">{s.emoji}</span>
+              <div className="relative aspect-[3/4] bg-black">
+                <video
+                  src={s.videoUrl}
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                  onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                  className="w-full h-full object-cover"
+                />
                 {selected === s.id && (
                   <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-black bg-accent-400 text-black">
                     مختار
                   </span>
                 )}
+                <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-black/60 text-white/80">
+                  {s.category === "realistic" ? "واقعي" : "غير واقعي"}
+                </span>
               </div>
               <div className="p-2">
                 <p className="text-xs font-bold text-white">{s.name}</p>
-                <p className="text-[10px] text-gray-500 truncate">{s.desc}</p>
+                <p className="text-[10px] text-gray-500 line-clamp-2 leading-relaxed">{s.desc}</p>
               </div>
             </button>
           ))}
