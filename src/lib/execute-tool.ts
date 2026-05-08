@@ -203,12 +203,15 @@ async function runCustomTool(
 /** MuAPI fields that are documented as `string[]`. When the form sends
  *  a single string we wrap it in an array so the model accepts it.
  *  (Some Flux Kontext / nano-banana edit endpoints reject `image_url`
- *  and only take `images_list`.) */
+ *  and only take `images_list`. Same goes for seedance-v2.0-video-edit
+ *  which expects `video_urls`.) */
 const ARRAY_FIELDS = new Set([
   "images_list",
   "image_urls",
   "video_files",
+  "video_urls",
   "audio_files",
+  "reference_images",
 ]);
 
 function buildPayload(

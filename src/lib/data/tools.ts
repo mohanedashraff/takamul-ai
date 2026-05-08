@@ -1388,10 +1388,15 @@ export const VIDEO_TOOLS: Tool[] = [
     ],
     muapi: {
       category: "v2v",
+      // Real v2v editors — accept (prompt + video_url) and rewrite
+      // the video per the prompt. Earlier the tool was wired to
+      // kling-*-motion-control which is for transferring motion onto
+      // a still image, not editing video. Wrong tool/model match.
       models: [
-        { id: "kling-v3.0-pro-motion-control", label: "Kling 3.0 Pro 🔥" },
-        { id: "kling-v3.0-std-motion-control", label: "Kling 3.0"        },
-        { id: "kling-v2.6-std-motion-control", label: "Kling 2.6"        },
+        { id: "runway-aleph-v2v",   label: "Runway Aleph 🔥"  },
+        { id: "wan2.7-video-edit",  label: "Wan 2.7 Edit"     },
+        { id: "wan2.2-edit-video",  label: "Wan 2.2 Edit"     },
+        { id: "luma-modify-video",  label: "Luma Modify"      },
       ],
       paramMap: { video: "video_url" },
       dynamicCost: true,
