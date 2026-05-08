@@ -215,6 +215,21 @@ function TransitionPickerButton({
   );
 }
 
+/**
+ * Convert the chosen style id into a natural-language prompt the
+ * Kling i2v engine can interpret. The `en` field on each Transition
+ * is already an English label, so we wrap it with framing language
+ * the model treats as a transition directive.
+ */
+function buildStylePrompt(styleId: string): string {
+  const t = TRANSITIONS.find((x) => x.id === styleId) ?? TRANSITIONS[0]!;
+  return [
+    `Smooth cinematic transition from the start frame to the end frame.`,
+    `Style: ${t.en}.`,
+    `The transition should feel intentional and aesthetically motivated, not a hard cut.`,
+  ].join(" ");
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function VideoTransitionsWorkspace({ tool, config }: Props) {
@@ -255,12 +270,16 @@ export function VideoTransitionsWorkspace({ tool, config }: Props) {
         uploadFile(end.file),
       ]);
       setProgress("جاري بناء الانتقال…");
+      // Bake the chosen style into a natural-language prompt — Kling
+      // i2v doesn't have a `transition_style` field, so we describe
+      // the style in English and let the model interpret it.
+      const stylePrompt = buildStylePrompt(styleId);
       const { result } = await executeTool(
         tool,
         {
           startFrame: startUrl,
           endFrame:   endUrl,
-          style:      styleId,
+          prompt:     stylePrompt,
           duration:   Number(duration),
         },
         { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري بناء الانتقال…" : "جاري المعالجة…") },

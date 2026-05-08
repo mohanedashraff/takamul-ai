@@ -50,6 +50,36 @@ function transform(p: V3, rx: number, ry: number): V3 {
   return rotX(rotY(p, ry), rx);
 }
 
+/** Convert (azimuth°, elevation°) into an English direction phrase the
+ *  underlying image model can interpret semantically. MuAPI's edit
+ *  models don't expose a 3D rotate knob — natural-language
+ *  descriptions ("from behind and slightly above") work much better
+ *  than raw degree numbers. */
+function describeAngle(az: number, el: number): string {
+  // Normalise azimuth to 0..360
+  const a = ((az % 360) + 360) % 360;
+  let horiz: string;
+  if      (a < 22.5  || a >= 337.5) horiz = "the front";
+  else if (a < 67.5)                horiz = "the front-right (3/4 view)";
+  else if (a < 112.5)               horiz = "the right side";
+  else if (a < 157.5)               horiz = "the back-right";
+  else if (a < 202.5)               horiz = "directly behind";
+  else if (a < 247.5)               horiz = "the back-left";
+  else if (a < 292.5)               horiz = "the left side";
+  else                              horiz = "the front-left (3/4 view)";
+
+  let vert: string;
+  if      (el >  60) vert = ", looking sharply down (top-down bird's-eye)";
+  else if (el >  30) vert = ", high angle looking down";
+  else if (el >  10) vert = ", slightly above eye level";
+  else if (el > -10) vert = " at eye level";
+  else if (el > -30) vert = ", slightly below eye level (low angle)";
+  else if (el > -60) vert = ", low-angle looking up";
+  else               vert = ", looking sharply up (worm's-eye)";
+
+  return `${horiz}${vert}`;
+}
+
 // ── Sphere geometry ───────────────────────────────────────────────────────────
 
 const SEGS = 64; // segments per circle (smoothness)
@@ -400,11 +430,22 @@ export function AngleWorkspace({ tool, config }: Props) {
                 try {
                   const { url } = await uploadFile(file);
                   setProgress("جاري التوليد…");
-                  // Compose a prompt fragment describing the requested angle so muapi
-                  // image-edit models can interpret it; harmless for endpoints that
-                  // don't use it.
-                  const angleHint = `view from azimuth ${azimuth} degrees, elevation ${elevation} degrees${gen12 ? ", twelve different angles" : ""}`;
-                  const finalPrompt = [prompt.trim(), angleHint].filter(Boolean).join(", ");
+                  // Force a strong novel-view-synthesis directive. Image-edit
+                  // models on MuAPI (flux-kontext, nano-banana-pro-edit, etc.)
+                  // don't have a 3D-aware "rotate camera" knob — we have to
+                  // spell it out in the prompt as a clear creative task and
+                  // emphasise identity preservation, otherwise the model
+                  // returns a near-copy of the input. Putting the directive
+                  // FIRST gives it more weight in attention.
+                  const direction = describeAngle(azimuth, elevation);
+                  const sysHint =
+                    `Novel view synthesis task: regenerate the SAME subject from this image but viewed from ${direction} — ` +
+                    `camera azimuth ${azimuth}° (0=front, 90=right side, 180=back, 270=left side), ` +
+                    `elevation ${elevation > 0 ? "+" : ""}${elevation}° (positive = looking down, negative = looking up). ` +
+                    `Preserve the subject's identity, clothing, colours, lighting style and overall mood. ` +
+                    `Reconstruct any background or body parts that the new angle reveals consistently with the original style. ` +
+                    `This is NOT a small edit — recompose the photo from the new camera position.`;
+                  const finalPrompt = [sysHint, prompt.trim()].filter(Boolean).join(" ");
                   const { result: r } = await executeTool(
                     tool,
                     {

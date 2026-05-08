@@ -605,10 +605,14 @@ export const IMAGE_TOOLS: Tool[] = [
       {
         id: "media",
         type: "upload",
-        label: "الصورة أو الفيديو",
-        accept: "image/*,video/*",
+        // Image-only upscalers wired below. Video upscalers
+        // (`topaz-video-upscale`, `ai-video-upscaler-pro`) exist on
+        // MuAPI and could be added later — for now we restrict to
+        // images so we don't silently fail on video uploads.
+        label: "الصورة",
+        accept: "image/*",
         required: true,
-        hint: "PNG، JPG، MP4 — بحد أقصى 50MB",
+        hint: "PNG، JPG — بحد أقصى 50MB",
       },
     ],
     muapi: {
@@ -782,9 +786,15 @@ export const IMAGE_TOOLS: Tool[] = [
     },
   },
   {
+    // id kept as `restore-image` for back-compat with old URLs / DB rows.
+    // Title + desc + label updated to reflect what `ai-color-photo`
+    // actually does: it colourises black-and-white photos. It does
+    // NOT remove scratches / fix damage / restore tears. Setting the
+    // user's expectations correctly avoids "didn't fix my damaged photo"
+    // disappointment.
     id: "restore-image",
-    title: "ترميم الصور",
-    desc: "أعد الحياة إلى صورك التالفة وأحيِ ذكرياتك الثمينة.",
+    title: "تلوين الصور القديمة",
+    desc: "حوّل صورك بالأبيض والأسود إلى ألوان طبيعية وحيوية.",
     icon: Frame,
     image: "https://c.topshort.org/fluxai/flux_kontext_apps/old_photo_restore/key_feature/2.webp",
     credits: 4,
@@ -793,7 +803,7 @@ export const IMAGE_TOOLS: Tool[] = [
       {
         id: "image",
         type: "upload",
-        label: "الصورة التالفة أو القديمة",
+        label: "صورة بالأبيض والأسود",
         accept: "image/*",
         required: true,
         hint: "PNG أو JPG — بحد أقصى 20MB",
@@ -801,7 +811,7 @@ export const IMAGE_TOOLS: Tool[] = [
     ],
     muapi: {
       category: "i2i",
-      models: [{ id: "ai-color-photo", label: "AI Photo Restorer" }],
+      models: [{ id: "ai-color-photo", label: "AI Colourise" }],
       paramMap: { image: "image_url" },
       dynamicCost: true,
     },
@@ -924,10 +934,18 @@ export const IMAGE_TOOLS: Tool[] = [
     ],
     muapi: {
       category: "i2i",
+      // Default switched to nano-banana-pro-edit — it has stronger
+      // world-knowledge than Flux Kontext, which means it actually
+      // tries to recompose the scene from a new viewing angle rather
+      // than returning a near-copy of the input. Truth: no muapi
+      // model has a real 3D rotation knob, so this is best-effort
+      // novel-view-synthesis via prompt engineering. The angle
+      // workspace builds a strong English directive for it.
       models: [
-        { id: "flux-kontext-pro-i2i",  label: "Flux Kontext Pro" },
-        { id: "nano-banana-pro-edit",  label: "Nano Banana Pro"  },
-        { id: "qwen-image-edit-plus",  label: "Qwen Edit Plus"   },
+        { id: "nano-banana-pro-edit",  label: "Nano Banana Pro 🔥" },
+        { id: "gpt4o-edit",            label: "GPT-4o Edit"        },
+        { id: "flux-kontext-pro-i2i",  label: "Flux Kontext Pro"   },
+        { id: "qwen-image-edit-plus",  label: "Qwen Edit Plus"     },
       ],
       // image-edit models on muapi accept images_list[] (not image_url).
       // executeTool wraps the single URL into an array.
@@ -958,9 +976,13 @@ export const IMAGE_TOOLS: Tool[] = [
     ],
     muapi: {
       category: "i2i",
+      // Default is nano-banana-pro-edit (no num_images cap). Earlier
+      // we defaulted to flux-kontext-pro-i2i whose num_images enum is
+      // [1,2,3,4] — sending 9 silently 422'd or got clamped, so the
+      // tool was returning fewer images than the title promises.
       models: [
-        { id: "flux-kontext-pro-i2i", label: "Flux Kontext Pro" },
-        { id: "nano-banana-pro-edit", label: "Nano Banana Pro"  },
+        { id: "nano-banana-pro-edit", label: "Nano Banana Pro 🔥" },
+        { id: "flux-kontext-pro-i2i", label: "Flux Kontext Pro"   },
       ],
       paramMap: { image: "images_list" },
       staticPayload: { num_images: 9 },
@@ -1170,8 +1192,11 @@ export const IMAGE_TOOLS: Tool[] = [
     muapi: {
       category: "i2i",
       models: [
-        { id: "flux-kontext-pro-i2i",  label: "Flux Kontext Pro" },
-        { id: "nano-banana-pro-edit",  label: "Nano Banana Pro"  },
+        // nano-banana-pro-edit first — it doesn't cap num_images at 4
+        // like Flux Kontext does, so the tool can actually return all
+        // 8 continuations the UI promises.
+        { id: "nano-banana-pro-edit",  label: "Nano Banana Pro 🔥" },
+        { id: "flux-kontext-pro-i2i",  label: "Flux Kontext Pro"   },
       ],
       paramMap: { image: "images_list" },
       staticPayload: { num_images: 8 },
@@ -1519,15 +1544,29 @@ export const VIDEO_TOOLS: Tool[] = [
         id: "effect",
         type: "button-group",
         label: "نوع التأثير",
+        // Values must match `ai-video-effects.name` enum exactly
+        // (case-sensitive). Earlier values like "fire"/"lightning"/
+        // "rain"/"explosion" weren't in the enum at all — every
+        // request 422'd. Curated list below uses the most-recognised
+        // entries from the real enum (~65 options total).
         options: [
-          { value: "fire",      label: "نار"    },
-          { value: "lightning", label: "برق"    },
-          { value: "rain",      label: "مطر"    },
-          { value: "explosion", label: "انفجار" },
-          { value: "smoke",     label: "دخان"   },
-          { value: "magic",     label: "سحر"    },
+          { value: "Fire",                   label: "🔥 نار"            },
+          { value: "Tsunami",                label: "🌊 تسونامي"        },
+          { value: "Wind Blast",             label: "💨 عاصفة"          },
+          { value: "Cakeify",                label: "🎂 تحويل لكيك"     },
+          { value: "Crush It",               label: "💥 تحطيم"          },
+          { value: "Inflate It",             label: "🎈 تضخيم"          },
+          { value: "Squish It",              label: "🍡 سحق"            },
+          { value: "Pixar",                  label: "🎬 ستايل بيكسار"   },
+          { value: "Cyberpunk 2077",         label: "🤖 سايبربانك"      },
+          { value: "Lego",                   label: "🧱 ليجو"           },
+          { value: "Hulk Transformation",    label: "💪 تحول هالك"      },
+          { value: "Super Saiyan Transformation", label: "⚡ سوبر سايان" },
+          { value: "Film Noir",              label: "🎞️ فيلم نوار"      },
+          { value: "VHS Footage",            label: "📼 VHS قديم"       },
+          { value: "360 Rotation",           label: "🔄 دوران 360"      },
         ],
-        defaultValue: "fire",
+        defaultValue: "Fire",
       },
       {
         id: "prompt",
@@ -1599,17 +1638,21 @@ export const VIDEO_TOOLS: Tool[] = [
       },
     ],
     muapi: {
-      // Use first-last-frame i2v models — Kling supports start_image+end_image
+      // Real first-last-frame transition models. The earlier
+      // paramMap sent `tail_image_url` (doesn't exist) and
+      // `transition_style` (doesn't exist) — both fields were
+      // silently dropped, so the API ran a single-frame I2V.
+      // Kling exposes the end-frame field as `last_image`.
+      // VideoTransitionsWorkspace bakes the chosen `style` (raven /
+      // flying_cam / melt / …) into the prompt itself.
       category: "i2v",
       models: [
         { id: "kling-v2.1-pro-i2v",      label: "Kling 2.1 Pro 🔥" },
         { id: "kling-v2.1-master-i2v",   label: "Kling 2.1 Master" },
-        { id: "wan2.1-image-to-video",   label: "Wan 2.1"          },
       ],
       paramMap: {
         startFrame: "image_url",
-        endFrame:   "tail_image_url",
-        style:      "transition_style",
+        endFrame:   "last_image",
       },
       dynamicCost: true,
     },
