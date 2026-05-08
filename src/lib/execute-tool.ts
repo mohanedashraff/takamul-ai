@@ -200,6 +200,17 @@ async function runCustomTool(
 
 // ── helpers ─────────────────────────────────────────────────────────────
 
+/** MuAPI fields that are documented as `string[]`. When the form sends
+ *  a single string we wrap it in an array so the model accepts it.
+ *  (Some Flux Kontext / nano-banana edit endpoints reject `image_url`
+ *  and only take `images_list`.) */
+const ARRAY_FIELDS = new Set([
+  "images_list",
+  "image_urls",
+  "video_files",
+  "audio_files",
+]);
+
 function buildPayload(
   values:  Record<string, unknown>,
   binding: ToolMuapiBinding,
@@ -213,7 +224,16 @@ function buildPayload(
     if (raw === "auto") continue;               // "auto" is our sentinel, not a muapi value
 
     const muapiKey = paramMap[key] ?? key;
-    out[muapiKey] = raw;
+
+    // If the target field is an array-typed one and we got a single
+    // value, wrap it. Avoids the
+    //   {"loc":["body","images_list"],"msg":"Field required"}
+    // 422 we used to see on Flux Kontext edits.
+    if (ARRAY_FIELDS.has(muapiKey) && !Array.isArray(raw)) {
+      out[muapiKey] = [raw];
+    } else {
+      out[muapiKey] = raw;
+    }
   }
 
   return out;
