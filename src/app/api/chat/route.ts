@@ -1,8 +1,9 @@
 // ════════════════════════════════════════════════════════════════
 // POST /api/chat — stream a chat completion + persist messages
 // ════════════════════════════════════════════════════════════════
-// Uses Vercel AI SDK v6 + AI Gateway so a single AI_GATEWAY_API_KEY
-// routes to Anthropic/OpenAI/Google/etc.
+// Uses Vercel AI SDK v6 + OpenRouter (OpenAI-compatible) so a single
+// OPENROUTER_API_KEY reaches every frontier model — Claude, GPT,
+// Gemini, Llama, etc. See lib/ai-provider.ts.
 //
 // Body: { conversationId?, model, messages: [{role,content}], attachments? }
 //  - If conversationId is missing we create a new conversation.
@@ -11,7 +12,7 @@
 
 import { z } from "zod";
 import { streamText, convertToModelMessages, type UIMessage } from "ai";
-import { gateway } from "@ai-sdk/gateway";
+import { aiModel, isAiConfigured } from "@/lib/ai-provider";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, jsonError } from "@/lib/api";
 import { getModelConfig, DEFAULT_MODEL_ID } from "@/lib/chat-models";
@@ -75,9 +76,9 @@ export async function POST(req: Request) {
   }
 
   // If no API key configured, return a friendly error up-front
-  if (!process.env.AI_GATEWAY_API_KEY) {
+  if (!isAiConfigured()) {
     return jsonError(
-      "خدمة المحادثة غير مُعدّة بعد. أضف AI_GATEWAY_API_KEY إلى متغيرات البيئة.",
+      "خدمة المحادثة غير مُعدّة بعد. أضف OPENROUTER_API_KEY إلى متغيرات البيئة.",
       503
     );
   }
@@ -87,7 +88,7 @@ export async function POST(req: Request) {
   try {
     const modelMessages = await convertToModelMessages(messages as UIMessage[]);
     const result = streamText({
-      model: gateway(cfg.gatewaySlug),
+      model: aiModel(cfg.openrouterSlug),
       system: SYSTEM_PROMPT,
       messages: modelMessages,
       onFinish: async ({ text, usage }) => {

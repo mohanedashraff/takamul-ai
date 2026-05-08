@@ -1,15 +1,15 @@
 // ════════════════════════════════════════════════════════════════
-// Chat model registry — maps UI model ids → Vercel AI Gateway slugs
+// Chat model registry — UI ids → OpenRouter slugs
 // ════════════════════════════════════════════════════════════════
-// We use @ai-sdk/gateway so the whole chat can run on a single
-// AI_GATEWAY_API_KEY env var. Set that on Vercel or locally to
-// enable the chat endpoint.
+// Every model goes through OpenRouter (https://openrouter.ai). One
+// `OPENROUTER_API_KEY` reaches every frontier provider — Anthropic,
+// OpenAI, Google, Meta, etc. See lib/ai-provider.ts for the wrapper.
 
 export interface ChatModelConfig {
-  id: string;              // UI id
+  id: string;              // UI id (stable, also stored in DB)
   label: string;           // display name in Arabic
-  provider: string;        // "anthropic" | "openai" | "google" | "xai" | ...
-  gatewaySlug: string;     // what we pass to gateway(...)
+  provider: string;        // "anthropic" | "openai" | "google" | "meta" | ...
+  openrouterSlug: string;  // what we pass to aiModel(...)
   contextWindow: number;
   supportsVision: boolean;
 }
@@ -17,9 +17,9 @@ export interface ChatModelConfig {
 export const CHAT_MODELS: ChatModelConfig[] = [
   {
     id: "claude-3-5-sonnet",
-    label: "Claude 3.5 Sonnet",
+    label: "Claude Sonnet 4.5",
     provider: "anthropic",
-    gatewaySlug: "anthropic/claude-sonnet-4-5",
+    openrouterSlug: "anthropic/claude-sonnet-4.5",
     contextWindow: 200000,
     supportsVision: true,
   },
@@ -27,23 +27,23 @@ export const CHAT_MODELS: ChatModelConfig[] = [
     id: "gpt-4o",
     label: "GPT-4o",
     provider: "openai",
-    gatewaySlug: "openai/gpt-4o",
+    openrouterSlug: "openai/gpt-4o",
     contextWindow: 128000,
     supportsVision: true,
   },
   {
     id: "gemini-1-5-pro",
-    label: "Gemini 1.5 Pro",
+    label: "Gemini 2.5 Pro",
     provider: "google",
-    gatewaySlug: "google/gemini-2.5-pro",
+    openrouterSlug: "google/gemini-2.5-pro",
     contextWindow: 2000000,
     supportsVision: true,
   },
   {
     id: "llama-3-70b",
-    label: "Llama 3 70B",
+    label: "Llama 3.3 70B",
     provider: "meta",
-    gatewaySlug: "meta/llama-3.3-70b",
+    openrouterSlug: "meta-llama/llama-3.3-70b-instruct",
     contextWindow: 128000,
     supportsVision: false,
   },

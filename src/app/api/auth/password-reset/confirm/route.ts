@@ -8,7 +8,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk } from "@/lib/api";
-import { hashToken } from "@/lib/email";
+import { hashToken, sendPasswordChangedEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -43,10 +43,11 @@ export async function POST(req: Request) {
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
-  await prisma.$transaction([
+  const [updated] = await prisma.$transaction([
     prisma.user.update({
       where: { email },
       data:  { passwordHash },
+      select: { name: true },
     }),
     prisma.verificationToken.delete({
       where: { identifier_token: { identifier, token: tokenHash } },
@@ -57,6 +58,20 @@ export async function POST(req: Request) {
       where: { identifier },
     }),
   ]);
+
+  // Security email (best-effort — never block the password change on
+  // email failure). Captures the requesting IP so the user can verify.
+  const appUrl = process.env.AUTH_URL || req.headers.get("origin") || "https://yilow.ai";
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ?? req.headers.get("x-real-ip")
+    ?? null;
+  sendPasswordChangedEmail({
+    to:    email,
+    name:  updated.name,
+    appUrl,
+    when:  new Date(),
+    ip,
+  }).catch((err) => console.error("[password-reset/confirm] notification email failed", err));
 
   return jsonOk({ ok: true });
 }

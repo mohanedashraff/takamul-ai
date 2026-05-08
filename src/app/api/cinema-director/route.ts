@@ -5,13 +5,13 @@
 // Output:  { picks: DirectorPicks }
 //
 // We hand the model a JSON-only contract: it MUST return exactly the
-// shape below, with ids drawn from the cinema.ts catalog. We use AI
-// Gateway + Anthropic Claude (good at structured JSON), fall back to
-// OpenAI if Anthropic isn't reachable.
+// shape below, with ids drawn from the cinema.ts catalog. We use
+// OpenRouter + Anthropic Claude (good at structured JSON), fall back
+// to OpenAI if Anthropic isn't reachable.
 
 import { z } from "zod";
 import { generateObject } from "ai";
-import { gateway } from "@ai-sdk/gateway";
+import { aiModel, isAiConfigured } from "@/lib/ai-provider";
 import { auth } from "@/auth";
 import { jsonError, jsonOk } from "@/lib/api";
 import {
@@ -105,18 +105,19 @@ export async function POST(req: Request) {
   const parsed = ReqSchema.safeParse(body);
   if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Invalid");
 
-  if (!process.env.AI_GATEWAY_API_KEY) {
-    return jsonError("المخرج الذكي غير مُعدّ بعد. أضف AI_GATEWAY_API_KEY إلى البيئة.", 503);
+  if (!isAiConfigured()) {
+    return jsonError("المخرج الذكي غير مُعدّ بعد. أضف OPENROUTER_API_KEY إلى البيئة.", 503);
   }
 
-  // Try Anthropic first, fall back to OpenAI on a gateway error so the
+  // Try Anthropic first, fall back to OpenAI on a router error so the
   // user always gets picks even if a single provider is rate-limited.
-  const candidates = ["anthropic/claude-sonnet-4-5", "openai/gpt-4o"];
+  // (OpenRouter slug syntax — see openrouter.ai/models for the full list.)
+  const candidates = ["anthropic/claude-sonnet-4.5", "openai/gpt-4o"];
 
   for (const slug of candidates) {
     try {
       const { object } = await generateObject({
-        model:   gateway(slug),
+        model:   aiModel(slug),
         schema:  PicksSchema,
         system:  buildSystemPrompt(),
         prompt:  `User scene description (Arabic or English): "${parsed.data.description}"\n\nReturn the picks JSON now.`,

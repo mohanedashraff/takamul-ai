@@ -9,7 +9,7 @@
 
 import { z } from "zod";
 import { generateText } from "ai";
-import { gateway } from "@ai-sdk/gateway";
+import { aiModel, isAiConfigured } from "@/lib/ai-provider";
 import { requireAuth, jsonError, jsonOk } from "@/lib/api";
 import { getModelConfig, DEFAULT_MODEL_ID } from "@/lib/chat-models";
 
@@ -26,9 +26,9 @@ export async function POST(req: Request) {
   const { response } = await requireAuth();
   if (response) return response;
 
-  if (!process.env.AI_GATEWAY_API_KEY) {
+  if (!isAiConfigured()) {
     return jsonError(
-      "خدمة المحادثة غير مُعدّة بعد. أضف AI_GATEWAY_API_KEY إلى متغيرات البيئة.",
+      "خدمة المحادثة غير مُعدّة بعد. أضف OPENROUTER_API_KEY إلى متغيرات البيئة.",
       503,
     );
   }
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
 
   try {
     const { text } = await generateText({
-      model:    gateway(cfg.gatewaySlug),
+      model:    aiModel(cfg.openrouterSlug),
       system,
       prompt:   parsed.data.input,
     });

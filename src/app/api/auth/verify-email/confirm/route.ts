@@ -8,7 +8,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk } from "@/lib/api";
-import { hashToken } from "@/lib/email";
+import { hashToken, sendWelcomeEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -41,15 +41,27 @@ export async function POST(req: Request) {
   }
 
   // Apply the verification + delete the token in a single transaction.
-  await prisma.$transaction([
+  // We re-read the user inside so the welcome email knows their name +
+  // current credit balance.
+  const [updatedUser] = await prisma.$transaction([
     prisma.user.update({
       where: { email },
       data:  { emailVerified: new Date() },
+      select: { name: true, creditsBalance: true },
     }),
     prisma.verificationToken.delete({
       where: { identifier_token: { identifier, token: tokenHash } },
     }),
   ]);
+
+  // Welcome email (best-effort — never block verification on email failure).
+  const appUrl = process.env.AUTH_URL || req.headers.get("origin") || "https://yilow.ai";
+  sendWelcomeEmail({
+    to: email,
+    name: updatedUser.name,
+    appUrl,
+    signupCredits: updatedUser.creditsBalance,
+  }).catch((err) => console.error("[verify-email/confirm] welcome email failed", err));
 
   return jsonOk({ ok: true });
 }

@@ -58,11 +58,11 @@ export async function POST(req: Request) {
     "user-curated moodboard, cohesive aesthetic, refined editorial mood, painterly natural light, fashion-grade composition";
 
   try {
-    if (process.env.AI_GATEWAY_API_KEY && imageUrls.length > 0) {
+    if (process.env.OPENROUTER_API_KEY && imageUrls.length > 0) {
       const { generateText } = await import("ai");
-      const { gateway }      = await import("@ai-sdk/gateway");
+      const { aiModel }      = await import("@/lib/ai-provider");
       const { text } = await generateText({
-        model: gateway("anthropic/claude-sonnet-4-5"),
+        model: aiModel("anthropic/claude-sonnet-4.5"),
         system: "You are a creative director summarising the visual aesthetic of a moodboard for an image-generation prompt.",
         prompt: [
           "Look at these moodboard reference images and write ONE sentence (under 50 words) that captures their shared aesthetic so an image model can recreate it.",

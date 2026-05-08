@@ -10,6 +10,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, jsonError, jsonOk } from "@/lib/api";
 import { addCredits } from "@/lib/credits";
+import { sendGenerationReadyEmail } from "@/lib/email";
 
 const PatchSchema = z.object({
   status:       z.enum(["PROCESSING", "COMPLETED", "FAILED"]).optional(),
@@ -97,9 +98,53 @@ export async function PATCH(
         },
       }).catch(() => {});
     }
+
+    // Send a "your generation is ready" email for jobs that took ≥ 30s
+    // — those are the ones the user has likely tabbed away from. We
+    // don't email every fast image, only the long-running video/audio.
+    const emailWorthy = (data.durationMs ?? 0) >= 30_000 && justCompleted;
+    if (emailWorthy && data.outputs) {
+      const resultUrl = pickResultUrl(data.outputs);
+      if (resultUrl) {
+        const user = await prisma.user.findUnique({
+          where:  { id: session.user.id },
+          select: { email: true, name: true },
+        });
+        if (user?.email) {
+          const appUrl = process.env.AUTH_URL || req.headers.get("origin") || "https://yilow.ai";
+          sendGenerationReadyEmail({
+            to:           user.email,
+            name:         user.name,
+            appUrl,
+            toolName:     gen.toolName,
+            resultUrl,
+            generationId: gen.id,
+            durationMs:   data.durationMs,
+          }).catch((err) => console.error("[generations PATCH] email failed", err));
+        }
+      }
+    }
   }
 
   return jsonOk({ generation: updated });
+}
+
+/** Best-effort URL extraction from a tool result object. Mirrors the
+ *  shape of MuapiResult / runMuapiTool's outputs. */
+function pickResultUrl(r: unknown): string | null {
+  if (typeof r !== "object" || !r) return null;
+  const o = r as Record<string, unknown>;
+  if (typeof o.url === "string" && o.url) return o.url;
+  if (Array.isArray(o.urls) && typeof o.urls[0] === "string") return o.urls[0];
+  if (Array.isArray(o.outputs) && o.outputs.length) {
+    const first = o.outputs[0];
+    if (typeof first === "string") return first;
+    if (typeof first === "object" && first && "url" in first) {
+      const url = (first as { url: unknown }).url;
+      if (typeof url === "string") return url;
+    }
+  }
+  return null;
 }
 
 export async function DELETE(
