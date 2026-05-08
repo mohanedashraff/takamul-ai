@@ -934,24 +934,30 @@ export const IMAGE_TOOLS: Tool[] = [
     ],
     muapi: {
       category: "i2i",
-      // Default switched to nano-banana-pro-edit — it has stronger
-      // world-knowledge than Flux Kontext, which means it actually
-      // tries to recompose the scene from a new viewing angle rather
-      // than returning a near-copy of the input. Truth: no muapi
-      // model has a real 3D rotation knob, so this is best-effort
-      // novel-view-synthesis via prompt engineering. The angle
-      // workspace builds a strong English directive for it.
+      // qwen-image-edit-plus-lora is THE muapi endpoint with real
+      // structured camera-control fields (rotate_right_left,
+      // vertical_angle, move_forward, wide_angle_lens). Confirmed by
+      // inspecting Higgsfield's own Angles 2.0 network call — they
+      // route to the same Qwen model under the hood. The other edit
+      // models (nano-banana, flux-kontext, gpt4o) are kept as
+      // fallbacks for prompt-driven attempts when the structured
+      // fields aren't a perfect match.
       models: [
-        { id: "nano-banana-pro-edit",  label: "Nano Banana Pro 🔥" },
-        { id: "gpt4o-edit",            label: "GPT-4o Edit"        },
-        { id: "flux-kontext-pro-i2i",  label: "Flux Kontext Pro"   },
-        { id: "qwen-image-edit-plus",  label: "Qwen Edit Plus"     },
+        { id: "qwen-image-edit-plus-lora", label: "Qwen Camera Control 🔥" },
+        { id: "nano-banana-pro-edit",      label: "Nano Banana Pro"        },
+        { id: "gpt4o-edit",                label: "GPT-4o Edit"            },
+        { id: "qwen-image-edit-plus",      label: "Qwen Edit Plus"         },
       ],
       // image-edit models on muapi accept images_list[] (not image_url).
-      // executeTool wraps the single URL into an array.
-      paramMap: { image: "images_list" },
-      // rotation/tilt/zoom merge into the prompt — ToolInputRenderer
-      // drops empty values so payload stays clean.
+      // executeTool wraps the single URL into an array. The
+      // rotation/tilt/zoom values are sent as native fields when
+      // qwen-camera-control is selected — see AngleWorkspace.
+      paramMap: {
+        image:    "images_list",
+        rotation: "rotate_right_left",
+        tilt:     "vertical_angle",
+        zoom:     "move_forward",
+      },
       dynamicCost: true,
     },
   },
@@ -1125,7 +1131,13 @@ export const IMAGE_TOOLS: Tool[] = [
         { id: "midjourney-v7-text-to-image",    label: "Midjourney v7"      },
         { id: "google-imagen4-ultra",           label: "Imagen 4 Ultra 🔥"  },
       ],
-      paramMap: { person: "image_url" },
+      // Map `person` to images_list — when the workspace overrides
+      // the endpoint to nano-banana-pro-edit (because a reference
+      // person was uploaded), the auto-wrap helper turns the single
+      // URL into [url] which the edit model expects. T2I models
+      // ignore the field entirely (no images_list on their schema),
+      // so this is safe even without the override.
+      paramMap: { person: "images_list" },
       staticPayload: { aspect_ratio: "3:4", num_images: 4 },
       dynamicCost: true,
     },
@@ -1730,9 +1742,15 @@ export const VIDEO_TOOLS: Tool[] = [
     },
   },
   {
+    // id stable for back-compat. Old title was "لوحة إعلانية" — but
+    // the underlying I2V model just animates whatever the user uploads;
+    // it does NOT compose the logo onto a real billboard. To put a
+    // logo on a billboard we'd need a 2-stage pipeline (composite via
+    // flux-kontext THEN animate via I2V) — deferred. For now we set
+    // honest expectations: this animates your image as an ad visual.
     id: "billboard-video",
-    title: "لوحة إعلانية",
-    desc: "ضع شعارك وإعلانك على أكبر لوحات العالم الافتراضية.",
+    title: "حرّك صورتك",
+    desc: "حوّل صورتك أو شعارك إلى فيديو إعلاني متحرّك.",
     layout: "centered",
     icon: Frame,
     image: "https://cdn.higgsfield.ai/application_main/a5928bf1-8cca-4f11-80c1-d48602facf5a.mp4",
@@ -1742,9 +1760,10 @@ export const VIDEO_TOOLS: Tool[] = [
       {
         id: "media",
         type: "upload",
-        label: "صورتك أو شعارك",
-        accept: "image/*,video/*",
+        label: "ارفع صورتك أو شعارك",
+        accept: "image/*",
         required: true,
+        hint: "أحسن نتيجة مع شعار/ملصق على خلفية متباينة",
       },
       {
         id: "prompt",

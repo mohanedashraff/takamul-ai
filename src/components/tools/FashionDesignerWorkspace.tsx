@@ -676,6 +676,11 @@ export function FashionDesignerWorkspace({ tool, config }: {
                       referenceUrl = url;
                     }
                     setProgress("جاري توليد التصاميم…");
+                    // If the user uploaded a reference person, switch
+                    // to an edit model that actually CONSUMES the
+                    // reference (nano-banana-pro-edit) — the default
+                    // T2I models silently drop image_url. Without a
+                    // reference, fall through to the default T2I.
                     const { result: r } = await executeTool(
                       tool,
                       {
@@ -683,7 +688,10 @@ export function FashionDesignerWorkspace({ tool, config }: {
                         ...(referenceUrl ? { person: referenceUrl } : {}),
                         num_images: genCount,
                       },
-                      { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
+                      {
+                        endpointOverride: referenceUrl ? "nano-banana-pro-edit" : undefined,
+                        onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…"),
+                      },
                     );
                     setResult(r);
                     setPhase("result");

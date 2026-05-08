@@ -334,10 +334,20 @@ export function SketchWorkspace({ tool, config }: Props) {
       const { url } = await uploadFile(blobToFile(blob, "sketch.png"));
 
       // 2. Submit to muapi
+      // Frame the user's text as a "transform-this-sketch" directive
+      // so Flux Kontext / nano-banana-pro-edit don't return a near-copy
+      // of the sketch. Without this prefix the models tend to keep the
+      // sketchy look — adding it tells them to render the imagined
+      // finished image.
+      const finalPrompt = [
+        "Transform this rough sketch into a finished, polished, photorealistic illustration of:",
+        prompt.trim(),
+        "Preserve the composition and major shapes of the sketch but render in full colour with realistic lighting, textures, and details.",
+      ].filter(Boolean).join(" ");
       setProgress("جاري التوليد…");
       const { result } = await executeTool(
         tool,
-        { sketch: url, prompt },
+        { sketch: url, prompt: finalPrompt },
         { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
       );
 

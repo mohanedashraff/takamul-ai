@@ -48,6 +48,76 @@ function transform(p: V3, rx: number, ry: number): V3 {
   return rotX(rotY(p, ry), rx);
 }
 
+/**
+ * Convert sliders/pickers into natural-language lighting directives
+ * that image-edit models actually respond to. Raw numeric values
+ * ("brightness 70%, azimuth 90°") are treated as noise — descriptive
+ * English ("warm rim light from the right, slightly overexposed")
+ * works dramatically better.
+ */
+function describeLighting(opts: {
+  azimuth:    number;
+  elevation:  number;
+  lightType:  string;     // "soft" | "hard"
+  brightness: number;     // 0-100
+  color:      string;     // hex
+}): string {
+  const a = ((opts.azimuth % 360) + 360) % 360;
+
+  // Azimuth → cardinal lighting position
+  let where: string;
+  if      (a < 22.5  || a >= 337.5) where = "directly in front of the subject (front light, even fill)";
+  else if (a < 67.5)                where = "from the upper-front-right (3/4 key light)";
+  else if (a < 112.5)               where = "from the right side (rim / Rembrandt light)";
+  else if (a < 157.5)               where = "from the back-right (back-rim light, edge-glow)";
+  else if (a < 202.5)               where = "from directly behind the subject (silhouette / strong backlight)";
+  else if (a < 247.5)               where = "from the back-left (back-rim light, edge-glow)";
+  else if (a < 292.5)               where = "from the left side (rim / Rembrandt light)";
+  else                              where = "from the upper-front-left (3/4 key light)";
+
+  // Elevation → vertical lighting modifier
+  let vertical = "";
+  if      (opts.elevation >  60) vertical = ", high overhead (top light)";
+  else if (opts.elevation >  20) vertical = ", from above";
+  else if (opts.elevation < -60) vertical = ", low up-light (uplight, dramatic)";
+  else if (opts.elevation < -20) vertical = ", from below";
+
+  // Light type
+  const quality = opts.lightType === "soft"
+    ? "soft and diffused (large softbox / overcast feel)"
+    : "hard and directional (small source, sharp shadows)";
+
+  // Brightness → exposure
+  let exposure: string;
+  if      (opts.brightness >= 85) exposure = "very bright, slightly overexposed key";
+  else if (opts.brightness >= 65) exposure = "bright, well-exposed key";
+  else if (opts.brightness >= 45) exposure = "balanced exposure";
+  else if (opts.brightness >= 25) exposure = "moody low-key";
+  else                            exposure = "very dim, near-silhouette";
+
+  // Hex → colour temperature description
+  const colour = describeColour(opts.color);
+
+  return `Light source positioned ${where}${vertical}, ${quality}. Exposure: ${exposure}. Colour temperature: ${colour}.`;
+}
+
+function describeColour(hex: string): string {
+  const h = hex.replace("#", "").toLowerCase();
+  if (h.length !== 6) return "neutral white balance";
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  // Crude RGB → mood mapping
+  if (r > 200 && g < 150 && b < 100) return "warm orange (golden-hour, candle, tungsten)";
+  if (r > 200 && g > 150 && b < 100) return "warm yellow (sunset, tungsten)";
+  if (r < 100 && g < 150 && b > 200) return "cool blue (moonlight, dusk, twilight)";
+  if (r > 200 && g < 100 && b > 200) return "magenta (neon, cyberpunk)";
+  if (r < 150 && g > 200 && b < 150) return "green (sci-fi monitor glow, forest)";
+  if (Math.abs(r - g) < 20 && Math.abs(g - b) < 20 && r > 180) return "neutral white balance (daylight)";
+  if (Math.abs(r - g) < 20 && Math.abs(g - b) < 20 && r < 100) return "deep shadows, low-key";
+  return "stylised colour cast";
+}
+
 // ── Sphere geometry ───────────────────────────────────────────────────────────
 
 const SEGS = 64;
@@ -414,18 +484,26 @@ export function RelightWorkspace({ tool, config }: Props) {
                 try {
                   const { url } = await uploadFile(file);
                   setProgress("جاري إعادة الإضاءة…");
-                  // Compose a relighting prompt fragment muapi image-edit models can use.
-                  const lightHint = `relight from azimuth ${azimuth} degrees elevation ${elevation} degrees, ${lightType} light, brightness ${brightness}%, color ${lightColor}`;
-                  const finalPrompt = [prompt.trim(), lightHint].filter(Boolean).join(", ");
+                  // Translate raw numeric inputs into natural-language
+                  // lighting cues the model actually understands.
+                  // Edit models on muapi (flux-kontext, nano-banana-edit)
+                  // treat raw "azimuth 90, brightness 70%" as noise —
+                  // they respond MUCH better to descriptive English
+                  // ("rim light from the right, slightly overexposed").
+                  const lightHint = describeLighting({
+                    azimuth, elevation, lightType, brightness, color: lightColor,
+                  });
+                  const finalPrompt = [
+                    "Relight this image without changing the subject's identity, pose, or composition.",
+                    lightHint,
+                    prompt.trim(),
+                    "Preserve the colour grade and overall mood — only change how the light falls on the subject.",
+                  ].filter(Boolean).join(" ");
                   const { result: r } = await executeTool(
                     tool,
                     {
                       image: url,
                       prompt: finalPrompt,
-                      direction: azimuth,
-                      lightType,
-                      brightness,
-                      color: lightColor,
                     },
                     { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري إعادة الإضاءة…" : "جاري المعالجة…") },
                   );

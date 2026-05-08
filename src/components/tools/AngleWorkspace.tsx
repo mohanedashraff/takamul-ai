@@ -430,13 +430,24 @@ export function AngleWorkspace({ tool, config }: Props) {
                 try {
                   const { url } = await uploadFile(file);
                   setProgress("جاري التوليد…");
-                  // Force a strong novel-view-synthesis directive. Image-edit
-                  // models on MuAPI (flux-kontext, nano-banana-pro-edit, etc.)
-                  // don't have a 3D-aware "rotate camera" knob — we have to
-                  // spell it out in the prompt as a clear creative task and
-                  // emphasise identity preservation, otherwise the model
-                  // returns a near-copy of the input. Putting the directive
-                  // FIRST gives it more weight in attention.
+                  // Convert the spherical UI controls into the structured
+                  // numeric fields qwen-image-edit-plus-lora expects:
+                  //   rotate_right_left: integer in [-90, 90]
+                  //   vertical_angle:    number  in [-1, 1]
+                  // These are the actual fields Higgsfield's Angles 2.0
+                  // sends — confirmed via network capture.
+                  //
+                  // The UI's azimuth is 0..360. Convert to signed -180..+180
+                  // then clamp to the model's ±90 range (the qwen model
+                  // can't render back-of-subject views; we clamp instead
+                  // of failing validation).
+                  const signedAz   = azimuth > 180 ? azimuth - 360 : azimuth;
+                  const rotateRL   = Math.max(-90, Math.min(90, Math.round(signedAz)));
+                  const verticalA  = Math.max(-1,  Math.min(1,   elevation / 85));
+                  // Backup prompt for the legacy edit-model fallbacks
+                  // (nano-banana-pro-edit, gpt4o-edit, qwen-image-edit-plus).
+                  // qwen-image-edit-plus-lora ignores the prompt field —
+                  // it reads only the numeric knobs.
                   const direction = describeAngle(azimuth, elevation);
                   const sysHint =
                     `Novel view synthesis task: regenerate the SAME subject from this image but viewed from ${direction} — ` +
@@ -449,11 +460,13 @@ export function AngleWorkspace({ tool, config }: Props) {
                   const { result: r } = await executeTool(
                     tool,
                     {
-                      image: url,
-                      prompt: finalPrompt,
-                      rotation: azimuth,
-                      tilt:     elevation,
-                      best12:   gen12,
+                      image:    url,
+                      prompt:   finalPrompt,
+                      rotation: rotateRL,    // → rotate_right_left via paramMap
+                      tilt:     verticalA,    // → vertical_angle via paramMap
+                      // best12 / zoom dropped — best12 isn't a real model
+                      // field; zoom is exposed by qwen as `move_forward`
+                      // but our UI doesn't have a zoom slider yet.
                     },
                     { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
                   );
