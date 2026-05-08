@@ -26,6 +26,7 @@ import { AiDirectorSidebar, type DirectorPicks } from "./AiDirectorSidebar";
 import { uploadFile } from "@/lib/muapi";
 import { runMuapiTool } from "@/lib/run-tool";
 import { EnhancePromptButton } from "@/components/studio-shared/EnhancePromptButton";
+import { RefineButton } from "@/components/studio-shared/RefineButton";
 import {
   AdvancedSettingsModal, AdvancedSettingsChip, ADVANCED_DEFAULTS,
   type AdvancedSettings,
@@ -39,10 +40,16 @@ const HISTORY_LIMIT = 50;
 
 export interface CinemaShot {
   id:        string;
+  /** Server-side Generation row id — used by the Refiner to update the
+   *  history record after upscaling. Optional for back-compat with v1. */
+  generationId?: string;
   url:       string;
   /** Whether the saved url is a still image or a motion clip. Older
    *  rows (pre-video-mode) won't have this — they're always images. */
   mode?:     CinemaMode;
+  /** When set, the shot has been run through the Refiner. */
+  originalUrl?: string;
+  refined?:     boolean;
   timestamp: number;
   prompt:    string;
   config:    CameraConfig & {
@@ -228,7 +235,7 @@ export function CinemaStudio() {
     setProgress(mode === "video" ? "جاري إنشاء الفيديو…" : "جاري التوليد…");
 
     try {
-      const { result } = await runMuapiTool({
+      const { result, generationId } = await runMuapiTool({
         toolId:      "cinema-studio",
         endpoint,
         payload,
@@ -251,6 +258,7 @@ export function CinemaStudio() {
 
       const shot: CinemaShot = {
         id:        crypto.randomUUID(),
+        generationId,
         url,
         mode,
         timestamp: Date.now(),
@@ -399,8 +407,31 @@ export function CinemaStudio() {
                   >
                     <Download className="w-3.5 h-3.5 text-white" />
                   </a>
+                  {/* Refine — image mode only. MuAPI's upscaler is image-only. */}
+                  {shot.mode !== "video" && (
+                    <RefineButton
+                      url={shot.url}
+                      generationId={shot.generationId}
+                      refined={shot.refined}
+                      onResult={({ url, originalUrl }) => {
+                        setHistory((h) => h.map((s) =>
+                          s.id === shot.id
+                            ? { ...s, url, originalUrl: s.originalUrl ?? originalUrl, refined: true }
+                            : s,
+                        ));
+                      }}
+                    />
+                  )}
                 </div>
                 <div className="absolute top-2 right-2 flex items-center gap-1">
+                  {shot.refined && (
+                    <span
+                      className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-emerald-500/90 text-black"
+                      title="مُحسّنة"
+                    >
+                      ✨ مُحسّنة
+                    </span>
+                  )}
                   {shot.mode === "video" && (
                     <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-violet-500/90 text-white flex items-center gap-1">
                       <VideoIcon className="w-2.5 h-2.5" />

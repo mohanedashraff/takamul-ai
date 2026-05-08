@@ -36,6 +36,7 @@ import { ColorSignaturePicker, type ColorPick } from "./ColorSignaturePicker";
 import { SoulIDPicker } from "./SoulIDPicker";
 import type { SoulConfig, SoulShot, SoulMoodboardRow, SoulCharacterRow } from "./types";
 import { EnhancePromptButton } from "@/components/studio-shared/EnhancePromptButton";
+import { RefineButton } from "@/components/studio-shared/RefineButton";
 import {
   AdvancedSettingsModal, AdvancedSettingsChip, ADVANCED_DEFAULTS,
   type AdvancedSettings,
@@ -205,11 +206,12 @@ export function SoulStudio() {
       if (!r.ok || !data.url) throw new Error(data.error || "فشل التوليد");
 
       const shot: SoulShot = {
-        id:        crypto.randomUUID(),
-        url:       data.url,
-        timestamp: Date.now(),
-        prompt:    config.prompt,
-        config:    { ...config },
+        id:           crypto.randomUUID(),
+        generationId: typeof data.generationId === "string" ? data.generationId : undefined,
+        url:          data.url,
+        timestamp:    Date.now(),
+        prompt:       config.prompt,
+        config:       { ...config },
       };
       setHistory((h) => [shot, ...h].slice(0, HISTORY_LIMIT));
       toast.success("تم التوليد ✨");
@@ -275,8 +277,28 @@ export function SoulStudio() {
                   >
                     <Download className="w-3.5 h-3.5 text-white" />
                   </a>
+                  <RefineButton
+                    url={shot.url}
+                    generationId={shot.generationId}
+                    refined={shot.refined}
+                    onResult={({ url, originalUrl }) => {
+                      setHistory((h) => h.map((s) =>
+                        s.id === shot.id
+                          ? { ...s, url, originalUrl: s.originalUrl ?? originalUrl, refined: true }
+                          : s,
+                      ));
+                    }}
+                  />
                 </div>
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  {shot.refined && (
+                    <span
+                      className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-emerald-500/90 text-black flex items-center gap-1"
+                      title="مُحسّنة"
+                    >
+                      ✨ مُحسّنة
+                    </span>
+                  )}
                   <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-accent-400/90 text-black">
                     {MOODBOARDS.find((m) => m.id === shot.config.moodboardId)?.englishName
                       ?? userMoodboards.find((m) => m.id === shot.config.moodboardId)?.name

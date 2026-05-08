@@ -47,7 +47,16 @@ export interface SoulConfig {
 
 export interface SoulShot {
   id:        string;
+  /** Server-side generation id (Generation.id) so we can update the
+   *  history row when the user refines or deletes the shot. Optional
+   *  because v1 history rows didn't have it. */
+  generationId?: string;
   url:       string;
+  /** When set, this shot has been run through the Refiner (upscaler).
+   *  `url` is the refined version, `originalUrl` keeps the pre-refine
+   *  reference so we can render a "Show original" toggle later. */
+  originalUrl?: string;
+  refined?:     boolean;
   timestamp: number;
   prompt:    string;
   config:    SoulConfig;
