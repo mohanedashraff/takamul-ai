@@ -666,9 +666,14 @@ export const IMAGE_TOOLS: Tool[] = [
         { id: "bytedance-seedream-edit-v4", label: "Seedream Edit"   },
         { id: "nano-banana-2-edit",      label: "Nano Banana 2"      },
       ],
+      // All edit endpoints (nano-banana-pro-edit, flux-kontext-*,
+      // qwen-image-edit-plus, gpt4o-edit, …) accept `images_list`.
+      // Both inputs merge into the same array via buildPayload's
+      // array-merge logic — first slot is the base, second is the
+      // optional reference.
       paramMap: {
-        image: "image_url",
-        ref:   "reference_image_url",
+        image: "images_list",
+        ref:   "images_list",
       },
       dynamicCost: true,
     },
@@ -727,11 +732,14 @@ export const IMAGE_TOOLS: Tool[] = [
     ],
     muapi: {
       category: "i2i",
+      // ai-product-shot expects `scene_description` (not `prompt`)
+      // for the surrounding scene, plus `image_url` for the product.
+      // ai-product-photography needs both person + product images,
+      // which this tool doesn't collect — so we drop it for now.
       models: [
-        { id: "ai-product-shot",        label: "AI Product Shot"        },
-        { id: "ai-product-photography", label: "AI Product Photography" },
+        { id: "ai-product-shot", label: "AI Product Shot" },
       ],
-      paramMap: { product: "image_url" },
+      paramMap: { product: "image_url", prompt: "scene_description" },
       dynamicCost: true,
     },
   },
@@ -1052,7 +1060,10 @@ export const IMAGE_TOOLS: Tool[] = [
     muapi: {
       category: "i2i",
       models: [{ id: "ai-dress-change", label: "AI Dress Change" }],
-      paramMap: { person: "image_url", outfit: "garment_image_url" },
+      // ai-dress-change uses `model_image_url` (the person/mannequin
+      // wearing the garment) and `garment_image_url`. Was previously
+      // sending `image_url` which the model rejects with 422.
+      paramMap: { person: "model_image_url", outfit: "garment_image_url" },
       dynamicCost: true,
     },
   },
@@ -1127,9 +1138,12 @@ export const IMAGE_TOOLS: Tool[] = [
     muapi: {
       category: "i2i",
       models: [{ id: "ai-image-face-swap", label: "AI Face Swap" }],
+      // muapi schema: image_url = base/target image, swap_url = the face
+      // to apply onto it. Earlier paramMap used source_/target_image_url
+      // which is the wrong contract.
       paramMap: {
-        faceSource:  "source_image_url",
-        targetImage: "target_image_url",
+        faceSource:  "swap_url",
+        targetImage: "image_url",
       },
       dynamicCost: true,
     },
@@ -1513,17 +1527,20 @@ export const VIDEO_TOOLS: Tool[] = [
       {
         id: "prompt",
         type: "prompt",
-        label: "تفاصيل التأثير (اختياري)",
+        label: "تفاصيل التأثير",
         placeholder: "صف التأثير البصري الذي تريده بالتفصيل...",
+        required: true,
       },
     ],
     muapi: {
       category: "i2v",
+      // ai-video-effects (registry alias `generate_wan_ai_effects`)
+      // requires `name` (the effect identifier) — NOT `effect_type`.
+      // Removed phantom `vfx` model id (not in registry).
       models: [
         { id: "ai-video-effects", label: "AI Video Effects" },
-        { id: "vfx",              label: "VFX Engine"       },
       ],
-      paramMap: { media: "image_url", effect: "effect_type" },
+      paramMap: { media: "image_url", effect: "name" },
       dynamicCost: true,
     },
   },
@@ -1567,6 +1584,14 @@ export const VIDEO_TOOLS: Tool[] = [
         required: true,
         hint: "صورة أو فيديو — بحد أقصى 5 ثوانٍ",
       },
+      {
+        id: "prompt",
+        type: "prompt",
+        label: "وصف الانتقال",
+        placeholder: "مثال: انتقال سلس مع حركة كاميرا دافئة...",
+        required: true,
+        hint: "Kling i2v بيحتاج prompt للانتقال — اكتب وصف قصير",
+      },
     ],
     muapi: {
       // Use first-last-frame i2v models — Kling supports start_image+end_image
@@ -1586,8 +1611,11 @@ export const VIDEO_TOOLS: Tool[] = [
   },
   {
     id: "video-bg-remover",
-    title: "إزالة خلفية الفيديو",
-    desc: "احذف خلفيات الفيديوهات واستبدلها فوراً.",
+    // Title + desc updated to match what the underlying endpoint
+    // actually does (watermark removal, not background removal).
+    // Tool id kept stable so old URLs / Generation rows still work.
+    title: "إزالة العلامة المائية",
+    desc: "احذف العلامات المائية واللوغوهات من الفيديوهات تلقائياً.",
     icon: Layers,
     image: "https://cdn.higgsfield.ai/application_main/6f93883b-e8e3-4c77-9f50-3d20090f8ec3.mp4",
     credits: 8,
@@ -1605,7 +1633,10 @@ export const VIDEO_TOOLS: Tool[] = [
     ],
     muapi: {
       category: "v2v",
-      models: [{ id: "video-watermark-remover", label: "Video BG Remover" }],
+      // Tool was previously misnamed "إزالة خلفية الفيديو" — the
+      // muapi endpoint behind it (`video-watermark-remover`) actually
+      // removes watermarks, not backgrounds. Renamed to reflect truth.
+      models: [{ id: "video-watermark-remover", label: "Video Watermark Remover" }],
       paramMap: { video: "video_url" },
       dynamicCost: true,
     },
@@ -1634,8 +1665,9 @@ export const VIDEO_TOOLS: Tool[] = [
       {
         id: "prompt",
         type: "prompt",
-        label: "وصف الإعلان (اختياري)",
+        label: "وصف الإعلان",
         placeholder: "مثال: منتج في مطبخ عصري مع إضاءة طبيعية...",
+        required: true,
       },
     ],
     muapi: {
@@ -1669,8 +1701,9 @@ export const VIDEO_TOOLS: Tool[] = [
       {
         id: "prompt",
         type: "prompt",
-        label: "رسالة الإعلان (اختياري)",
+        label: "رسالة الإعلان",
         placeholder: "ما الرسالة التي تريد إيصالها للجمهور؟",
+        required: true,
       },
     ],
     muapi: {

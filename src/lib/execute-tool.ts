@@ -225,12 +225,20 @@ function buildPayload(
 
     const muapiKey = paramMap[key] ?? key;
 
-    // If the target field is an array-typed one and we got a single
-    // value, wrap it. Avoids the
-    //   {"loc":["body","images_list"],"msg":"Field required"}
-    // 422 we used to see on Flux Kontext edits.
-    if (ARRAY_FIELDS.has(muapiKey) && !Array.isArray(raw)) {
-      out[muapiKey] = [raw];
+    // Array-typed targets (images_list / video_files / …) auto-wrap
+    // single strings AND merge multiple inputs that map to the same
+    // target. e.g. Edit Image's tool maps both `image` and `ref` to
+    // `images_list`, so a final payload becomes
+    //   { images_list: [<image>, <ref>] }
+    // rather than just the second one overwriting the first.
+    if (ARRAY_FIELDS.has(muapiKey)) {
+      const existing = out[muapiKey];
+      const incoming = Array.isArray(raw) ? raw : [raw];
+      if (Array.isArray(existing)) {
+        out[muapiKey] = [...existing, ...incoming];
+      } else {
+        out[muapiKey] = incoming;
+      }
     } else {
       out[muapiKey] = raw;
     }
