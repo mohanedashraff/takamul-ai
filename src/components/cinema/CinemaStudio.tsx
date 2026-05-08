@@ -25,6 +25,11 @@ import { StylePicker, type StyleValue } from "./StylePicker";
 import { AiDirectorSidebar, type DirectorPicks } from "./AiDirectorSidebar";
 import { uploadFile } from "@/lib/muapi";
 import { runMuapiTool } from "@/lib/run-tool";
+import { EnhancePromptButton } from "@/components/studio-shared/EnhancePromptButton";
+import {
+  AdvancedSettingsModal, AdvancedSettingsChip, ADVANCED_DEFAULTS,
+  type AdvancedSettings,
+} from "@/components/studio-shared/AdvancedSettingsModal";
 
 // Bumped to v2 when the image/video toggle landed — old v1 history
 // rows didn't carry a `mode` field, so we fall back to "image" when
@@ -90,6 +95,10 @@ export function CinemaStudio() {
   const [genreOpen,    setGenreOpen]    = useState(false);
   const [styleOpen,    setStyleOpen]    = useState(false);
   const [directorOpen, setDirectorOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Negative prompt + seed (no styleStrength here — Cinema doesn't
+  // share Soul's heavy descriptor injection).
+  const [advanced,     setAdvanced]     = useState<AdvancedSettings>(ADVANCED_DEFAULTS);
   const [fullscreen,  setFullscreen]  = useState<{ url: string; mode: CinemaMode } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -104,6 +113,7 @@ export function CinemaStudio() {
         genreId: string; style: StyleValue;
         mode: CinemaMode;
         videoAspect: string; videoResolution: string; videoDuration: number;
+        advanced: AdvancedSettings;
       }>;
       if (parsed.config)     setConfig(parsed.config);
       if (parsed.aspect)     setAspect(parsed.aspect);
@@ -116,6 +126,7 @@ export function CinemaStudio() {
       if (typeof parsed.videoAspect === "string")     setVideoAspect(parsed.videoAspect);
       if (typeof parsed.videoResolution === "string") setVideoResolution(parsed.videoResolution);
       if (typeof parsed.videoDuration === "number")   setVideoDuration(parsed.videoDuration);
+      if (parsed.advanced)   setAdvanced(parsed.advanced);
     } catch {}
   }, []);
 
@@ -124,13 +135,13 @@ export function CinemaStudio() {
       try {
         localStorage.setItem(PERSIST_KEY, JSON.stringify({
           config, aspect, resolution, reference, history, genreId, style,
-          mode, videoAspect, videoResolution, videoDuration,
+          mode, videoAspect, videoResolution, videoDuration, advanced,
         }));
       } catch {}
     }, 500);
     return () => clearTimeout(t);
   }, [config, aspect, resolution, reference, history, genreId, style,
-      mode, videoAspect, videoResolution, videoDuration]);
+      mode, videoAspect, videoResolution, videoDuration, advanced]);
 
   // ── derived ───────────────────────────────────────────────────────────
   const camera   = useMemo(() => CAMERAS.find((c) => c.id === config.cameraId)!, [config.cameraId]);
@@ -189,11 +200,21 @@ export function CinemaStudio() {
     // Image vs video have different payload shapes. Kling expects
     // `duration` (and `image_url` when seeded), nano-banana takes
     // `aspect_ratio` + `resolution`.
+    // Combine the default safety-net negative prompt with whatever the
+    // user added in advanced settings. Order matters: Higgsfield-style
+    // models give earlier tokens more weight.
+    const DEFAULT_NEG = "blurry, low quality, distortion, bad composition";
+    const negative_prompt = advanced.negativePrompt.trim()
+      ? `${DEFAULT_NEG}, ${advanced.negativePrompt.trim()}`
+      : DEFAULT_NEG;
+
     const payload: Record<string, unknown> = {
       prompt:          finalPrompt,
       aspect_ratio:    effectiveAspect,
-      negative_prompt: "blurry, low quality, distortion, bad composition",
+      negative_prompt,
     };
+    if (typeof advanced.seed === "number") payload.seed = advanced.seed;
+
     if (mode === "video") {
       payload.duration   = videoDuration;
       payload.resolution = videoResolution;        // "720p" | "1080p"
@@ -450,6 +471,13 @@ export function CinemaStudio() {
               />
 
               <div className="flex items-center gap-2 flex-wrap">
+                {/* AI prompt enhancer — auto-expands the user's text. */}
+                <EnhancePromptButton
+                  prompt={prompt}
+                  variant="cinema"
+                  onResult={setPrompt}
+                  disabled={isGenerating}
+                />
                 {/* AI Director — opens the right-side chat sidebar that
                     picks every Cinema setting from a natural-language
                     prompt. Same pattern Higgsfield exposes. */}
@@ -545,6 +573,9 @@ export function CinemaStudio() {
                   />
                 )}
 
+                {/* Advanced settings (negative prompt + seed) */}
+                <AdvancedSettingsChip value={advanced} onClick={() => setAdvancedOpen(true)} />
+
                 {/* camera summary card — collapses to icon-only on
                     very narrow screens so the rest of the chips have
                     room to breathe. */}
@@ -620,6 +651,14 @@ export function CinemaStudio() {
         open={directorOpen}
         onApply={applyDirectorPicks}
         onClose={() => setDirectorOpen(false)}
+      />
+      <AdvancedSettingsModal
+        open={advancedOpen}
+        value={advanced}
+        onChange={setAdvanced}
+        onClose={() => setAdvancedOpen(false)}
+        fields={["negativePrompt", "seed"]}
+        suggestedNegativePrompt="blurry, low quality, distortion, bad composition, text, watermark"
       />
 
       {/* Fullscreen — handles both images and videos */}

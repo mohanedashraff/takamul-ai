@@ -35,6 +35,11 @@ import { BuildMoodboardModal } from "./BuildMoodboardModal";
 import { ColorSignaturePicker, type ColorPick } from "./ColorSignaturePicker";
 import { SoulIDPicker } from "./SoulIDPicker";
 import type { SoulConfig, SoulShot, SoulMoodboardRow, SoulCharacterRow } from "./types";
+import { EnhancePromptButton } from "@/components/studio-shared/EnhancePromptButton";
+import {
+  AdvancedSettingsModal, AdvancedSettingsChip, ADVANCED_DEFAULTS,
+  type AdvancedSettings,
+} from "@/components/studio-shared/AdvancedSettingsModal";
 
 const PERSIST_KEY = "yilow_soul_studio_v1";
 const HISTORY_LIMIT = 50;
@@ -58,6 +63,10 @@ export function SoulStudio() {
   const [progress,   setProgress]   = useState("");
   const [fullscreen, setFullscreen] = useState<string | null>(null);
   const [uploadingRef, setUploadingRef] = useState(false);
+  // Advanced settings (negative prompt / seed / style strength) —
+  // hidden behind a chip so the main shoot bar stays clean.
+  const [advanced, setAdvanced] = useState<AdvancedSettings>(ADVANCED_DEFAULTS);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [refUploadProgress, setRefUploadProgress] = useState(0);
 
   // Modal toggles
@@ -78,20 +87,25 @@ export function SoulStudio() {
     try {
       const saved = localStorage.getItem(PERSIST_KEY);
       if (!saved) return;
-      const parsed = JSON.parse(saved) as Partial<{ config: SoulConfig; history: SoulShot[] }>;
+      const parsed = JSON.parse(saved) as Partial<{
+        config: SoulConfig;
+        history: SoulShot[];
+        advanced: AdvancedSettings;
+      }>;
       if (parsed.config)               setConfig(parsed.config);
       if (Array.isArray(parsed.history)) setHistory(parsed.history);
+      if (parsed.advanced)               setAdvanced(parsed.advanced);
     } catch {}
   }, []);
 
   useEffect(() => {
     const t = setTimeout(() => {
       try {
-        localStorage.setItem(PERSIST_KEY, JSON.stringify({ config, history }));
+        localStorage.setItem(PERSIST_KEY, JSON.stringify({ config, history, advanced }));
       } catch {}
     }, 500);
     return () => clearTimeout(t);
-  }, [config, history]);
+  }, [config, history, advanced]);
 
   // Refresh user moodboards/characters lists at mount + after each modal
   // closes (cheap, gives instant chip-label updates after creating one).
@@ -180,6 +194,10 @@ export function SoulStudio() {
           enhance_prompt:       config.enhancePrompt,
           custom_palette_hexes: config.customPaletteHexes ?? undefined,
           reference_url:        config.referenceUrl ?? undefined,
+          // Advanced (Higgsfield-parity) controls
+          negative_prompt:      advanced.negativePrompt.trim() || undefined,
+          seed:                 advanced.seed,
+          style_strength:       advanced.styleStrength,
         }),
       });
       setProgress("جاري التوليد…");
@@ -349,6 +367,14 @@ export function SoulStudio() {
                   style={{ maxHeight: 160 }}
                   dir="rtl"
                 />
+                <EnhancePromptButton
+                  prompt={config.prompt}
+                  variant="soul"
+                  onResult={(enhanced) => setConfig((c) => ({ ...c, prompt: enhanced }))}
+                  disabled={generating}
+                  compact
+                  className="shrink-0"
+                />
               </div>
 
               {/* Chips row — primary axes + utility */}
@@ -417,6 +443,9 @@ export function SoulStudio() {
                   <Palette className="w-3.5 h-3.5 text-accent-400" />
                   <span className="truncate max-w-[120px]">{colorLabel}</span>
                 </button>
+
+                {/* Advanced settings (negative prompt / seed / style strength) */}
+                <AdvancedSettingsChip value={advanced} onClick={() => setAdvancedOpen(true)} />
 
                 {/* Spacer pushes the right group out */}
                 <div className="flex-1" />
@@ -520,6 +549,14 @@ export function SoulStudio() {
         value={config.characterId}
         onChange={(id) => setConfig((c) => ({ ...c, characterId: id }))}
         onClose={() => setCharOpen(false)}
+      />
+      <AdvancedSettingsModal
+        open={advancedOpen}
+        value={advanced}
+        onChange={setAdvanced}
+        onClose={() => setAdvancedOpen(false)}
+        fields={["negativePrompt", "seed", "styleStrength"]}
+        suggestedNegativePrompt="blurry, low quality, plastic skin, distorted face, watermark, text, oversaturated"
       />
 
       {/* Fullscreen image viewer */}

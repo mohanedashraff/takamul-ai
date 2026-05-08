@@ -41,6 +41,11 @@ const Schema = z.object({
   quality:          z.enum(["1.5k", "2k", "4k"]).default("2k"),
   num_outputs:      z.number().int().min(1).max(4).default(1),
   enhance_prompt:   z.boolean().default(true),
+  // Higgsfield-parity advanced controls.
+  negative_prompt:  z.string().max(2_000).optional(),
+  seed:             z.number().int().min(0).max(2_147_483_647).nullable().optional(),
+  /** 0..100 — how aggressively to inject Soul style descriptors. */
+  style_strength:   z.number().int().min(0).max(100).default(100),
   // When the user uploaded a one-off color reference (Soul HEX
   // "Upload & Create" path), we pass the extracted HEX strings here.
   custom_palette_hexes: z.array(z.string()).max(20).optional(),
@@ -64,6 +69,7 @@ export async function POST(req: Request) {
   const {
     prompt, moodboardId, paletteId, characterId,
     aspect_ratio, quality, num_outputs, enhance_prompt,
+    negative_prompt: userNegativePrompt, seed, style_strength,
     custom_palette_hexes, reference_url,
   } = parsed.data;
 
@@ -112,8 +118,13 @@ export async function POST(req: Request) {
     ...userMoodboardImages,
   ].filter((u): u is string => !!u);
 
-  const negative_prompt =
+  // Default Soul negative prompt — user can override or extend via the
+  // advanced settings (we concatenate so user additions stack on top).
+  const DEFAULT_NEGATIVE =
     "blurry, low quality, low resolution, plastic skin, distorted face, bad anatomy, watermark, text, logo, signature, jpeg artifacts, oversaturated";
+  const negative_prompt = userNegativePrompt?.trim()
+    ? `${DEFAULT_NEGATIVE}, ${userNegativePrompt.trim()}`
+    : DEFAULT_NEGATIVE;
 
   const payload: Record<string, unknown> = {
     prompt:         finalPrompt,
@@ -123,20 +134,33 @@ export async function POST(req: Request) {
     negative_prompt,
   };
   if (imagesList.length > 0) payload.images_list = imagesList;
+  if (typeof seed === "number") payload.seed = seed;
 
   // Edit endpoint when we have references, vanilla otherwise.
   const endpoint = imagesList.length > 0 ? "nano-banana-pro-edit" : "nano-banana-pro";
 
-  if (!enhance_prompt) {
-    // The "Off" toggle on the shoot bar means: skip the universal
-    // Soul finishing cues at the end of the prompt. We still keep
-    // the moodboard + palette descriptors — just lighter touch.
+  // Style strength rewires the prompt composition:
+  //   100% → full Soul descriptor + finishing cues (default)
+  //    50% → moodboard + palette descriptors only, no finishing cues
+  //   ≤25% → user prompt + character hint only (raw-ish)
+  // This replaces the older binary `enhance_prompt` toggle. We keep
+  // the toggle alive for back-compat: enhance_prompt=false ≈ strength 0.
+  const effectiveStrength = enhance_prompt ? style_strength : 0;
+  if (effectiveStrength <= 25) {
     payload.prompt = [
       prompt.trim(),
       characterHint?.trim(),
-      customMoodboardDescriptor || undefined,
     ].filter(Boolean).join(", ");
+  } else if (effectiveStrength <= 75) {
+    // Mid-strength: include style descriptors but drop the heavy
+    // "8K finishing, magazine-quality" cues at the end.
+    const noFinish = finalPrompt.replace(
+      /,\s*ultra-realistic editorial photograph.*$/i,
+      "",
+    );
+    payload.prompt = noFinish;
   }
+  // else: leave finalPrompt as-is (full strength)
 
   // ── Credit accounting (was previously bypassed — fixed in audit) ──
   // Soul costs `num_outputs × tool.credits` so users pay per image.

@@ -21,6 +21,11 @@ import {
 } from "@/lib/data/marketing";
 import { uploadFile } from "@/lib/muapi";
 import { runMuapiTool } from "@/lib/run-tool";
+import { EnhancePromptButton } from "@/components/studio-shared/EnhancePromptButton";
+import {
+  AdvancedSettingsModal, AdvancedSettingsChip, ADVANCED_DEFAULTS,
+  type AdvancedSettings,
+} from "@/components/studio-shared/AdvancedSettingsModal";
 
 const PERSIST_KEY    = "yilow_marketing_studio_v2";
 const HISTORY_LIMIT  = 30;
@@ -71,6 +76,8 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
     null | "format" | "hook" | "setting" | "avatar" | "ratio" | "res" | "dur" | "device"
   >(null);
   const [fullscreen,       setFullscreen]       = useState<string | null>(null);
+  const [advanced,         setAdvanced]         = useState<AdvancedSettings>(ADVANCED_DEFAULTS);
+  const [advancedOpen,     setAdvancedOpen]     = useState(false);
 
   const productInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef  = useRef<HTMLInputElement>(null);
@@ -111,6 +118,7 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
       if (p.avatarImage)   setAvatarImage(p.avatarImage);
       if (Array.isArray(p.extraImages)) setExtraImages(p.extraImages);
       if (Array.isArray(p.history))     setHistory(p.history);
+      if (p.advanced)      setAdvanced(p.advanced);
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -120,7 +128,7 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
         localStorage.setItem(PERSIST_KEY, JSON.stringify({
           prompt, variant, formatId, hookId, settingId,
           ratio, resolution, duration, deviceFrame,
-          productImage, avatarImage, extraImages, history,
+          productImage, avatarImage, extraImages, history, advanced,
         }));
       } catch {}
     }, 500);
@@ -128,7 +136,7 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
   }, [
     prompt, variant, formatId, hookId, settingId,
     ratio, resolution, duration, deviceFrame,
-    productImage, avatarImage, extraImages, history,
+    productImage, avatarImage, extraImages, history, advanced,
   ]);
 
   // ── derived ───────────────────────────────────────────────────────
@@ -184,6 +192,8 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
       images_list:  imagesList,
       video_files:  [format.videoUrl],
     };
+    if (advanced.negativePrompt.trim()) payload.negative_prompt = advanced.negativePrompt.trim();
+    if (typeof advanced.seed === "number") payload.seed = advanced.seed;
 
     setIsGenerating(true);
     setProgress("جاري التوليد…");
@@ -361,19 +371,29 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
               </div>
             )}
 
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder={
-                variant === "app"
-                  ? "اوصف الإعلان… مثال: شخص يستعرض ميزات التطبيق بحماس في 5 ثواني"
-                  : "اوصف الإعلان… مثال: امرأة تستخدم المنتج وتعرض فوائده في 3 ثواني"
-              }
-              rows={2}
-              className="w-full bg-transparent text-white placeholder-gray-500 text-sm resize-none focus:outline-none px-1 mb-3 text-right"
-              style={{ maxHeight: 200 }}
-              dir="rtl"
-            />
+            <div className="flex items-start gap-2 mb-3">
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder={
+                  variant === "app"
+                    ? "اوصف الإعلان… مثال: شخص يستعرض ميزات التطبيق بحماس في 5 ثواني"
+                    : "اوصف الإعلان… مثال: امرأة تستخدم المنتج وتعرض فوائده في 3 ثواني"
+                }
+                rows={2}
+                className="flex-1 bg-transparent text-white placeholder-gray-500 text-sm resize-none focus:outline-none px-1 text-right"
+                style={{ maxHeight: 200 }}
+                dir="rtl"
+              />
+              <EnhancePromptButton
+                prompt={prompt}
+                variant="marketing"
+                onResult={setPrompt}
+                disabled={isGenerating}
+                compact
+                className="shrink-0"
+              />
+            </div>
 
             <div className="flex items-center gap-2 flex-wrap">
               {/* Upload slots */}
@@ -544,6 +564,9 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
                 onChange={(v) => setDuration(Number(v))}
               />
 
+              {/* Advanced settings (negative prompt + seed) */}
+              <AdvancedSettingsChip value={advanced} onClick={() => setAdvancedOpen(true)} />
+
               <div className="flex-1" />
 
               {/* Generate button */}
@@ -574,6 +597,15 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
           </div>
         </div>
       </div>
+
+      <AdvancedSettingsModal
+        open={advancedOpen}
+        value={advanced}
+        onChange={setAdvanced}
+        onClose={() => setAdvancedOpen(false)}
+        fields={["negativePrompt", "seed"]}
+        suggestedNegativePrompt="blurry, low quality, watermark, text, distorted hands, deformed face"
+      />
 
       {/* Fullscreen */}
       <AnimatePresence>
