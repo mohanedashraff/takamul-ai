@@ -767,7 +767,9 @@ export const IMAGE_TOOLS: Tool[] = [
         { id: "nano-banana-pro-edit",     label: "Nano Banana Pro"  },
         { id: "qwen-image-edit-plus",     label: "Qwen Edit Plus"   },
       ],
-      paramMap: { sketch: "image_url" },
+      // Flux-Kontext + nano-banana-edit both accept images_list[].
+      // executeTool's buildPayload auto-wraps the single URL.
+      paramMap: { sketch: "images_list" },
       dynamicCost: true,
     },
   },
@@ -919,7 +921,9 @@ export const IMAGE_TOOLS: Tool[] = [
         { id: "nano-banana-pro-edit",  label: "Nano Banana Pro"  },
         { id: "qwen-image-edit-plus",  label: "Qwen Edit Plus"   },
       ],
-      paramMap: { image: "image_url" },
+      // image-edit models on muapi accept images_list[] (not image_url).
+      // executeTool wraps the single URL into an array.
+      paramMap: { image: "images_list" },
       // rotation/tilt/zoom merge into the prompt — ToolInputRenderer
       // drops empty values so payload stays clean.
       dynamicCost: true,
@@ -950,7 +954,7 @@ export const IMAGE_TOOLS: Tool[] = [
         { id: "flux-kontext-pro-i2i", label: "Flux Kontext Pro" },
         { id: "nano-banana-pro-edit", label: "Nano Banana Pro"  },
       ],
-      paramMap: { image: "image_url" },
+      paramMap: { image: "images_list" },
       staticPayload: { num_images: 9 },
       dynamicCost: true,
     },
@@ -1013,7 +1017,7 @@ export const IMAGE_TOOLS: Tool[] = [
         { id: "nano-banana-pro-edit", label: "Nano Banana Pro"     },
         { id: "qwen-image-edit-plus", label: "Qwen Edit Plus"      },
       ],
-      paramMap: { image: "image_url" },
+      paramMap: { image: "images_list" },
       // direction/lightType/brightness/color get baked into the prompt via UI
       dynamicCost: true,
     },
@@ -1155,7 +1159,7 @@ export const IMAGE_TOOLS: Tool[] = [
         { id: "flux-kontext-pro-i2i",  label: "Flux Kontext Pro" },
         { id: "nano-banana-pro-edit",  label: "Nano Banana Pro"  },
       ],
-      paramMap: { image: "image_url" },
+      paramMap: { image: "images_list" },
       staticPayload: { num_images: 8 },
       dynamicCost: true,
     },
