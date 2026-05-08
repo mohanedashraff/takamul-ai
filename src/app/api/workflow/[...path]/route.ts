@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 
 const MU_API_KEY = process.env.MU_API_KEY || 'YOUR_MU_API_KEY';
 
 async function handleProxy(req: Request, { params }: { params: Promise<{ path: string[] }> }) {
+  // Auth gate — without this anyone could hit muapi via our proxy and burn our key.
+  // (Was previously open. Fixed in audit.)
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const method = req.method;
     const body = method !== 'GET' && method !== 'HEAD' ? await req.text() : undefined;

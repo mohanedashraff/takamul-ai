@@ -19,9 +19,14 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk } from "@/lib/api";
 import { submitAndPollServer, pickResultUrl } from "@/lib/muapi-server";
 import { buildSoulPrompt } from "@/lib/data/soul";
+import { deductCredits, addCredits, InsufficientCreditsError } from "@/lib/credits";
+import { ALL_TOOLS_FLAT } from "@/lib/data/tools";
 
 export const runtime    = "nodejs";
 export const maxDuration = 240;
+
+// Soul tool entry — used to look up canonical credit cost.
+const SOUL_TOOL = ALL_TOOLS_FLAT.find((t) => t.id === "soul");
 
 const Schema = z.object({
   prompt:           z.string().min(1).max(3_000),
@@ -133,6 +138,49 @@ export async function POST(req: Request) {
     ].filter(Boolean).join(", ");
   }
 
+  // ── Credit accounting (was previously bypassed — fixed in audit) ──
+  // Soul costs `num_outputs × tool.credits` so users pay per image.
+  const baseCost = SOUL_TOOL?.credits ?? 8;
+  const credits  = baseCost * num_outputs;
+
+  let balanceAfter: number;
+  let transactionId: string;
+  try {
+    const r = await deductCredits({
+      userId:   session.user.id,
+      amount:   credits,
+      reason:   "tool:soul",
+      metadata: { toolId: "soul", num_outputs, aspect_ratio, quality },
+    });
+    balanceAfter  = r.balanceAfter;
+    transactionId = r.transactionId;
+  } catch (err) {
+    if (err instanceof InsufficientCreditsError) {
+      return jsonError("رصيد الكريديت غير كافٍ", 402);
+    }
+    throw err;
+  }
+
+  // Create the generation row so it shows in user history.
+  const generation = await prisma.generation.create({
+    data: {
+      userId:      session.user.id,
+      toolId:      "soul",
+      toolName:    SOUL_TOOL?.title ?? "Soul",
+      category:    SOUL_TOOL?.categoryKey ?? "image",
+      status:      "PENDING",
+      creditsUsed: credits,
+      inputs:      { prompt, moodboardId, paletteId, characterId, aspect_ratio, quality, num_outputs } as never,
+    },
+    select: { id: true },
+  });
+
+  // Best-effort link of the credit ledger entry → this generation.
+  prisma.creditTransaction.update({
+    where: { id: transactionId },
+    data: { metadata: { toolId: "soul", generationId: generation.id } as never },
+  }).catch(() => {});
+
   try {
     const result = await submitAndPollServer({
       endpoint,
@@ -144,14 +192,55 @@ export async function POST(req: Request) {
     const urls = Array.isArray(result.urls)    ? result.urls
               : Array.isArray(result.outputs)  ? (result.outputs as string[])
               : undefined;
-    if (!url) return jsonError("لم يتم استلام الناتج من Soul 2.0", 502);
+    if (!url) {
+      // Refund — the API call returned nothing usable.
+      await refundOnFailure(session.user.id, credits, generation.id, "no result url");
+      return jsonError("لم يتم استلام الناتج من Soul 2.0", 502);
+    }
+
+    // Mark COMPLETED with outputs.
+    await prisma.generation.update({
+      where: { id: generation.id },
+      data: {
+        status:    "COMPLETED",
+        outputs:   { url, urls } as never,
+        muapiJobId: result.requestId,
+      },
+    }).catch(() => {});
+
     return jsonOk({
       url,
       urls,
       mimeType:  "image/png",
       requestId: result.requestId,
+      creditsBalance: balanceAfter,
+      generationId:   generation.id,
     });
   } catch (err) {
-    return jsonError(err instanceof Error ? err.message : "Soul generation failed", 500);
+    const message = err instanceof Error ? err.message : "Soul generation failed";
+    await refundOnFailure(session.user.id, credits, generation.id, message);
+    return jsonError(message, 500);
   }
+}
+
+/** Refund credits + mark Generation FAILED. Best-effort, never throws. */
+async function refundOnFailure(
+  userId: string,
+  amount: number,
+  generationId: string,
+  errorMessage: string,
+): Promise<void> {
+  await Promise.allSettled([
+    addCredits({
+      userId,
+      amount,
+      reason: "refund:soul-failed",
+      metadata: { generationId, errorMessage: errorMessage.slice(0, 200) },
+      type: "REFUND",
+    }),
+    prisma.generation.update({
+      where: { id: generationId },
+      data:  { status: "FAILED", errorMessage: errorMessage.slice(0, 500) },
+    }),
+  ]);
 }

@@ -440,8 +440,8 @@ export const IMAGE_TOOLS: Tool[] = [
   // The actual MuAPI call lives in /api/tools/soul-cinema.
   {
     id: "soul-cinema",
-    title: "Soul Cinema — صور سينمائية",
-    desc: "صور بجودة هوليوود — drama lighting, anamorphic frame, color grade سينمائي ودقة 4K.",
+    title: "صور سينمائية AI",
+    desc: "صور بحس سينمائي — drama lighting, anamorphic frame وcolor grade دافي. (محاكاة استايل عبر nano-banana-pro)",
     icon: Film,
     image: "/tool-thumbnails/soul-cinema.png",
     credits: 6,
