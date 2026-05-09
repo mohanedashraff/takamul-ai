@@ -29,3 +29,5 @@ Thumbs.db
 
 # TypeScript
 tsconfig.tsbuildinfo
+.tmp-hf-research/
+.tmp-hf-models.md
