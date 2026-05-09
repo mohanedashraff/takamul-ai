@@ -14,6 +14,7 @@ import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
 import { executeTool, isExecutable } from "@/lib/execute-tool";
 import { uploadFile, type MuapiResult } from "@/lib/muapi";
 import { pickAllUrls } from "@/components/tools/useWorkspaceRun";
+import { whatsNextPrompts } from "@/components/tools/sceneVariants";
 import toast from "react-hot-toast";
 
 type Phase = "idle" | "ready" | "processing" | "result";
@@ -197,12 +198,25 @@ export function WhatsNextWorkspace({ tool, config }: Props) {
                       try {
                         const { url } = await uploadFile(file);
                         setProgress("جاري توليد التكملات…");
-                        const { result: r } = await executeTool(
-                          tool,
-                          { image: url, num_images: RESULT_COUNT },
-                          { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
+                        // Fan out 8 parallel calls — one per narrative
+                        // progression (turn around, pull back, dramatic
+                        // beat, etc) — instead of asking the model for
+                        // 8 random variants. Each shot becomes a
+                        // deliberate "what comes next" rather than a
+                        // minor variation. See sceneVariants.ts for
+                        // the prompts list.
+                        const prompts = whatsNextPrompts(RESULT_COUNT);
+                        const results = await Promise.all(
+                          prompts.map((p) =>
+                            executeTool(
+                              tool,
+                              { image: url, prompt: p, num_images: 1 },
+                              { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
+                            ),
+                          ),
                         );
-                        setResult(r);
+                        const allUrls = results.flatMap((res) => pickAllUrls(res.result));
+                        setResult({ urls: allUrls } as MuapiResult);
                         setPhase("result");
                         toast.success("تم توليد التكملات ✨");
                       } catch (err) {

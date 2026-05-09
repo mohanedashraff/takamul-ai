@@ -982,16 +982,16 @@ export const IMAGE_TOOLS: Tool[] = [
     ],
     muapi: {
       category: "i2i",
-      // Default is nano-banana-pro-edit (no num_images cap). Earlier
-      // we defaulted to flux-kontext-pro-i2i whose num_images enum is
-      // [1,2,3,4] — sending 9 silently 422'd or got clamped, so the
-      // tool was returning fewer images than the title promises.
+      // Workspace fans out N parallel calls (one per cinematic angle)
+      // each with num_images:1, then merges. See MultiSceneWorkspace.
+      // Earlier the tool sent num_images:9 in one call which Flux
+      // Kontext capped at 4 AND the variants drifted the subject's
+      // identity randomly. Per-shot prompts produce a coherent series.
       models: [
         { id: "nano-banana-pro-edit", label: "Nano Banana Pro 🔥" },
         { id: "flux-kontext-pro-i2i", label: "Flux Kontext Pro"   },
       ],
       paramMap: { image: "images_list" },
-      staticPayload: { num_images: 9 },
       dynamicCost: true,
     },
   },
@@ -1204,14 +1204,13 @@ export const IMAGE_TOOLS: Tool[] = [
     muapi: {
       category: "i2i",
       models: [
-        // nano-banana-pro-edit first — it doesn't cap num_images at 4
-        // like Flux Kontext does, so the tool can actually return all
-        // 8 continuations the UI promises.
+        // Workspace fans out 8 parallel calls (one per narrative
+        // progression — turn around, pull back, dramatic beat, etc)
+        // each with num_images:1, then merges. See WhatsNextWorkspace.
         { id: "nano-banana-pro-edit",  label: "Nano Banana Pro 🔥" },
         { id: "flux-kontext-pro-i2i",  label: "Flux Kontext Pro"   },
       ],
       paramMap: { image: "images_list" },
-      staticPayload: { num_images: 8 },
       dynamicCost: true,
     },
   },

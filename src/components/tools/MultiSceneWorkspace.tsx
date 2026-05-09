@@ -14,6 +14,7 @@ import type { STUDIO_CATEGORIES, ToolCategory } from "@/lib/data/tools";
 import { executeTool, isExecutable } from "@/lib/execute-tool";
 import { uploadFile, type MuapiResult } from "@/lib/muapi";
 import { pickAllUrls } from "@/components/tools/useWorkspaceRun";
+import { multiScenePrompts } from "@/components/tools/sceneVariants";
 import toast from "react-hot-toast";
 
 type Phase = "idle" | "processing" | "result";
@@ -332,12 +333,28 @@ export function MultiSceneWorkspace({ tool, config }: Props) {
                       try {
                         const { url } = await uploadFile(file);
                         setProgress("جاري توليد المشاهد…");
-                        const { result: r } = await executeTool(
-                          tool,
-                          { image: url, num_images: activeLayout.count },
-                          { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
+                        // Fan out N parallel calls — one per cinematic
+                        // angle / framing — instead of asking the model
+                        // for N random variants. Edit models drift the
+                        // subject's identity between random variants;
+                        // running N deliberate prompts in parallel
+                        // yields a coherent series of distinct shots.
+                        // Cost is the same (N images either way), wall
+                        // clock is bounded by the slowest call.
+                        const prompts = multiScenePrompts(activeLayout.count);
+                        const results = await Promise.all(
+                          prompts.map((p) =>
+                            executeTool(
+                              tool,
+                              { image: url, prompt: p, num_images: 1 },
+                              { onStatus: (s) => setProgress(s === "processing" || s === "running" ? "جاري التوليد…" : "جاري المعالجة…") },
+                            ),
+                          ),
                         );
-                        setResult(r);
+                        // Merge all the per-call URLs into a single result
+                        // object so the existing renderer can display them.
+                        const allUrls = results.flatMap((res) => pickAllUrls(res.result));
+                        setResult({ urls: allUrls } as MuapiResult);
                         setPhase("result");
                         toast.success("تم توليد المشاهد ✨");
                       } catch (err) {
