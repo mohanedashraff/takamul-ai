@@ -410,6 +410,15 @@ function SubcategorySection({
     }
     return value === optId;
   };
+
+  // Categories with visual hints (thumbnail / swatch on at least one
+  // option) OR explicitly opted-in via display:"card" render as a
+  // card grid. Plain text-only categories (gender, age, rendering
+  // style — matching Higgsfield's UI) keep the compact-chip layout.
+  const useCards = sub.display === "card" || sub.options.some(
+    (o) => o.thumbnail || o.swatch,
+  );
+
   return (
     <section>
       <header className="flex items-baseline justify-between mb-2.5">
@@ -421,26 +430,90 @@ function SubcategorySection({
           {sub.selection === "multi" ? "متعدد" : "واحد"}
         </span>
       </header>
-      <div className="flex flex-wrap gap-1.5">
-        {sub.options.map((o) => {
-          const picked = isPicked(o.id);
-          return (
-            <button
-              key={o.id}
-              onClick={() => sub.selection === "multi" ? onToggleMulti(o.id) : onPickSingle(o.id)}
-              type="button"
-              className={cn(
-                "h-8 px-3 rounded-lg text-[11px] font-bold transition-all border",
-                picked
-                  ? "bg-accent-400 text-black border-accent-400 shadow-[0_0_12px_rgba(254,228,64,0.35)]"
-                  : "bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/[0.06] hover:border-white/20",
-              )}
-            >
-              {o.label}
-            </button>
-          );
-        })}
-      </div>
+
+      {useCards ? (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+          {sub.options.map((o) => {
+            const picked = isPicked(o.id);
+            return (
+              <button
+                key={o.id}
+                onClick={() => sub.selection === "multi" ? onToggleMulti(o.id) : onPickSingle(o.id)}
+                type="button"
+                className={cn(
+                  "relative rounded-xl overflow-hidden border transition-all group",
+                  picked
+                    ? "border-accent-400 shadow-[0_0_18px_rgba(254,228,64,0.35)]"
+                    : "border-white/10 hover:border-white/30",
+                )}
+              >
+                {/* Visual area: thumbnail > swatch > label-only fallback */}
+                <div className={cn(
+                  "aspect-square flex items-center justify-center",
+                  o.thumbnail ? "bg-black/40" :
+                  o.swatch    ? "" :
+                  "bg-gradient-to-br from-white/[0.03] to-white/[0.06]",
+                )}
+                style={o.swatch ? { backgroundColor: o.swatch } : undefined}
+                >
+                  {o.thumbnail && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={o.thumbnail}
+                      alt={o.label}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  )}
+                  {!o.thumbnail && !o.swatch && (
+                    <span className="text-base font-bold text-gray-300 px-2 text-center leading-tight select-none">
+                      {o.label}
+                    </span>
+                  )}
+                </div>
+
+                {/* Label */}
+                <div className={cn(
+                  "px-2 py-1.5 text-[10px] font-bold leading-tight text-right",
+                  picked
+                    ? "bg-accent-400 text-black"
+                    : "bg-black/40 text-gray-200 group-hover:bg-white/[0.04]",
+                )}>
+                  {o.label}
+                </div>
+
+                {/* Selected checkmark */}
+                {picked && (
+                  <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-accent-400 text-black flex items-center justify-center text-xs font-black shadow">
+                    ✓
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {sub.options.map((o) => {
+            const picked = isPicked(o.id);
+            return (
+              <button
+                key={o.id}
+                onClick={() => sub.selection === "multi" ? onToggleMulti(o.id) : onPickSingle(o.id)}
+                type="button"
+                className={cn(
+                  "h-8 px-3 rounded-lg text-[11px] font-bold transition-all border",
+                  picked
+                    ? "bg-accent-400 text-black border-accent-400 shadow-[0_0_12px_rgba(254,228,64,0.35)]"
+                    : "bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/[0.06] hover:border-white/20",
+                )}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
