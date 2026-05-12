@@ -55,6 +55,42 @@ const ARCHETYPE_HINTS: Record<string, string> = {
   creator:    "creator archetype, focused intensity",
   rebel:      "rebel archetype, defiant posture",
   lover:      "lover archetype, magnetic warmth, soft inviting gaze",
+  // ── Higgsfield additions ───────────────────────────────────────
+  sage:       "sage archetype, contemplative eyes, weathered wisdom",
+  jester:     "jester archetype, playful raised brow, lopsided grin",
+  magician:   "magician archetype, knowing half-smile, otherworldly stillness",
+  caregiver:  "caregiver archetype, warm reassuring expression, steady presence",
+};
+
+// Map our slug-style identity values onto a human-readable English
+// phrase the prompt-builder splices in. Mirrors Higgsfield's 6
+// identity buckets.
+const ETHNICITY_HINT_MAP: Record<string, string> = {
+  asian:    "East Asian heritage",
+  black:    "African / Black heritage",
+  european: "European heritage",
+  hindi:    "Indian / South Asian heritage",
+  latina:   "Latin / Hispanic heritage",
+  mixed:    "mixed-heritage features",
+};
+
+// Map our hair-style slugs onto descriptive English.
+const HAIR_STYLE_MAP: Record<string, string> = {
+  short:       "short hair",
+  medium:      "medium-length hair",
+  long:        "long flowing hair",
+  very_long:   "very long hair",
+  bangs:       "front bangs",
+  bun:         "neat hair bun",
+  ponytail:    "ponytail",
+  afro:        "afro hairstyle",
+  braids:      "braided hair",
+  dreadlocks:  "dreadlocks",
+  messy:       "tousled messy hair",
+  slick_back:  "slick-back hair",
+  shave_sides: "shaved-sides hairstyle",
+  undercut:    "undercut hairstyle",
+  blade:       "clean-shaven head",
 };
 
 const AGE_HINTS: Record<string, string> = {
@@ -85,8 +121,17 @@ export async function POST(req: Request) {
 
   const archetypeHint = ARCHETYPE_HINTS[archetype.toLowerCase()] ?? `${archetype} archetype`;
   const ageHint       = AGE_HINTS[age_range] ?? "adult";
-  const hairBit       = hair_style ? `${hair_style} hairstyle, ` : "";
-  const ethnicityBit  = ethnicity_hint ? `${ethnicity_hint} heritage, ` : "";
+  // Slug-aware translation — if the value is one of our known slugs
+  // use the mapped phrase; otherwise fall back to the raw text (so
+  // free-text values still work for backward compat).
+  const hairPhrase    = hair_style
+    ? (HAIR_STYLE_MAP[hair_style] ?? `${hair_style} hairstyle`)
+    : "";
+  const hairBit       = hairPhrase ? `${hairPhrase}, ` : "";
+  const ethnicityPhrase = ethnicity_hint
+    ? (ETHNICITY_HINT_MAP[ethnicity_hint] ?? `${ethnicity_hint} heritage`)
+    : "";
+  const ethnicityBit  = ethnicityPhrase ? `${ethnicityPhrase}, ` : "";
 
   const finalPrompt = [
     `Studio portrait of ${full_name.trim()}, a ${gender} character with ${body_type} build.`,
