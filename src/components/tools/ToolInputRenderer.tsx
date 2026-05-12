@@ -154,6 +154,11 @@ function ButtonGroup({
   onChange: (v: string) => void;
   colorRgb: string;
 }) {
+  // If any option has an image we switch to a card grid (matches the
+  // Higgsfield UI for picker-style fields like archetype/genre/body
+  // type). Pure-text option sets keep the flat-chip layout.
+  const hasImages = input.options?.some((o) => o.image);
+
   return (
     <div className="space-y-2.5">
       {input.label && (
@@ -161,35 +166,95 @@ function ButtonGroup({
           {input.label}
         </label>
       )}
-      <div className="flex flex-wrap gap-2">
-        {input.options?.map((opt) => {
-          const isActive = value === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange(opt.value)}
-              className={cn(
-                "px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 border",
-                isActive
-                  ? "text-white border-transparent"
-                  : "text-gray-400 border-white/10 hover:border-white/20 hover:text-white bg-white/5"
-              )}
-              style={
-                isActive
-                  ? {
-                      backgroundColor: `rgba(${colorRgb}, 0.2)`,
-                      borderColor: `rgba(${colorRgb}, 0.5)`,
-                      boxShadow: `0 0 12px rgba(${colorRgb}, 0.2)`,
-                    }
-                  : {}
-              }
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
+
+      {hasImages ? (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+          {input.options?.map((opt) => {
+            const isActive = value === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onChange(opt.value)}
+                className={cn(
+                  "relative rounded-xl overflow-hidden border transition-all group text-right",
+                  isActive
+                    ? "border-transparent shadow-[0_0_18px_rgba(255,255,255,0.15)]"
+                    : "border-white/10 hover:border-white/30",
+                )}
+                style={
+                  isActive
+                    ? { boxShadow: `0 0 18px rgba(${colorRgb}, 0.35)`, borderColor: `rgba(${colorRgb}, 0.6)` }
+                    : {}
+                }
+              >
+                <div className="aspect-square bg-black/40 overflow-hidden">
+                  {opt.image ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={opt.image}
+                      alt={opt.label}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <span className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-400 px-2 text-center">
+                      {opt.label}
+                    </span>
+                  )}
+                </div>
+                <div
+                  className={cn(
+                    "px-2 py-1.5 text-[11px] font-bold leading-tight text-right",
+                    isActive ? "text-white" : "text-gray-200 bg-black/40 group-hover:bg-white/[0.04]",
+                  )}
+                  style={isActive ? { backgroundColor: `rgba(${colorRgb}, 0.2)` } : {}}
+                >
+                  {opt.label}
+                </div>
+                {isActive && (
+                  <div
+                    className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
+                    style={{ backgroundColor: `rgb(${colorRgb})`, color: "#000" }}
+                  >
+                    ✓
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {input.options?.map((opt) => {
+            const isActive = value === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onChange(opt.value)}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 border",
+                  isActive
+                    ? "text-white border-transparent"
+                    : "text-gray-400 border-white/10 hover:border-white/20 hover:text-white bg-white/5"
+                )}
+                style={
+                  isActive
+                    ? {
+                        backgroundColor: `rgba(${colorRgb}, 0.2)`,
+                        borderColor: `rgba(${colorRgb}, 0.5)`,
+                        boxShadow: `0 0 12px rgba(${colorRgb}, 0.2)`,
+                      }
+                    : {}
+                }
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

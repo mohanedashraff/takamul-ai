@@ -39,7 +39,9 @@ const Schema = z.object({
   gender:         z.enum(["male", "female", "non-binary"]),
   body_type:      z.string().min(1).max(40),
   era:            z.string().min(1).max(40),
-  genre:          z.enum(["action", "horror", "comedy", "noir", "drama", "epic"]),
+  // Accept the 14 Higgsfield-aligned genres plus our 2 originals.
+  // Permissive enum makes adding genres a one-line change.
+  genre:          z.string().min(1).max(40),
   attractiveness: z.number().int().min(0).max(10),
 });
 
@@ -58,6 +60,11 @@ const ARCHETYPE_HINTS: Record<string, string> = {
   creator:    "creator archetype, focused intensity, hands suggesting craft",
   rebel:      "rebel archetype, defiant posture, untamed energy",
   lover:      "lover archetype, magnetic warmth, soft inviting gaze",
+  // ── Higgsfield additions ───────────────────────────────────────
+  sage:       "sage archetype, contemplative eyes, weathered wisdom",
+  jester:     "jester archetype, playful raised brow, lopsided grin",
+  magician:   "magician archetype, knowing half-smile, otherworldly stillness",
+  caregiver:  "caregiver archetype, warm reassuring expression, steady presence",
 };
 
 const ERA_HINTS: Record<string, string> = {
@@ -77,12 +84,23 @@ const ERA_HINTS: Record<string, string> = {
 };
 
 const GENRE_HINTS: Record<string, string> = {
-  action: "high-energy action cinema mood, kinetic stance, bold contrast",
-  horror: "horror cinema atmosphere, dread, low-key shadows, unsettling framing",
-  comedy: "comedy cinema mood, bright energetic palette, charming light",
-  noir:   "classic film noir aesthetic, hard shadows, venetian-blind light, moral ambiguity",
-  drama:  "intimate dramatic cinema, emotional close-up, restrained color, naturalistic light",
-  epic:   "epic cinema scale, heroic blocking, atmospheric depth",
+  action:     "high-energy action cinema mood, kinetic stance, bold contrast",
+  horror:     "horror cinema atmosphere, dread, low-key shadows, unsettling framing",
+  comedy:     "comedy cinema mood, bright energetic palette, charming light",
+  noir:       "classic film noir aesthetic, hard shadows, venetian-blind light, moral ambiguity",
+  drama:      "intimate dramatic cinema, emotional close-up, restrained colour, naturalistic light",
+  epic:       "epic cinema scale, heroic blocking, atmospheric depth",
+  // ── Higgsfield additions ───────────────────────────────────────
+  adventure:  "adventure cinema mood, golden-hour exploration, wide vistas hinted",
+  detective:  "detective procedural mood, smoky urban interior, tungsten desk light",
+  fantasy:    "fantasy cinema atmosphere, magical rim-light, mythic colour palette",
+  historical: "period historical cinema, time-accurate styling, painterly composition",
+  romance:    "romantic cinema mood, soft golden glow, intimate framing",
+  "sci-fi":   "sci-fi cinema aesthetic, neon-cool palette, sleek production design",
+  sitcom:     "TV sitcom warm-set mood, flat shadows, bright friendly palette",
+  thriller:   "thriller cinema mood, tense low-key lighting, anxious framing",
+  war:        "war cinema mood, smoke and dust, desaturated palette",
+  western:    "western cinema mood, dusty golden plains, low-angle hero framing",
 };
 
 const BODY_HINTS: Record<string, string> = {
@@ -92,6 +110,10 @@ const BODY_HINTS: Record<string, string> = {
   muscular:   "muscular powerful build",
   curvy:      "curvy build",
   heavy:      "heavyset solid build",
+  // ── Higgsfield additions ───────────────────────────────────────
+  average:    "average naturally-proportioned build",
+  stocky:     "stocky solid-shoulders build",
+  plus_size:  "plus-size confident build",
 };
 
 function attractivenessHint(score: number): string {
