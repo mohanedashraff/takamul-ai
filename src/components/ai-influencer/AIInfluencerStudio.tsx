@@ -213,15 +213,31 @@ export function AiInfluencerStudio() {
                 onClick={() => setActivePanel(panel.id)}
                 type="button"
                 className={cn(
-                  "h-11 px-4 rounded-2xl border text-xs font-black flex items-center gap-2 transition-all whitespace-nowrap",
+                  "h-11 pr-3 pl-1.5 rounded-2xl border text-xs font-black flex items-center gap-2 transition-all whitespace-nowrap overflow-hidden",
                   isActive
                     ? "bg-accent-400 text-black border-accent-400 shadow-[0_0_24px_rgba(254,228,64,0.35)]"
                     : "bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/[0.06]",
                 )}
               >
-                <Icon className="w-3.5 h-3.5" />
+                {panel.thumbnail ? (
+                  /* Real Higgsfield panel preview thumbnail */
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={panel.thumbnail}
+                    alt=""
+                    loading="lazy"
+                    className="w-8 h-8 rounded-lg object-cover"
+                  />
+                ) : (
+                  <span className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center",
+                    isActive ? "bg-black/15" : "bg-white/[0.04]",
+                  )}>
+                    <Icon className="w-3.5 h-3.5" />
+                  </span>
+                )}
                 <span>{panel.name}</span>
-                <span className={cn("text-[10px] opacity-70", isActive ? "text-black/70" : "text-gray-500")}>({panel.count})</span>
+                <span className={cn("text-[10px] opacity-70 mr-1", isActive ? "text-black/70" : "text-gray-500")}>({panel.count})</span>
               </button>
             );
           })}

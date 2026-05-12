@@ -63,6 +63,8 @@ export interface InfluencerPanel {
   name:        string;
   englishName: string;
   icon:        LucideIcon;
+  /** Proxied Higgsfield CDN URL for the panel-tab thumbnail. */
+  thumbnail?:  string;
   /** Total option count across all subcategories — for the header chip. */
   count:       number;
   subcategories: InfluencerSubcategory[];
@@ -605,6 +607,12 @@ function countOptions(subs: InfluencerSubcategory[]): number {
   return subs.reduce((s, sub) => s + sub.options.length, 0);
 }
 
+// Higgsfield's panel-tab thumbnail UUIDs (extracted from their bundle).
+// Core doesn't have a thumbnail on their side either — the User icon
+// is fine for it.
+const PANEL_THUMB = (uuid: string) =>
+  `/api/cdn/c/ai_influencer_parent_category/${uuid}.webp`;
+
 export const INFLUENCER_PANELS: InfluencerPanel[] = [
   {
     id:            "core",
@@ -619,6 +627,7 @@ export const INFLUENCER_PANELS: InfluencerPanel[] = [
     name:          "الوجه",
     englishName:   "Face",
     icon:          Eye,
+    thumbnail:     PANEL_THUMB("e0805c7f-c1b0-4c68-bbc7-bab5ae86d6df"),
     subcategories: FACE_SUBS,
     count:         countOptions(FACE_SUBS),
   },
@@ -627,6 +636,7 @@ export const INFLUENCER_PANELS: InfluencerPanel[] = [
     name:          "الجسم",
     englishName:   "Body",
     icon:          Hand,
+    thumbnail:     PANEL_THUMB("ee30f691-5d7b-4788-af82-73d86b6f32bb"),
     subcategories: BODY_SUBS,
     count:         countOptions(BODY_SUBS),
   },
@@ -635,6 +645,7 @@ export const INFLUENCER_PANELS: InfluencerPanel[] = [
     name:          "الستايل",
     englishName:   "Style",
     icon:          Palette,
+    thumbnail:     PANEL_THUMB("5b67892f-ef65-4f8d-af20-e0f35a13f1b3"),
     subcategories: STYLE_SUBS,
     count:         countOptions(STYLE_SUBS),
   },
