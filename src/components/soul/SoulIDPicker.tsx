@@ -3,7 +3,7 @@
 // ════════════════════════════════════════════════════════════════
 // Soul ID — Character Picker overlay
 // ════════════════════════════════════════════════════════════════
-// Mirrors Higgsfield's "MAKE YOUR OWN CHARACTER" modal:
+// Mirrors the reference platform's "MAKE YOUR OWN CHARACTER" modal:
 //
 //   Hero:  "MAKE YOUR OWN CHARACTER"  + [Create character ✨]
 //   Tabs:  [All] [Soul] [Soul 2.0] [Soul Cinema]
@@ -12,7 +12,7 @@
 //
 // Picking a card sets the active character on the parent. "Create
 // character" opens an inline upload modal that requires ≥20 photos
-// (same minimum as Higgsfield).
+// (same minimum as the reference).
 
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";

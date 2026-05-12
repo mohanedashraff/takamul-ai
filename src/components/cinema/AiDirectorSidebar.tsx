@@ -1,7 +1,7 @@
 "use client";
 
 // ════════════════════════════════════════════════════════════════
-// AI Director sidebar — Higgsfield-style "describe what you want"
+// AI Director sidebar — "describe what you want" picks every setting
 // ════════════════════════════════════════════════════════════════
 // Right-side slide-in panel with a chat input. The user types a scene
 // description; we POST to /api/cinema-director and apply the picks the

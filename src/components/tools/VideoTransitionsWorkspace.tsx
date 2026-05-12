@@ -23,7 +23,7 @@ interface Props {
   config: (typeof STUDIO_CATEGORIES)[ToolCategory];
 }
 
-// ── All transition presets (Higgsfield Kling Motion, Arabic labels) ───────────
+// ── All transition presets (Kling Motion, Arabic labels) ─────────────────────
 
 interface Transition {
   id:    string;
@@ -33,29 +33,29 @@ interface Transition {
 }
 
 const TRANSITIONS: Transition[] = [
-  { id: "raven",          label: "انتقال الغراب",    en: "Raven Transition",       video: "https://cdn.higgsfield.ai/kling_motion/ec0c8890-fe56-4d36-a6b8-5a886f4ddc59.mp4" },
-  { id: "morph",          label: "تحوّل",             en: "Morph",                   video: "https://cdn.higgsfield.ai/kling_motion/0211305d-a72d-49c0-8ef5-a6f9f1e26ae6.mp4" },
-  { id: "air-bending",    label: "تحكم بالهواء",      en: "Air Bending",             video: "https://cdn.higgsfield.ai/kling_motion/1975de3f-ccc9-489b-afdc-0985cac6ece2.mp4" },
-  { id: "shadow-smoke",   label: "دخان الظل",         en: "Shadow Smoke",            video: "https://cdn.higgsfield.ai/kling_motion/e5eb378c-6bc4-45a2-a221-c8a139ceb6dd.mp4" },
-  { id: "water-bending",  label: "تحكم بالماء",       en: "Water Bending",           video: "https://cdn.higgsfield.ai/kling_motion/4fe58127-2cc9-4023-b32a-087d47c2ed13.mp4" },
-  { id: "firelava",       label: "حمم النار",         en: "Firelava",                video: "https://cdn.higgsfield.ai/kling_motion/ce9bd1d9-5a77-48a6-8c25-92ffca2c8e46.mp4" },
-  { id: "flying-cam",     label: "كاميرا طائرة",      en: "Flying Cam Transition",   video: "https://cdn.higgsfield.ai/kling_motion/71990a66-268d-4aaf-b5cd-0ee566c07c29.mp4" },
-  { id: "melt",           label: "ذوبان",             en: "Melt Transition",         video: "https://cdn.higgsfield.ai/kling_motion/4b8ff2f8-5ba8-40f8-87eb-af655d467b8b.mp4" },
-  { id: "splash",         label: "رشّة ماء",          en: "Splash Transition",       video: "https://cdn.higgsfield.ai/kling_motion/812614b7-2d4d-4ec4-b99e-816fe44ce826.mp4" },
-  { id: "flame",          label: "لهب",               en: "Flame Transition",        video: "https://cdn.higgsfield.ai/kling_motion/8dd17be3-1ba7-4ce0-bede-be5a0159fcfc.mp4" },
-  { id: "smoke",          label: "دخان",              en: "Smoke Transition",        video: "https://cdn.higgsfield.ai/kling_motion/bc070c05-9d3a-45b2-9858-30350ceacc30.mp4" },
-  { id: "logo-transform", label: "تحوّل الشعار",      en: "Logo Transform",          video: "https://cdn.higgsfield.ai/kling_motion/af9b47a1-6db9-4a68-bdc4-467a49fca07e.mp4" },
-  { id: "hand",           label: "يد عابرة",          en: "Hand Transition",         video: "https://cdn.higgsfield.ai/kling_motion/5ce96e11-d02c-4096-843a-972487971c3c.mp4" },
-  { id: "column-wipe",    label: "مسح عمودي",         en: "Column Wipe",             video: "https://cdn.higgsfield.ai/kling_motion/df839982-50b1-4808-bc47-14b747899f1b.mp4" },
-  { id: "hole",           label: "ثقب",               en: "Hole Transition",         video: "https://cdn.higgsfield.ai/kling_motion/22875b3c-6301-44ea-b1e0-47ad6a4db5b8.mp4" },
-  { id: "display",        label: "عرض شاشة",          en: "Display Transition",      video: "https://cdn.higgsfield.ai/kling_motion/bf105e54-a39b-42dd-9034-303a8fae6b82.mp4" },
-  { id: "jump",           label: "قفزة",              en: "Jump Transition",         video: "https://cdn.higgsfield.ai/kling_motion/24f2abc3-ccf9-4a73-9e0a-ebf9d37975d7.mp4" },
-  { id: "seamless",       label: "انسيابي",           en: "Seamless Transition",     video: "https://cdn.higgsfield.ai/kling_motion/a76327c9-ae08-4031-a9bf-aab64d7f57ad.mp4" },
-  { id: "trucksition",    label: "شاحنة عابرة",       en: "Trucksition",             video: "https://cdn.higgsfield.ai/kling_motion/c30347ed-7ead-4fad-9e4c-f28fab27ccbf.mp4" },
-  { id: "gorilla",        label: "نقلة الغوريلا",     en: "Gorilla Transfer",        video: "https://cdn.higgsfield.ai/kling_motion/ed8abe4c-dd35-4462-9b74-44366d203543.mp4" },
-  { id: "intermission",   label: "استراحة",           en: "Intermission",            video: "https://cdn.higgsfield.ai/kling_motion/4e3fd227-360e-4269-b4f7-99cac57de016.mp4" },
-  { id: "stranger",       label: "غريب",              en: "Stranger Transition",     video: "https://cdn.higgsfield.ai/kling_motion/45aada3d-d7a7-4722-923a-0e1f8cbe8bf3.mp4" },
-  { id: "earth-wave",     label: "موجة أرضية",        en: "Earth Wave",              video: "https://cdn.higgsfield.ai/kling_motion/53a52716-1f82-4c0f-9a72-91b31361024a.mp4" },
+  { id: "raven",          label: "انتقال الغراب",    en: "Raven Transition",       video: "/api/cdn/c/kling_motion/ec0c8890-fe56-4d36-a6b8-5a886f4ddc59.mp4" },
+  { id: "morph",          label: "تحوّل",             en: "Morph",                   video: "/api/cdn/c/kling_motion/0211305d-a72d-49c0-8ef5-a6f9f1e26ae6.mp4" },
+  { id: "air-bending",    label: "تحكم بالهواء",      en: "Air Bending",             video: "/api/cdn/c/kling_motion/1975de3f-ccc9-489b-afdc-0985cac6ece2.mp4" },
+  { id: "shadow-smoke",   label: "دخان الظل",         en: "Shadow Smoke",            video: "/api/cdn/c/kling_motion/e5eb378c-6bc4-45a2-a221-c8a139ceb6dd.mp4" },
+  { id: "water-bending",  label: "تحكم بالماء",       en: "Water Bending",           video: "/api/cdn/c/kling_motion/4fe58127-2cc9-4023-b32a-087d47c2ed13.mp4" },
+  { id: "firelava",       label: "حمم النار",         en: "Firelava",                video: "/api/cdn/c/kling_motion/ce9bd1d9-5a77-48a6-8c25-92ffca2c8e46.mp4" },
+  { id: "flying-cam",     label: "كاميرا طائرة",      en: "Flying Cam Transition",   video: "/api/cdn/c/kling_motion/71990a66-268d-4aaf-b5cd-0ee566c07c29.mp4" },
+  { id: "melt",           label: "ذوبان",             en: "Melt Transition",         video: "/api/cdn/c/kling_motion/4b8ff2f8-5ba8-40f8-87eb-af655d467b8b.mp4" },
+  { id: "splash",         label: "رشّة ماء",          en: "Splash Transition",       video: "/api/cdn/c/kling_motion/812614b7-2d4d-4ec4-b99e-816fe44ce826.mp4" },
+  { id: "flame",          label: "لهب",               en: "Flame Transition",        video: "/api/cdn/c/kling_motion/8dd17be3-1ba7-4ce0-bede-be5a0159fcfc.mp4" },
+  { id: "smoke",          label: "دخان",              en: "Smoke Transition",        video: "/api/cdn/c/kling_motion/bc070c05-9d3a-45b2-9858-30350ceacc30.mp4" },
+  { id: "logo-transform", label: "تحوّل الشعار",      en: "Logo Transform",          video: "/api/cdn/c/kling_motion/af9b47a1-6db9-4a68-bdc4-467a49fca07e.mp4" },
+  { id: "hand",           label: "يد عابرة",          en: "Hand Transition",         video: "/api/cdn/c/kling_motion/5ce96e11-d02c-4096-843a-972487971c3c.mp4" },
+  { id: "column-wipe",    label: "مسح عمودي",         en: "Column Wipe",             video: "/api/cdn/c/kling_motion/df839982-50b1-4808-bc47-14b747899f1b.mp4" },
+  { id: "hole",           label: "ثقب",               en: "Hole Transition",         video: "/api/cdn/c/kling_motion/22875b3c-6301-44ea-b1e0-47ad6a4db5b8.mp4" },
+  { id: "display",        label: "عرض شاشة",          en: "Display Transition",      video: "/api/cdn/c/kling_motion/bf105e54-a39b-42dd-9034-303a8fae6b82.mp4" },
+  { id: "jump",           label: "قفزة",              en: "Jump Transition",         video: "/api/cdn/c/kling_motion/24f2abc3-ccf9-4a73-9e0a-ebf9d37975d7.mp4" },
+  { id: "seamless",       label: "انسيابي",           en: "Seamless Transition",     video: "/api/cdn/c/kling_motion/a76327c9-ae08-4031-a9bf-aab64d7f57ad.mp4" },
+  { id: "trucksition",    label: "شاحنة عابرة",       en: "Trucksition",             video: "/api/cdn/c/kling_motion/c30347ed-7ead-4fad-9e4c-f28fab27ccbf.mp4" },
+  { id: "gorilla",        label: "نقلة الغوريلا",     en: "Gorilla Transfer",        video: "/api/cdn/c/kling_motion/ed8abe4c-dd35-4462-9b74-44366d203543.mp4" },
+  { id: "intermission",   label: "استراحة",           en: "Intermission",            video: "/api/cdn/c/kling_motion/4e3fd227-360e-4269-b4f7-99cac57de016.mp4" },
+  { id: "stranger",       label: "غريب",              en: "Stranger Transition",     video: "/api/cdn/c/kling_motion/45aada3d-d7a7-4722-923a-0e1f8cbe8bf3.mp4" },
+  { id: "earth-wave",     label: "موجة أرضية",        en: "Earth Wave",              video: "/api/cdn/c/kling_motion/53a52716-1f82-4c0f-9a72-91b31361024a.mp4" },
 ];
 
 const DURATIONS = ["3", "5", "8"];

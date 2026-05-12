@@ -3,7 +3,7 @@
 // ════════════════════════════════════════════════════════════════
 // Soul 2.0 Studio — main page
 // ════════════════════════════════════════════════════════════════
-// Mirrors Higgsfield's Soul 2.0 page (https://higgsfield.ai/ai/image?model=soul-v2):
+// Mirrors the reference platform's Soul 2.0 page:
 //
 //   • Hero header with the giant SOUL2 wordmark
 //   • Generation history (gallery) below the hero
@@ -195,10 +195,12 @@ export function SoulStudio() {
           enhance_prompt:       config.enhancePrompt,
           custom_palette_hexes: config.customPaletteHexes ?? undefined,
           reference_url:        config.referenceUrl ?? undefined,
-          // Advanced (Higgsfield-parity) controls
-          negative_prompt:      advanced.negativePrompt.trim() || undefined,
-          seed:                 advanced.seed,
-          style_strength:       advanced.styleStrength,
+          // Advanced reference-parity controls
+          negative_prompt:           advanced.negativePrompt.trim() || undefined,
+          seed:                      advanced.seed,
+          style_strength:            advanced.styleStrength,
+          custom_reference_strength: advanced.customReferenceStrength,
+          use_refiner:               advanced.useRefiner,
         }),
       });
       setProgress("جاري التوليد…");
@@ -577,7 +579,15 @@ export function SoulStudio() {
         value={advanced}
         onChange={setAdvanced}
         onClose={() => setAdvancedOpen(false)}
-        fields={["negativePrompt", "seed", "styleStrength"]}
+        // Show the customReferenceStrength slider only when a Soul ID
+        // is actually pinned — pointless to expose otherwise.
+        fields={[
+          "negativePrompt",
+          "seed",
+          "styleStrength",
+          ...(config.characterId ? ["customReferenceStrength" as const] : []),
+          "useRefiner",
+        ]}
         suggestedNegativePrompt="blurry, low quality, plastic skin, distorted face, watermark, text, oversaturated"
       />
 

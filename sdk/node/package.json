@@ -1,0 +1,32 @@
+{
+  "name": "@yilow/client",
+  "version": "0.1.0",
+  "description": "Yilow.ai Node SDK + CLI — programmatic access to every Yilow tool.",
+  "type": "module",
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "yilow": "dist/cli.mjs"
+  },
+  "files": ["dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/cli.ts --format esm --dts --clean",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["yilow", "ai", "image", "video", "client", "cli"],
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  }
+}

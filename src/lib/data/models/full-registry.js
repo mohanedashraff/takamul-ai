@@ -3801,9 +3801,9 @@ export const i2iModels = [
   },
   {
     "id": "higgsfield-soul-image-to-image",
-    "name": "Higgsfield Soul Image To Image",
+    "name": "Soul Engine — Image to Image",
     "endpoint": "higgsfield-soul-image-to-image",
-    "family": "higgsfield",
+    "family": "soul-engine",
     "imageField": "image_url",
     "hasPrompt": true,
     "inputs": {
@@ -6487,9 +6487,9 @@ export const i2vModels = [
   },
   {
     "id": "higgsfield-dop-image-to-video",
-    "name": "Higgsfield Dop Image To Video",
+    "name": "DoP Engine — Image to Video",
     "endpoint": "higgsfield-dop-image-to-video",
-    "family": "higgsfield",
+    "family": "dop-engine",
     "imageField": "image_url",
     "hasPrompt": true,
     "inputs": {

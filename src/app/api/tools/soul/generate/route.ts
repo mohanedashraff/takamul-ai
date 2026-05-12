@@ -38,14 +38,23 @@ const Schema = z.object({
   characterId:      z.string().optional(),
   // Aspect / quality / count / enhancement flag.
   aspect_ratio:     z.enum(["1:1", "3:4", "4:3", "9:16", "16:9", "4:5", "2:3", "21:9"]).default("3:4"),
-  quality:          z.enum(["1.5k", "2k", "4k"]).default("2k"),
+  // Two-tier quality (1.5K / 2K) matches the picker. We still accept
+  // legacy "4k" silently so old localStorage shoots don't 422 — it
+  // just gets clamped to "2k" before the muapi payload is built.
+  quality:          z.enum(["1.5k", "2k", "4k"]).default("2k").transform((q) => q === "4k" ? "2k" : q),
   num_outputs:      z.number().int().min(1).max(4).default(1),
   enhance_prompt:   z.boolean().default(true),
-  // Higgsfield-parity advanced controls.
+  // the reference-parity advanced controls.
   negative_prompt:  z.string().max(2_000).optional(),
   seed:             z.number().int().min(0).max(2_147_483_647).nullable().optional(),
   /** 0..100 — how aggressively to inject Soul style descriptors. */
   style_strength:   z.number().int().min(0).max(100).default(100),
+  /** 0..100 — how strongly the picked Soul ID character locks identity.
+   *  At 100 we send all 5 character thumbs; at 0 we drop them entirely. */
+  custom_reference_strength: z.number().int().min(0).max(100).default(100),
+  /** When true, append a "refiner pass" descriptor so the model adds a
+   *  finishing detail pass on the result (skin texture, fabric, etc). */
+  use_refiner:      z.boolean().default(false),
   // When the user uploaded a one-off color reference (Soul HEX
   // "Upload & Create" path), we pass the extracted HEX strings here.
   custom_palette_hexes: z.array(z.string()).max(20).optional(),
@@ -70,6 +79,7 @@ export async function POST(req: Request) {
     prompt, moodboardId, paletteId, characterId,
     aspect_ratio, quality, num_outputs, enhance_prompt,
     negative_prompt: userNegativePrompt, seed, style_strength,
+    custom_reference_strength, use_refiner,
     custom_palette_hexes, reference_url,
   } = parsed.data;
 
@@ -88,21 +98,66 @@ export async function POST(req: Request) {
   }
 
   // ── Resolve Soul ID (character) ──
+  // Three identity-preservation modes ranked by quality:
+  //   (1) Real fal.ai LoRA — character.loraUrl is set when the user
+  //       trained the character via /api/soul-id/train. We route the
+  //       generation through fal-ai/flux-lora with the trained LoRA
+  //       loaded (BEST identity preservation).
+  //   (2) References pass-through — fall back when no LoRA available;
+  //       we send the character's photos as `images_list` to the
+  //       image-edit endpoint and inject a "consistent appearance" hint.
+  //   (3) Prompt-only — when custom_reference_strength is very low,
+  //       we drop the reference photos and use just the hint.
+  //
+  // Custom reference strength applies to all 3 modes:
+  //   • 100 → full identity lock (LoRA scale 1.0 OR 5 reference thumbs)
+  //   • 80-99 → strong (LoRA scale 0.85 OR 5 thumbs)
+  //   • 60-79 → moderate (LoRA scale 0.65 OR 3 thumbs)
+  //   • 30-59 → loose (LoRA scale 0.40 OR 1 thumb + softened hint)
+  //   • 0-29  → free interpretation (no LoRA / no thumbs)
   let characterHint: string | undefined;
   let characterImages: string[] = [];
+  let characterLoraUrl: string | null = null;
+  let characterTriggerWord: string | null = null;
+  let characterName: string | null = null;
   if (characterId) {
     const ch = await prisma.soulCharacter.findFirst({
       where: { id: characterId, userId: session.user.id },
-      select: { hintText: true, imageUrls: true, name: true },
+      select: { hintText: true, imageUrls: true, name: true, loraUrl: true, triggerWord: true, trainingStatus: true },
     });
     if (ch) {
-      characterHint = ch.hintText ?? `consistent appearance of "${ch.name}" matching the reference photos`;
-      characterImages = ch.imageUrls.slice(0, 5); // 5 angles is plenty
+      characterName = ch.name;
+      const strict = custom_reference_strength >= 30;
+      characterHint = strict
+        ? (ch.hintText ?? `consistent appearance of "${ch.name}" matching the reference photos`)
+        : `inspired by the look of "${ch.name}" — free interpretation, not a literal match`;
+      // Prefer the trained LoRA when available + strength >= 30
+      if (ch.loraUrl && ch.trainingStatus === "COMPLETED" && strict) {
+        characterLoraUrl     = ch.loraUrl;
+        characterTriggerWord = ch.triggerWord ?? "TOK";
+      } else {
+        // Fall back to references pass-through
+        const thumbCount =
+          custom_reference_strength >= 80 ? 5 :
+          custom_reference_strength >= 60 ? 3 :
+          custom_reference_strength >= 30 ? 1 :
+          0;
+        characterImages = ch.imageUrls.slice(0, thumbCount);
+      }
     }
   }
 
   // ── Compose final prompt ──
-  const finalPrompt = buildSoulPrompt({
+  // The Refiner pass appends a fine-detail tail that nudges the model
+  // to output cleaner skin texture, fabric weave, and edge detail.
+  // It's the prompt-level equivalent of the reference platform's
+  // `use_refiner: true` flag — we don't have a separate refiner model
+  // online, but the descriptor reliably improves perceived sharpness.
+  const REFINER_TAIL =
+    "post-process refiner pass: ultra-fine pore-level skin texture, " +
+    "crisp fabric weave detail, micro-contrast on edges, " +
+    "magazine-print retouch quality, no smoothing";
+  const baseComposed = buildSoulPrompt({
     basePrompt:                prompt,
     moodboardId,
     paletteId,
@@ -110,6 +165,9 @@ export async function POST(req: Request) {
     customMoodboardDescriptor,
     customPaletteHexes:        custom_palette_hexes,
   });
+  const finalPrompt = use_refiner
+    ? `${baseComposed}, ${REFINER_TAIL}`
+    : baseComposed;
 
   // ── Build images_list — character + moodboard + one-off reference ──
   const imagesList = [
@@ -206,16 +264,62 @@ export async function POST(req: Request) {
   }).catch(() => {});
 
   try {
-    const result = await submitAndPollServer({
-      endpoint,
-      apiKey:    muKey,
-      payload,
-      timeoutMs: 4 * 60 * 1000,
-    });
-    const url  = pickResultUrl(result);
-    const urls = Array.isArray(result.urls)    ? result.urls
-              : Array.isArray(result.outputs)  ? (result.outputs as string[])
-              : undefined;
+    let url: string | null = null;
+    let urls: string[] | undefined;
+    let providerRequestId: string | undefined;
+
+    // ── BRANCH A: Real fal.ai LoRA inference (when character has a
+    //    trained LoRA + strength is high enough). Best identity
+    //    preservation — uses the LoRA we trained for this character.
+    if (characterLoraUrl && process.env.FAL_KEY) {
+      // LoRA scale rises with custom_reference_strength
+      const loraScale =
+        custom_reference_strength >= 80 ? 1.0 :
+        custom_reference_strength >= 60 ? 0.85 :
+        custom_reference_strength >= 30 ? 0.6  :
+        0.3;
+      // Inject the trigger word at the head of the prompt — flux-lora
+      // associates the LoRA's identity with the trigger token.
+      const triggeredPrompt = characterTriggerWord
+        ? `${characterTriggerWord} ${typeof payload.prompt === "string" ? payload.prompt : ""}`.trim()
+        : (typeof payload.prompt === "string" ? payload.prompt : "");
+      // Map our aspect ratio enum → fal's image_size enum.
+      const falImageSize = aspectToFalImageSize(aspect_ratio);
+      const { falSubmitAndWait } = await import("@/lib/fal");
+      type FalImg = { images: { url: string }[]; seed?: number };
+      const falResult = await falSubmitAndWait<FalImg>(
+        "fal-ai/flux-lora",
+        {
+          prompt:           triggeredPrompt,
+          loras:            [{ path: characterLoraUrl, scale: loraScale }],
+          image_size:       falImageSize,
+          num_images:       num_outputs,
+          guidance_scale:   3.5,
+          num_inference_steps: 28,
+          ...(typeof seed === "number" ? { seed } : {}),
+          ...(negative_prompt ? { negative_prompt } : {}),
+        },
+        { intervalMs: 1500, maxWaitMs: 4 * 60 * 1000 },
+      );
+      const falUrls = (falResult.images ?? []).map((i) => i.url).filter(Boolean);
+      url  = falUrls[0] ?? null;
+      urls = falUrls.length > 0 ? falUrls : undefined;
+      providerRequestId = falResult.request_id;
+    } else {
+      // ── BRANCH B: existing nano-banana / nano-banana-edit flow
+      const result = await submitAndPollServer({
+        endpoint,
+        apiKey:    muKey,
+        payload,
+        timeoutMs: 4 * 60 * 1000,
+      });
+      url  = pickResultUrl(result);
+      urls = Array.isArray(result.urls)   ? result.urls
+           : Array.isArray(result.outputs) ? (result.outputs as string[])
+           : undefined;
+      providerRequestId = result.requestId;
+    }
+
     if (!url) {
       // Refund — the API call returned nothing usable.
       await refundOnFailure(session.user.id, credits, generation.id, "no result url");
@@ -228,7 +332,7 @@ export async function POST(req: Request) {
       data: {
         status:    "COMPLETED",
         outputs:   { url, urls } as never,
-        muapiJobId: result.requestId,
+        muapiJobId: providerRequestId,
       },
     }).catch(() => {});
 
@@ -236,7 +340,7 @@ export async function POST(req: Request) {
       url,
       urls,
       mimeType:  "image/png",
-      requestId: result.requestId,
+      requestId: providerRequestId,
       creditsBalance: balanceAfter,
       generationId:   generation.id,
     });

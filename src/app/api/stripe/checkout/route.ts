@@ -20,7 +20,13 @@ import {
 export const runtime = "nodejs";
 
 const Schema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("plan"),       planId: z.enum(["BASIC", "PRO", "ENTERPRISE"]) }),
+  z.object({
+    kind:   z.literal("plan"),
+    planId: z.enum([
+      "STARTER", "BASIC", "LITE", "PRO", "PLUS",
+      "CREATOR", "ULTIMATE", "ULTRA", "TEAM", "ENTERPRISE",
+    ]),
+  }),
   z.object({ kind: z.literal("creditPack"), packId: z.string().min(1) }),
 ]);
 

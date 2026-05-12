@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export interface ScrollColumnItem {
@@ -94,59 +94,77 @@ export function ScrollColumn({ title, items, selectedId, onChange }: ScrollColum
           {/* Top spacer so the first item can land in the center slot */}
           <div style={{ height: ITEM_HEIGHT }} aria-hidden />
 
-          {items.map((item) => {
-            const active = item.id === selectedId;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onChange(item.id)}
-                className={cn(
-                  "snap-center relative w-full flex flex-col items-center justify-center gap-1.5 px-2",
-                  "transition-all duration-300 outline-none focus-visible:bg-white/5",
-                  active ? "opacity-100" : "opacity-35 hover:opacity-70",
-                )}
-                style={{ height: ITEM_HEIGHT }}
-                type="button"
-              >
-                {item.thumbnail ? (
-                  <img
-                    src={item.thumbnail}
-                    alt=""
-                    className={cn(
-                      "rounded-lg object-cover transition-all duration-300 border",
-                      active
-                        ? "w-14 h-14 border-accent-400/60"
-                        : "w-12 h-12 border-white/10",
-                    )}
-                  />
-                ) : (
-                  <div
-                    className={cn(
-                      "rounded-lg flex items-center justify-center font-black border transition-all duration-300",
-                      active
-                        ? "w-14 h-14 border-accent-400/60 bg-accent-400/15 text-accent-400 text-base"
-                        : "w-12 h-12 border-white/10 text-white/60 text-sm",
-                    )}
-                  >
-                    {item.label ?? item.name?.slice(0, 2)}
-                  </div>
-                )}
-                <span
-                  className={cn(
-                    "text-[11px] leading-tight text-center font-bold w-full px-1 truncate",
-                    active ? "text-accent-400" : "text-gray-500",
-                  )}
-                >
-                  {item.name ?? item.label}
-                </span>
-              </button>
-            );
-          })}
+          {items.map((item) => (
+            <ScrollColumnRow
+              key={item.id}
+              item={item}
+              active={item.id === selectedId}
+              onSelect={() => onChange(item.id)}
+            />
+          ))}
 
           {/* Bottom spacer so the last item can also land centered */}
           <div style={{ height: ITEM_HEIGHT }} aria-hidden />
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Single row — handles thumbnail load failure with text fallback ─────
+function ScrollColumnRow({
+  item, active, onSelect,
+}: {
+  item:     ScrollColumnItem;
+  active:   boolean;
+  onSelect: () => void;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showFallback = !item.thumbnail || imgFailed;
+  return (
+    <button
+      onClick={onSelect}
+      className={cn(
+        "snap-center relative w-full flex flex-col items-center justify-center gap-1.5 px-2",
+        "transition-all duration-300 outline-none focus-visible:bg-white/5",
+        active ? "opacity-100" : "opacity-35 hover:opacity-70",
+      )}
+      style={{ height: ITEM_HEIGHT }}
+      type="button"
+    >
+      {showFallback ? (
+        <div
+          className={cn(
+            "rounded-lg flex items-center justify-center font-black border transition-all duration-300",
+            active
+              ? "w-14 h-14 border-accent-400/60 bg-accent-400/15 text-accent-400 text-base"
+              : "w-12 h-12 border-white/10 text-white/60 text-sm",
+          )}
+        >
+          {item.label ?? item.englishName?.charAt(0) ?? item.name?.slice(0, 2)}
+        </div>
+      ) : (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={item.thumbnail}
+          alt=""
+          onError={() => setImgFailed(true)}
+          className={cn(
+            "rounded-lg object-cover transition-all duration-300 border",
+            active
+              ? "w-14 h-14 border-accent-400/60"
+              : "w-12 h-12 border-white/10",
+          )}
+        />
+      )}
+      <span
+        className={cn(
+          "text-[11px] leading-tight text-center font-bold w-full px-1 truncate",
+          active ? "text-accent-400" : "text-gray-500",
+        )}
+      >
+        {item.name ?? item.label}
+      </span>
+    </button>
   );
 }

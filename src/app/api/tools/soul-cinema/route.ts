@@ -1,16 +1,16 @@
 // ════════════════════════════════════════════════════════════════
-// POST /api/tools/soul-cinema — Higgsfield "Soul Cinema" replica
+// POST /api/tools/soul-cinema — Soul Cinema generator
 // ════════════════════════════════════════════════════════════════
-// Soul Cinema is Higgsfield's proprietary "cinema-grade visual" model
-// (https://higgsfield.ai/ai/image?model=soul-cinematic). It isn't on
-// MuAPI, so we approximate the look by:
+// Soul Cinema is the cinema-grade variant of Soul. The proprietary
+// backend model isn't available externally, so we approximate the
+// look by:
 //
 //   1. Layering a curated "soul cinema" descriptor onto the user prompt
 //      (warm cinematic palette, anamorphic-style framing, dramatic
 //      lighting, film grain, ultra-realistic, 8K finishing).
 //   2. Submitting to MuAPI's `nano-banana-pro` (Google's flagship
-//      image model — same backbone Higgsfield routes Soul Cinema
-//      through, per their UI label).
+//      image model — same backbone the reference routes Soul Cinema
+//      through, per the source platform's UI label).
 //   3. Polling server-side and returning the final URL in one POST
 //      so the client uses the standard customRunner flow.
 //
@@ -43,7 +43,7 @@ const Schema = z.object({
   num_outputs:        z.number().int().min(1).max(4).default(1),
 });
 
-// Higgsfield's signature look — distilled from Soul Cinema sample
+// Soul Cinema's signature look — distilled from sample outputs of
 // outputs. Keep this as a single concatenated string so the user's
 // prompt stays at the head (where image models weight it heaviest).
 const SOUL_CINEMA_DESCRIPTOR = [

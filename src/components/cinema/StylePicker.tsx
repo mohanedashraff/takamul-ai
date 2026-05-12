@@ -3,7 +3,7 @@
 // ════════════════════════════════════════════════════════════════
 // Cinema Style Picker — 3 axes (palette / lighting / moveset)
 // ════════════════════════════════════════════════════════════════
-// Mirrors Higgsfield's "Style Settings" modal, which exposes three
+// Mirrors the reference platform's "Style Settings" modal, which exposes three
 // independent dimensions you mix-and-match. We expose them as three
 // horizontal carousels stacked vertically; each card is a still or a
 // looping video clip, and the active pick gets a yellow accent ring.

@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, jsonError, jsonOk } from "@/lib/api";
 import { deductCredits, InsufficientCreditsError } from "@/lib/credits";
 import { ALL_TOOLS_FLAT } from "@/lib/data/tools";
+import { coerceAspectRatio } from "@/lib/aspect-ratio";
 
 const CreateSchema = z.object({
   toolId: z.string().min(1),
@@ -79,6 +80,28 @@ export async function POST(req: Request) {
   const tool = ALL_TOOLS_FLAT.find((t) => t.id === toolId);
   if (!tool) return jsonError("Tool not found", 404);
 
+  // ── Aspect-ratio coercion ───────────────────────────────────────
+  // SDK / MCP / Canvas callers occasionally pass shapes like "1.78",
+  // "16x9", "4:3 landscape". Snap to the closest supported ratio for
+  // this tool (or COMMON_RATIOS if the tool doesn't constrain), and
+  // surface any adjustments so the response can show "we used 16:9".
+  const aspectInputId = tool.inputs?.find(
+    (i) => i.id === "ratio" || i.id === "aspect_ratio" || i.id === "aspectRatio",
+  )?.id;
+  const ratioAdjustments: { from: string; to: string; method: string }[] = [];
+  if (aspectInputId && inputs[aspectInputId] !== undefined) {
+    const aspectInput = tool.inputs?.find((i) => i.id === aspectInputId);
+    const supportedRatios =
+      aspectInput?.options
+        ?.map((o) => o.value)
+        .filter((v) => /^\d+:\d+$/.test(v)) ?? undefined;
+    const coerced = coerceAspectRatio(inputs[aspectInputId], supportedRatios);
+    if (coerced.changed) {
+      inputs[aspectInputId] = coerced.ratio;
+      ratioAdjustments.push(...coerced.adjustments);
+    }
+  }
+
   // Dynamic pricing wins when provided (e.g. derived from /api/calculate-cost
   // before submitting). Fall back to the static cost in tools.ts otherwise.
   const credits = overrideCredits ?? tool.credits;
@@ -114,6 +137,9 @@ export async function POST(req: Request) {
       ok: true,
       generation: gen,
       creditsBalance: balanceAfter,
+      // Surface any adjustments the coercer made so the client can
+      // show "we used 16:9 instead of 1.85:1".
+      ...(ratioAdjustments.length > 0 ? { adjustments: ratioAdjustments } : {}),
     });
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {

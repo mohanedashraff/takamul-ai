@@ -1201,6 +1201,270 @@ function StylePickerInput({
   );
 }
 
+// ── MotionPickerInput ─────────────────────────────────────────────────────────
+// A picker over `MOTION_CATALOG` from `src/lib/data/motions.ts`.
+// Selecting a motion writes its `preview` URL into `value` so the
+// generic executor can ship it as `video_url` with no special handling.
+
+function MotionPickerInput({
+  input,
+  value,
+  onChange,
+  colorRgb,
+}: {
+  input: ToolInput;
+  value: string;
+  onChange: (val: string) => void;
+  colorRgb: string;
+}) {
+  const [open, setOpen]               = useState(false);
+  const [activeFamily, setActiveFamily] = useState<string>("all");
+  const [search, setSearch]           = useState("");
+  const [catalog, setCatalog]         = useState<MotionPickerEntry[] | null>(null);
+  const [families, setFamilies]       = useState<MotionFamilyEntry[]>([]);
+
+  // Lazy-load the catalog so the bundle doesn't grow for every tool.
+  useEffect(() => {
+    if (!open || catalog) return;
+    let cancelled = false;
+    (async () => {
+      const mod = await import("@/lib/data/motions");
+      if (cancelled) return;
+      setCatalog(mod.MOTION_CATALOG as MotionPickerEntry[]);
+      setFamilies(mod.MOTION_FAMILIES as MotionFamilyEntry[]);
+    })();
+    return () => { cancelled = true; };
+  }, [open, catalog]);
+
+  // Resolve the selected preset (for the closed-card label).
+  const selected = catalog?.find((m) => m.preview === value) ?? null;
+
+  // Filter pipeline.
+  const list = (catalog ?? []).filter((m) => {
+    if (activeFamily !== "all" && m.family !== activeFamily) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      if (
+        !m.name.toLowerCase().includes(q) &&
+        !m.nameAr.includes(q) &&
+        !m.tags.some((t) => t.toLowerCase().includes(q))
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  return (
+    <div className="space-y-2">
+      {input.label && (
+        <label className="text-sm text-gray-400 font-medium block">
+          {input.label}
+          {input.required && <span className="text-red-400 mr-1">*</span>}
+        </label>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "w-full rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04]",
+          "transition-all p-3 flex items-center gap-3 text-right",
+          selected && "border-white/20 bg-white/[0.04]",
+        )}
+        style={selected ? { boxShadow: `0 0 0 1px rgba(${colorRgb}, 0.3)` } : {}}
+      >
+        {selected ? (
+          <>
+            <div className="w-14 h-14 rounded-xl overflow-hidden bg-white/5 flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={selected.thumbnail} alt="" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium truncate">{selected.nameAr}</div>
+              <div className="text-xs text-gray-500 truncate">{selected.name}</div>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onChange(""); }}
+              className="text-gray-500 hover:text-red-400 transition-colors p-1"
+              aria-label="مسح الاختيار"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="w-14 h-14 rounded-xl border border-white/10 flex items-center justify-center flex-shrink-0">
+              <LayoutGrid className="w-5 h-5 text-gray-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm text-gray-300">اختر حركة من الكاتالوج</div>
+              <div className="text-xs text-gray-500">١٢١+ حركة جاهزة في ٦ عائلات</div>
+            </div>
+            <ChevronLeft className="w-4 h-4 text-gray-500" />
+          </>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.25 }}
+              className="bg-[#0a0a0a] border border-white/10 rounded-3xl max-w-5xl w-full max-h-[85vh] flex flex-col overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-white/[0.05] flex-shrink-0">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h3 className="text-base font-medium">كاتالوج الحركات</h3>
+                  <button
+                    onClick={() => setOpen(false)}
+                    className="text-gray-500 hover:text-white transition-colors"
+                    aria-label="إغلاق"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="ابحث في الحركات…"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl pr-10 pl-4 py-2.5 text-sm focus:outline-none focus:border-white/20"
+                  />
+                </div>
+                {/* Family tabs */}
+                <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1 -mx-1 px-1">
+                  <button
+                    onClick={() => setActiveFamily("all")}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
+                      activeFamily === "all"
+                        ? "bg-white text-black"
+                        : "bg-white/[0.03] text-gray-400 hover:bg-white/[0.06]",
+                    )}
+                  >
+                    الكل ({catalog?.length ?? 0})
+                  </button>
+                  {families.map((f) => {
+                    const count = (catalog ?? []).filter((m) => m.family === f.id).length;
+                    return (
+                      <button
+                        key={f.id}
+                        onClick={() => setActiveFamily(f.id)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
+                          activeFamily === f.id
+                            ? "bg-white text-black"
+                            : "bg-white/[0.03] text-gray-400 hover:bg-white/[0.06]",
+                        )}
+                      >
+                        {f.labelAr} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Grid */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {!catalog ? (
+                  <div className="text-center text-gray-500 text-sm py-12">جاري التحميل…</div>
+                ) : list.length === 0 ? (
+                  <div className="text-center text-gray-500 text-sm py-12">مفيش حركات مطابقة</div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {list.map((m) => {
+                      const isSelected = value === m.preview;
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => { onChange(m.preview); setOpen(false); }}
+                          className={cn(
+                            "group relative rounded-xl overflow-hidden bg-white/[0.02] hover:bg-white/[0.04]",
+                            "border border-white/10 hover:border-white/20 transition-all text-right",
+                            isSelected && "border-white/30",
+                          )}
+                          style={isSelected ? { boxShadow: `0 0 0 1px rgba(${colorRgb}, 0.5)` } : {}}
+                        >
+                          <div className="aspect-square bg-white/5 overflow-hidden">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={m.thumbnail}
+                              alt=""
+                              loading="lazy"
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                          </div>
+                          <div className="px-2.5 py-2">
+                            <div className="text-xs font-medium truncate">{m.nameAr}</div>
+                            <div className="text-[10px] text-gray-500 truncate">{m.name}</div>
+                          </div>
+                          {isSelected && (
+                            <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-white text-black flex items-center justify-center">
+                              <Check className="w-3 h-3" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-4 py-3 border-t border-white/[0.05] flex items-center justify-between flex-shrink-0">
+                <span className="text-xs text-gray-600 tabular-nums">
+                  {list.length}{search || activeFamily !== "all" ? ` / ${catalog?.length ?? 0}` : ""} حركة
+                </span>
+                {value && (
+                  <button
+                    onClick={() => { onChange(""); setOpen(false); }}
+                    className="text-xs text-gray-500 hover:text-red-400 transition-colors flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" /> مسح الاختيار
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Local type aliases to dodge a circular-import warning during dev —
+// runtime types come from src/lib/data/motions.ts via dynamic import.
+interface MotionPickerEntry {
+  id:        string;
+  name:      string;
+  nameAr:    string;
+  family:    string;
+  thumbnail: string;
+  preview:   string;
+  tags:      string[];
+}
+interface MotionFamilyEntry {
+  id:      string;
+  labelAr: string;
+  label:   string;
+}
+
 // ── Master Renderer ───────────────────────────────────────────────────────────
 
 export function renderToolInput(
@@ -1343,6 +1607,17 @@ export function renderToolInput(
           key={input.id}
           input={input}
           value={values[input.id] ?? input.defaultValue ?? ""}
+          onChange={(v) => setValue(input.id, v)}
+          colorRgb={colorRgb}
+        />
+      );
+
+    case "motion-picker":
+      return (
+        <MotionPickerInput
+          key={input.id}
+          input={input}
+          value={values[input.id] ?? ""}
           onChange={(v) => setValue(input.id, v)}
           colorRgb={colorRgb}
         />

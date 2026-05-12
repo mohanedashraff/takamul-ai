@@ -1,4 +1,4 @@
-// AUTO-GENERATED from Higgsfield API — do not edit manually
+// AUTO-GENERATED fashion catalog — do not edit manually
 
 // ── Male full-outfit presets ──────────────────────────────────────────────────
 export const MALE_OUTFITS_DATA = [
@@ -937,67 +937,67 @@ export const BACKGROUNDS_DATA = [
   {
     "id": "4b10c8e3-55ab-4c2d-85a2-40c3ae419f83",
     "name": "Field",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/06a84604-895b-4411-bfc8-601c482d9e17.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/06a84604-895b-4411-bfc8-601c482d9e17.webp"
   },
   {
     "id": "1def1ec0-734d-42f4-9b85-d17d99e32445",
     "name": "Brick wall",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/c8a2071d-5878-4a99-b35e-f5720c863c1f.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/c8a2071d-5878-4a99-b35e-f5720c863c1f.webp"
   },
   {
     "id": "07ae44db-36a4-4f68-a821-c8fcb629d909",
     "name": "Garden house",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/36c02fbf-e928-4e2d-b6fa-25f18fbe5e26.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/36c02fbf-e928-4e2d-b6fa-25f18fbe5e26.webp"
   },
   {
     "id": "cf68401a-4d9e-4be3-abce-518f05782bc6",
     "name": "Cafe",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/370a8dd5-6f1f-4732-8450-2b86d0b3f1f4.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/370a8dd5-6f1f-4732-8450-2b86d0b3f1f4.webp"
   },
   {
     "id": "79f43f24-b6e9-48b7-a368-22b510095654",
     "name": "Gallery",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/70d22727-981a-4e65-b9fd-496849527186.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/70d22727-981a-4e65-b9fd-496849527186.webp"
   },
   {
     "id": "aa79e26d-90cf-44b1-9d65-65ca91f613e6",
     "name": "Graffiti 1",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/8e6e6e3d-4faf-4a77-8f51-a2a8ddbe402e.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/8e6e6e3d-4faf-4a77-8f51-a2a8ddbe402e.webp"
   },
   {
     "id": "18d98787-39e5-475c-84d2-b4e534e42c71",
     "name": "Grey room 1",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/3211e455-0067-4131-8ca8-0af25e8d97af.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/3211e455-0067-4131-8ca8-0af25e8d97af.webp"
   },
   {
     "id": "a21f25c8-c70b-4c1d-8b58-7afcc853df31",
     "name": "Library 2",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/46347170-d079-434e-9622-7755913b3384.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/46347170-d079-434e-9622-7755913b3384.webp"
   },
   {
     "id": "c386eea0-d023-4a1f-a95c-a891b1cde30b",
     "name": "Library 1",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/7a98644d-1f9a-4160-93f5-398506a9229c.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/7a98644d-1f9a-4160-93f5-398506a9229c.webp"
   },
   {
     "id": "59573b11-3fb6-4a23-8841-572f429c6b81",
     "name": "Parking",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/72f3d879-03cf-447b-8098-aa69ca85b1f4.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/72f3d879-03cf-447b-8098-aa69ca85b1f4.webp"
   },
   {
     "id": "87d5537f-9385-4713-a48a-97c299ed0c26",
     "name": "Performative cafe",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/8a9f8440-69e9-4a48-bdec-3a081bab3a9d.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/8a9f8440-69e9-4a48-bdec-3a081bab3a9d.webp"
   },
   {
     "id": "55f62636-6cf4-4d9c-a995-d6dc9c4aae09",
     "name": "Balcony",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/13b6e831-0b49-4829-9c7a-762b497d2996.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/13b6e831-0b49-4829-9c7a-762b497d2996.webp"
   },
   {
     "id": "338332e5-a46c-4a09-8110-a461f425289d",
     "name": "Beach 2",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-backgrounds/b397ae10-236c-4ecf-b4d5-6a961ac11e21.webp"
+    "url": "/api/cdn/c/ai-stylist-backgrounds/b397ae10-236c-4ecf-b4d5-6a961ac11e21.webp"
   }
 ];
 
@@ -1006,46 +1006,46 @@ export const POSES_DATA = [
   {
     "id": "1fb0213c-63b2-4a52-ac5a-2371649e9abf",
     "name": "Female Pose 3",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-poses/e94d39a4-d3a5-46f0-b8e2-4439c5f0b6db.webp"
+    "url": "/api/cdn/c/ai-stylist-poses/e94d39a4-d3a5-46f0-b8e2-4439c5f0b6db.webp"
   },
   {
     "id": "f994e1a1-56bc-40d6-a81e-231d82ace4c6",
     "name": "Female Pose 4",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-poses/e30c90ce-1ea7-4bcd-8d18-6f3423390af6.webp"
+    "url": "/api/cdn/c/ai-stylist-poses/e30c90ce-1ea7-4bcd-8d18-6f3423390af6.webp"
   },
   {
     "id": "45bdd512-4d5d-4f22-b64e-187a79c8ff26",
     "name": "Female Pose 1",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-poses/b4de6cb3-3407-43eb-b807-a11d86c65a12.webp"
+    "url": "/api/cdn/c/ai-stylist-poses/b4de6cb3-3407-43eb-b807-a11d86c65a12.webp"
   },
   {
     "id": "ccde40da-2b9e-435d-a32a-b0cf76e20881",
     "name": "Male Pose 3",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-poses/c8257e0e-5e3a-4d79-bf38-bc96428106e5.webp"
+    "url": "/api/cdn/c/ai-stylist-poses/c8257e0e-5e3a-4d79-bf38-bc96428106e5.webp"
   },
   {
     "id": "04c4afba-e3f8-43c5-bf57-180d035252b9",
     "name": "Female Pose 5",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-poses/813254cb-e379-416f-928e-2fd1631ba2e6.webp"
+    "url": "/api/cdn/c/ai-stylist-poses/813254cb-e379-416f-928e-2fd1631ba2e6.webp"
   },
   {
     "id": "2cfe38ae-31d5-401d-930c-946a6f1c3dfd",
     "name": "Male Pose 2",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-poses/43583663-6f87-4dc7-959b-bc92804a2bd7.webp"
+    "url": "/api/cdn/c/ai-stylist-poses/43583663-6f87-4dc7-959b-bc92804a2bd7.webp"
   },
   {
     "id": "16fa997e-d0db-413e-a938-1836d0dec70a",
     "name": "Male Pose 4",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-poses/fa6acbef-b35a-4e27-b3e6-d41147e56d18.webp"
+    "url": "/api/cdn/c/ai-stylist-poses/fa6acbef-b35a-4e27-b3e6-d41147e56d18.webp"
   },
   {
     "id": "058f8559-d23f-49ce-9f8e-e3ce8d9a611f",
     "name": "Male Pose 5",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-poses/9e6403eb-20a9-4522-80d4-b2cd88e8e42d.webp"
+    "url": "/api/cdn/c/ai-stylist-poses/9e6403eb-20a9-4522-80d4-b2cd88e8e42d.webp"
   },
   {
     "id": "962b801c-9a10-4602-b539-ef1376593ce6",
     "name": "Female Pose 2",
-    "url": "https://cdn.higgsfield.ai/ai-stylist-poses/b290f028-7daf-4ce2-bab0-7bdc5acd1e4a.webp"
+    "url": "/api/cdn/c/ai-stylist-poses/b290f028-7daf-4ce2-bab0-7bdc5acd1e4a.webp"
   }
 ];

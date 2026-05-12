@@ -3,14 +3,14 @@
 // ════════════════════════════════════════════════════════════════
 // "Build your moodboard" upload modal
 // ════════════════════════════════════════════════════════════════
-// Mirrors Higgsfield's flow:
+// Mirrors the reference platform's flow:
 //   • Header: "Build your moodboard — Upload at least 5 photos to continue"
 //   • Two big upload buttons side by side: "Upload from device" / "Upload from assets"
 //   • A grid showing the uploaded photos as you add them, each with an X
 //   • Hints: ✅ 20+ photos, one cohesive style, no faces. ❌ Faces, mixed styles, blurry.
 //   • Footer: name input + "Save moodboard" CTA (disabled until ≥5 photos + name set)
 //
-// We hard-gate at 5 photos and cap at 30 (the upper bound Higgsfield
+// We hard-gate at 5 photos and cap at 30 (the upper bound the reference
 // recommends). Each picked file goes through `uploadFile` (MuAPI
 // storage) so we end up with stable URLs the backend can persist.
 

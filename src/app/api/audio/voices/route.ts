@@ -17,6 +17,8 @@
 
 import { NextResponse } from "next/server";
 import { ELEVENLABS_VOICES, isElevenLabsConfigured } from "@/lib/elevenlabs";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 interface ElevenLabsVoice {
   voice_id: string;
@@ -33,6 +35,45 @@ interface VoiceOption {
   preview_url?: string;
   language?:    string;
   gender?:      string;
+  /** UI-grouping bucket — 12 categories matching the reference platform's
+   *  voice picker. Derived from ElevenLabs `labels` (use_case / description),
+   *  defaulting to "other" when nothing matches. */
+  category?:    "vlog" | "stream" | "beauty" | "professions" | "car-talk" |
+                "forum" | "podcast" | "coaching" | "selling" | "reporter" |
+                "emotions" | "other";
+}
+
+/** Map ElevenLabs label hints to one of the 12 picker buckets. The order in
+ *  each row is "any of these substrings match → assign this bucket". */
+const CATEGORY_HINTS: Array<[VoiceOption["category"], readonly string[]]> = [
+  ["vlog",        ["vlog", "casual", "youtuber", "creator", "social media"] as const],
+  ["stream",      ["stream", "gaming", "twitch", "live"] as const],
+  ["beauty",      ["beauty", "makeup", "wellness", "asmr"] as const],
+  ["professions", ["business", "professional", "corporate", "executive", "lawyer", "doctor"] as const],
+  ["car-talk",    ["car", "auto", "racing", "driver"] as const],
+  ["forum",       ["forum", "chat", "discussion", "interview"] as const],
+  ["podcast",     ["podcast", "audiobook", "narration", "narrator", "story"] as const],
+  ["coaching",    ["coach", "training", "mentor", "guide", "instructor"] as const],
+  ["selling",     ["advertis", "commercial", "sales", "ad ", "marketing"] as const],
+  ["reporter",    ["news", "journalist", "reporter", "anchor", "broadcast"] as const],
+  ["emotions",    ["emotion", "expressive", "dramatic", "intense", "angry", "happy"] as const],
+];
+
+function categorize(labels: Record<string, string>): VoiceOption["category"] {
+  const haystack = [
+    labels.use_case,
+    labels.description,
+    labels.style,
+    labels.descriptive,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (!haystack) return "other";
+  for (const [cat, hints] of CATEGORY_HINTS) {
+    if (hints.some((h) => haystack.includes(h))) return cat;
+  }
+  return "other";
 }
 
 function fallback(): VoiceOption[] {
@@ -44,9 +85,32 @@ function fallback(): VoiceOption[] {
   }));
 }
 
+/** Pull this user's cloned voices so they show up at the top of the
+ *  picker, labelled "صوتك المستنسخ" with category="custom". */
+async function customVoices(): Promise<VoiceOption[]> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return [];
+    const rows = await prisma.userVoice.findMany({
+      where:   { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      select:  { voiceId: true, name: true, description: true },
+    });
+    return rows.map((v) => ({
+      value:    v.voiceId,
+      label:    `${v.name} — صوتك المستنسخ`,
+      category: "other" as const, // surfaces under a "Custom" header in pickers
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function GET() {
+  const custom = await customVoices();
+
   if (!isElevenLabsConfigured()) {
-    return NextResponse.json({ voices: fallback(), source: "fallback" });
+    return NextResponse.json({ voices: [...custom, ...fallback()], source: "fallback" });
   }
 
   try {
@@ -79,11 +143,12 @@ export async function GET() {
         preview_url:  v.preview_url,
         language:     accent,
         gender,
+        category:     categorize(labels),
       };
     });
 
     if (voices.length === 0) {
-      return NextResponse.json({ voices: fallback(), source: "fallback" });
+      return NextResponse.json({ voices: [...custom, ...fallback()], source: "fallback" });
     }
 
     // Sort: keep top-tier multilingual voices (they handle Arabic
@@ -97,13 +162,21 @@ export async function GET() {
       return 0;
     });
 
-    return NextResponse.json({ voices, source: "elevenlabs" }, {
+    // Prepend the user's cloned voices so they always show up first
+    // — they're hidden inside the ElevenLabs general list otherwise.
+    const merged = [...custom, ...voices.filter((v) => !custom.some((c) => c.value === v.value))];
+
+    return NextResponse.json({ voices: merged, source: "elevenlabs" }, {
       headers: {
-        // 1h on browsers, 24h on CDN edges.
-        "Cache-Control": "public, s-maxage=86400, max-age=3600, stale-while-revalidate=600",
+        // Custom voices are per-user → can't be cached at the CDN.
+        // Keep the cache short and private if any user-specific data
+        // is included.
+        "Cache-Control": custom.length > 0
+          ? "private, max-age=60, stale-while-revalidate=120"
+          : "public, s-maxage=86400, max-age=3600, stale-while-revalidate=600",
       },
     });
   } catch (err) {
-    return NextResponse.json({ voices: fallback(), source: "fallback", error: (err as Error).message });
+    return NextResponse.json({ voices: [...custom, ...fallback()], source: "fallback", error: (err as Error).message });
   }
 }

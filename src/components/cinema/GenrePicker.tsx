@@ -3,7 +3,7 @@
 // ════════════════════════════════════════════════════════════════
 // Cinema Genre Picker — bottom-sheet modal with video thumbnails
 // ════════════════════════════════════════════════════════════════
-// Mirrors Higgsfield's Cinema Studio 3.5 genre wheel: each option is a
+// Mirrors the reference platform's Cinema Studio genre wheel: each option is a
 // short looping video clip that plays on hover. We render as a
 // responsive grid (rather than the 3D wheel) so the picker stays usable
 // on mobile too. Selected genre gets a yellow accent ring.

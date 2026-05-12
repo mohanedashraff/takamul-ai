@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import {
   User as UserIcon, Mail, Lock, Camera, Loader2, Check,
   CreditCard, Shield, Zap, Calendar, Crown, Gift, Copy as CopyIcon,
+  KeyRound, Trash2, Plus,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -13,7 +14,7 @@ import { useUserStore } from "@/stores/useUserStore";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
-type Tab = "profile" | "security" | "billing" | "referrals";
+type Tab = "profile" | "security" | "billing" | "referrals" | "api-keys";
 
 export default function SettingsPage() {
   const { update } = useSession();
@@ -44,12 +45,14 @@ export default function SettingsPage() {
         <TabButton active={tab === "profile"}   onClick={() => setTab("profile")}   icon={UserIcon}   label="الملف الشخصي" />
         <TabButton active={tab === "security"}  onClick={() => setTab("security")}  icon={Lock}       label="الأمان" />
         <TabButton active={tab === "billing"}   onClick={() => setTab("billing")}   icon={CreditCard} label="الاشتراك" />
+        <TabButton active={tab === "api-keys"}  onClick={() => setTab("api-keys")}  icon={KeyRound}   label="مفاتيح API" />
         <TabButton active={tab === "referrals"} onClick={() => setTab("referrals")} icon={Gift}       label="الإحالات" />
       </div>
 
       {tab === "profile"   && <ProfileTab onSaved={() => { fetchUser(); update(); }} />}
       {tab === "security"  && <SecurityTab />}
       {tab === "billing"   && <BillingTab />}
+      {tab === "api-keys"  && <ApiKeysTab />}
       {tab === "referrals" && <ReferralsTab />}
     </div>
   );
@@ -615,6 +618,176 @@ function ReferralsTab() {
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+// ─── API Keys tab ────────────────────────────────────────────────
+interface ApiKeyRow {
+  id:         string;
+  name:       string;
+  keyPrefix:  string;
+  scopes:     string[];
+  lastUsedAt: string | null;
+  revokedAt:  string | null;
+  createdAt:  string;
+}
+
+function ApiKeysTab() {
+  const [keys, setKeys]         = useState<ApiKeyRow[] | null>(null);
+  const [name, setName]         = useState("");
+  const [busy, setBusy]         = useState(false);
+  const [showOnce, setShowOnce] = useState<{ name: string; plaintext: string } | null>(null);
+
+  async function refresh() {
+    const r = await fetch("/api/api-keys");
+    const d = await r.json();
+    setKeys((d.keys ?? []).filter((k: ApiKeyRow) => !k.revokedAt));
+  }
+  useEffect(() => { refresh(); }, []);
+
+  async function createKey() {
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/api-keys", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ name: name.trim() }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "فشل إنشاء المفتاح");
+      setShowOnce({ name: name.trim(), plaintext: d.plaintext });
+      setName("");
+      refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "خطأ");
+    } finally { setBusy(false); }
+  }
+
+  async function revoke(id: string) {
+    if (!confirm("متأكد إنك عاوز تلغي المفتاح؟ كل التطبيقات اللي بتستخدمه هتقف.")) return;
+    const r = await fetch(`/api/api-keys/${id}`, { method: "DELETE" });
+    if (r.ok) { toast.success("تم الإلغاء"); refresh(); }
+    else { toast.error("فشل الإلغاء"); }
+  }
+
+  function copyKey(plaintext: string) {
+    navigator.clipboard.writeText(plaintext).then(() => toast.success("اتنسخ ✓"));
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-border-glass">
+        <CardHeader>
+          <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-accent-400" /> مفاتيح API
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-400 leading-relaxed">
+            استخدم المفاتيح دي للوصول لكل أدوات Yilow من <a className="text-accent-400 underline" href="https://www.npmjs.com/package/@yilow/client" target="_blank" rel="noreferrer">Node SDK</a>،
+            {" "}<a className="text-accent-400 underline" href="https://pypi.org/project/yilow-client/" target="_blank" rel="noreferrer">Python SDK</a>،
+            {" "}الـCLI، أو <a className="text-accent-400 underline" href="https://www.npmjs.com/package/@yilow/mcp-server" target="_blank" rel="noreferrer">MCP server</a> في Claude Desktop / Cursor.
+          </p>
+          <p className="text-xs text-amber-400 bg-amber-500/[0.06] border border-amber-500/20 p-3 rounded-xl">
+            ⚠️ المفتاح بيتعرضلك مرة واحدة بس وقت الإنشاء. خزّنه في مكان آمن — لو ضاع منك لازم تلغيه وتنشئ واحد جديد.
+          </p>
+
+          {/* Create new key */}
+          <div className="flex items-stretch gap-2">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="اسم وصفي للمفتاح (مثال: ادمن production)"
+              maxLength={80}
+              className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-white/20"
+            />
+            <Button
+              onClick={createKey}
+              disabled={!name.trim() || busy}
+              className="bg-accent-400 text-black hover:bg-accent-300 px-4"
+            >
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-3.5 h-3.5" /> إنشاء</>}
+            </Button>
+          </div>
+
+          {/* Plaintext flash banner — appears once on creation */}
+          {showOnce && (
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 space-y-2">
+              <div className="text-sm font-bold text-emerald-300">المفتاح الجديد &quot;{showOnce.name}&quot;</div>
+              <div className="text-xs text-emerald-200/80">
+                دي آخر مرة هتشوف فيها القيمة. اعمل copy دلوقتي وخزّنه في password manager.
+              </div>
+              <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl p-3">
+                <code className="flex-1 text-sm font-mono text-emerald-300 break-all">{showOnce.plaintext}</code>
+                <button
+                  onClick={() => copyKey(showOnce.plaintext)}
+                  className="text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded-md text-white"
+                >
+                  <CopyIcon className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <button
+                onClick={() => setShowOnce(null)}
+                className="text-xs text-gray-400 hover:text-white"
+              >
+                خزّنت المفتاح — إخفاء
+              </button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Existing keys list */}
+      <Card className="border-border-glass">
+        <CardHeader>
+          <CardTitle className="text-base font-bold text-white">مفاتيح نشطة</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {keys === null && (
+            <div className="px-6 py-8 text-center text-gray-500 text-sm">
+              <Loader2 className="w-4 h-4 inline animate-spin mr-2" /> جاري التحميل…
+            </div>
+          )}
+          {keys && keys.length === 0 && (
+            <div className="px-6 py-12 text-center text-gray-500 text-sm">
+              مفيش مفاتيح لسة — أنشئ واحد فوق عشان تبدأ.
+            </div>
+          )}
+          {keys && keys.length > 0 && (
+            <ul className="divide-y divide-white/5">
+              {keys.map((k) => (
+                <li key={k.id} className="px-6 py-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-accent-400/15 border border-accent-400/30 flex items-center justify-center text-accent-300">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-white truncate flex items-center gap-2">
+                      {k.name}
+                      <code className="text-[10px] font-mono text-gray-500">{k.keyPrefix}…</code>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {k.lastUsedAt
+                        ? `آخر استخدام: ${new Date(k.lastUsedAt).toLocaleDateString("ar")}`
+                        : "لم يُستخدم بعد"}
+                      {" · "}
+                      أُنشئ {new Date(k.createdAt).toLocaleDateString("ar")}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => revoke(k.id)}
+                    className="w-9 h-9 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center transition-colors"
+                    aria-label="إلغاء"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

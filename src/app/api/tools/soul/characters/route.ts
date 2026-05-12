@@ -4,7 +4,7 @@
 //
 //   GET  → list all the user's Soul IDs (filterable by ?variant=)
 //   POST → create one. Body: { name, imageUrls[], variant? }
-//          Hard minimum is 20 photos (matches Higgsfield's training
+//          Hard minimum is 20 photos (matches the reference platform's training
 //          requirement). We don't actually fine-tune a model — we
 //          flag it as "trained" after a short delay and pass the
 //          best subset of references at generation time.
@@ -69,17 +69,58 @@ export async function POST(req: Request) {
     },
   });
 
-  // Schedule the "training complete" flip ~3 minutes later. We use
-  // setTimeout (best-effort, lost on cold restart) since this is a
-  // UX flourish — the references work as soon as the row exists.
-  setTimeout(async () => {
+  // ── Real fal.ai Flux LoRA training (replaces the prior fake
+  // setTimeout flip). When FAL_KEY is configured AND the user
+  // uploaded enough images, dispatch a queued training job. The
+  // returned trainingId + status get persisted; the frontend polls
+  // /api/soul-id/[id]/status to track progress.
+  //
+  // When FAL_KEY is NOT set we leave the legacy "trained: false"
+  // state — the references still work via the standard images_list
+  // pass-through, just without the LoRA boost.
+  let trainingDispatched = false;
+  if (process.env.FAL_KEY && character.imageUrls.length >= 4) {
     try {
+      // Dynamic import so the fal helper isn't pulled in for envs
+      // that don't have the key configured.
+      const { falStartFluxLoraTraining } = await import("@/lib/fal");
+      const safeName = character.name
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .toUpperCase()
+        .slice(0, 12);
+      const triggerWord = safeName || "TOK";
+      const submitted = await falStartFluxLoraTraining({
+        imageUrls:   character.imageUrls.slice(0, 20),
+        triggerWord,
+        steps:       1000,
+      });
       await prisma.soulCharacter.update({
         where: { id: character.id },
-        data:  { trained: true },
+        data: {
+          trainingId:    submitted.request_id,
+          trainingStatus:"IN_QUEUE",
+          triggerWord,
+        },
       });
-    } catch { /* ignore — row may have been deleted */ }
-  }, 3 * 60 * 1000);
+      trainingDispatched = true;
+    } catch (err) {
+      // Training dispatch failure is non-fatal — the character row
+      // still works as a references-only Soul ID. Surface the error
+      // so the UI can show a "training unavailable" hint.
+      console.error("[soul-id] fal.ai training dispatch failed:", err);
+      await prisma.soulCharacter.update({
+        where: { id: character.id },
+        data: {
+          trainingStatus: "ERROR",
+          trainingError:  err instanceof Error ? err.message.slice(0, 500) : "Training dispatch failed",
+        },
+      }).catch(() => {});
+    }
+  }
 
-  return jsonOk({ character });
+  // Re-fetch so the response reflects the dispatched-training state.
+  const final = await prisma.soulCharacter.findUnique({ where: { id: character.id } });
+  return jsonOk({ character: final ?? character, trainingDispatched });
 }

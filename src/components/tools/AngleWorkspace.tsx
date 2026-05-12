@@ -434,8 +434,8 @@ export function AngleWorkspace({ tool, config }: Props) {
                   // numeric fields qwen-image-edit-plus-lora expects:
                   //   rotate_right_left: integer in [-90, 90]
                   //   vertical_angle:    number  in [-1, 1]
-                  // These are the actual fields Higgsfield's Angles 2.0
-                  // sends — confirmed via network capture.
+                  // These are the actual fields the reference platform's
+                  // Angles 2.0 sends — same Qwen backbone.
                   //
                   // The UI's azimuth is 0..360. Convert to signed -180..+180
                   // then clamp to the model's ±90 range (the qwen model

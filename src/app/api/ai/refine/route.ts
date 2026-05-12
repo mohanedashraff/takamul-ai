@@ -1,8 +1,8 @@
 // ════════════════════════════════════════════════════════════════
 // POST /api/ai/refine — second-pass quality enhancement
 // ════════════════════════════════════════════════════════════════
-// Mirrors Higgsfield's `use_refiner: true` flag — but exposed as a
-// per-result button so the user only pays for the shots they like.
+// Mirrors the reference platform's `use_refiner: true` flag — but exposed
+// as a per-result button so the user only pays for the shots they like.
 // Routes the supplied image URL through MuAPI's `ai-image-upscaler`
 // (2x super-resolution + detail recovery) and returns the new URL.
 //
@@ -30,8 +30,14 @@ const Schema = z.object({
   generationId:  z.string().optional(),
 });
 
-// Only allow refining URLs we trust (came from MuAPI / Higgsfield CDN).
+// Only allow refining URLs we trust (came from MuAPI / our CDN mirror).
 // Stops users from running our paid upscaler on arbitrary internet URLs.
+//
+// The two reference-platform CDN hosts at the end are kept because
+// some of our seed catalog thumbnails (and any historical generations
+// that used them) still live there. We proxy them through /api/cdn
+// in the UI so they never leak in the URL bar, but the underlying
+// hostname has to stay on the trust list so refine works on them.
 const TRUSTED_HOSTS = [
   "muapi.ai",
   "static.muapi.ai",
@@ -39,6 +45,8 @@ const TRUSTED_HOSTS = [
   "muapi-files.s3.amazonaws.com",
   "d3adwkbyhxyrtq.cloudfront.net",
   "d8j0ntlcm91z4.cloudfront.net",
+  // Reference-CDN hosts — kept for legacy seed catalog. Hidden from UI
+  // via /api/cdn/[host]/[...path] proxy.
   "static.higgsfield.ai",
   "cdn.higgsfield.ai",
 ];

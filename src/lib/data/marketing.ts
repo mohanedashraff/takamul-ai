@@ -2,11 +2,11 @@
 // Marketing Studio — formats, hooks, settings, avatars
 // ════════════════════════════════════════════════════════════════
 //
-// Mirrors Higgsfield's `/marketing-studio/product` and `/marketing-studio/app`
+// Mirrors the reference platform's `/marketing-studio/product` and `/marketing-studio/app`
 // catalogs. All MP4 previews are mirrored to /public/marketing/ so we don't
-// depend on Higgsfield's CDN. See docs/MARKETING_STUDIO_RESEARCH.md.
+// depend on the reference platform's CDN. See docs/MARKETING_STUDIO_RESEARCH.md.
 //
-// Slugs match Higgsfield's preset slugs verbatim — that's the canonical id we
+// Slugs match the reference platform's preset slugs verbatim — that's the canonical id we
 // pass to MuAPI's `video_files: [...]` field.
 
 // ── Formats ──────────────────────────────────────────────────────
@@ -14,7 +14,7 @@
 export type MarketingVariant = "product" | "app";
 
 export interface MarketingFormat {
-  id:          string;             // Higgsfield slug (e.g. "ugc_how_to")
+  id:          string;             // the reference slug (e.g. "ugc_how_to")
   variant:     MarketingVariant;   // which studio variant offers it
   name:        string;             // Arabic display
   englishName: string;             // English fallback
@@ -109,7 +109,7 @@ export const MARKETING_FORMATS: MarketingFormat[] = [
     promptInjection: "studio-quality try-on, model showcasing fit and details, fashion-editorial presentation",
   },
 
-  // — App variant — currently only UGC is offered on Higgsfield
+  // — App variant — currently only UGC is offered on the reference
   {
     id:              "ugc-app",
     variant:         "app",
@@ -123,15 +123,15 @@ export const MARKETING_FORMATS: MarketingFormat[] = [
 
 // ── Hooks ────────────────────────────────────────────────────────
 // Hooks are short scripted "first-3-seconds" actions designed to stop the
-// scroll. Higgsfield groups them into "Stunt" (loud/dramatic) and "Subtle"
+// scroll. the reference groups them into "Stunt" (loud/dramatic) and "Subtle"
 // (talking-head etc).
 //
-// Categories verified by clicking each tab inside Higgsfield's hook modal:
+// Categories verified by clicking each tab inside the reference platform's hook modal:
 //   stunt:  Product Hit, Random Object Mic, Blizzard, Product Dodge
 //   subtle: Spicy, Interview, Product Crash, Camera Bump, Epic Fail
 //
 // Video previews mirrored from
-//   https://cdn.higgsfield.ai/marketing_studio_setup/{uuid}.mp4
+//   the upstream marketing_studio_setup CDN
 // to /public/marketing/hooks/.
 
 const HOOK = "/marketing/hooks";
@@ -144,7 +144,7 @@ export interface MarketingHook {
   englishName:     string;
   category:        MarketingHookCategory;
   desc:            string;             // short Arabic
-  englishDesc:     string;             // original Higgsfield blurb
+  englishDesc:     string;             // original the reference blurb
   promptInjection: string;             // appended to user prompt
   videoUrl:        string;             // local-mirrored preview
 }
@@ -244,7 +244,7 @@ export const MARKETING_HOOKS: MarketingHook[] = [
 
 // ── Settings ─────────────────────────────────────────────────────
 //
-// Categories verified by clicking each tab inside Higgsfield's setting modal:
+// Categories verified by clicking each tab inside the reference platform's setting modal:
 //   realistic:    Bedroom, Nature, Gym, Bathroom, Kitchen, In Car, Street, Office
 //   unrealistic:  Airplane Wing, Roofing, Volcano Rim, Tiny Reviewer, Car Roof, Train Surf
 
@@ -407,25 +407,66 @@ export const MARKETING_SETTINGS: MarketingSetting[] = [
 ];
 
 // ── Avatars ──────────────────────────────────────────────────────
-// (kept stable — already linked from upstream CDN, plenty of caching)
+// 38 preset avatars (22 female + 16 male) mirror the reference platform's
+// preset roster 1:1. The original 8 names that we already had thumbnail
+// URLs for (Priya, Elena, Kai, Sora, Minji, Margot, Niko, Jin) keep
+// their CloudFront thumbnails. The other 30 names list with empty
+// thumbnails — the picker shows a text-initial fallback. Real images
+// can be dropped in later as a dedicated polish pass.
 
 const AVATAR_CDN = "https://d3adwkbyhxyrtq.cloudfront.net/web-app";
+
+export type MarketingAvatarGender = "female" | "male";
 
 export interface MarketingAvatar {
   id:        string;
   name:      string;
-  thumbnail: string;
+  gender:    MarketingAvatarGender;
+  thumbnail: string;     // empty string → picker renders initial fallback
 }
 
 export const MARKETING_AVATARS: MarketingAvatar[] = [
-  { id: "priya",  name: "Priya",  thumbnail: `${AVATAR_CDN}/Priya.webp`  },
-  { id: "elena",  name: "Elena",  thumbnail: `${AVATAR_CDN}/Elena.webp`  },
-  { id: "kai",    name: "Kai",    thumbnail: `${AVATAR_CDN}/Kai.webp`    },
-  { id: "sora",   name: "Sora",   thumbnail: `${AVATAR_CDN}/Sora.webp`   },
-  { id: "minji",  name: "Minji",  thumbnail: `${AVATAR_CDN}/Minji.webp`  },
-  { id: "margot", name: "Margot", thumbnail: `${AVATAR_CDN}/Margot.webp` },
-  { id: "niko",   name: "Niko",   thumbnail: `${AVATAR_CDN}/Niko.webp`   },
-  { id: "jin",    name: "Jin",    thumbnail: `${AVATAR_CDN}/Jin.webp`    },
+  // ── Female (22) ─────────────────────────────────────────────────
+  { id: "mei",       name: "Mei",       gender: "female", thumbnail: "" },
+  { id: "yuna",      name: "Yuna",      gender: "female", thumbnail: "" },
+  { id: "adriana",   name: "Adriana",   gender: "female", thumbnail: "" },
+  { id: "clara",     name: "Clara",     gender: "female", thumbnail: "" },
+  { id: "maria",     name: "Maria",     gender: "female", thumbnail: "" },
+  { id: "sofia",     name: "Sofia",     gender: "female", thumbnail: "" },
+  { id: "valentina", name: "Valentina", gender: "female", thumbnail: "" },
+  { id: "jia",       name: "Jia",       gender: "female", thumbnail: "" },
+  { id: "lily",      name: "Lily",      gender: "female", thumbnail: "" },
+  { id: "nia",       name: "Nia",       gender: "female", thumbnail: "" },
+  { id: "hana",      name: "Hana",      gender: "female", thumbnail: "" },
+  { id: "priya",     name: "Priya",     gender: "female", thumbnail: `${AVATAR_CDN}/Priya.webp`  },
+  { id: "elena",     name: "Elena",     gender: "female", thumbnail: `${AVATAR_CDN}/Elena.webp`  },
+  { id: "sora",      name: "Sora",      gender: "female", thumbnail: `${AVATAR_CDN}/Sora.webp`   },
+  { id: "minji",     name: "Minji",     gender: "female", thumbnail: `${AVATAR_CDN}/Minji.webp`  },
+  { id: "margot",    name: "Margot",    gender: "female", thumbnail: `${AVATAR_CDN}/Margot.webp` },
+  { id: "yuki",      name: "Yuki",      gender: "female", thumbnail: "" },
+  { id: "zara",      name: "Zara",      gender: "female", thumbnail: "" },
+  { id: "naomi",     name: "Naomi",     gender: "female", thumbnail: "" },
+  { id: "megan",     name: "Megan",     gender: "female", thumbnail: "" },
+  { id: "miso",      name: "Miso",      gender: "female", thumbnail: "" },
+  { id: "scarlett",  name: "Scarlett",  gender: "female", thumbnail: "" },
+
+  // ── Male (16) ───────────────────────────────────────────────────
+  { id: "jayden",    name: "Jayden",    gender: "male",   thumbnail: "" },
+  { id: "stefan",    name: "Stefan",    gender: "male",   thumbnail: "" },
+  { id: "tae",       name: "Tae",       gender: "male",   thumbnail: "" },
+  { id: "felix",     name: "Felix",     gender: "male",   thumbnail: "" },
+  { id: "malik",     name: "Malik",     gender: "male",   thumbnail: "" },
+  { id: "liam",      name: "Liam",      gender: "male",   thumbnail: "" },
+  { id: "joon",      name: "Joon",      gender: "male",   thumbnail: "" },
+  { id: "erik",      name: "Erik",      gender: "male",   thumbnail: "" },
+  { id: "ryu",       name: "Ryu",       gender: "male",   thumbnail: "" },
+  { id: "kai",       name: "Kai",       gender: "male",   thumbnail: `${AVATAR_CDN}/Kai.webp`    },
+  { id: "niko",      name: "Niko",      gender: "male",   thumbnail: `${AVATAR_CDN}/Niko.webp`   },
+  { id: "jin",       name: "Jin",       gender: "male",   thumbnail: `${AVATAR_CDN}/Jin.webp`    },
+  { id: "marco",     name: "Marco",     gender: "male",   thumbnail: "" },
+  { id: "ren",       name: "Ren",       gender: "male",   thumbnail: "" },
+  { id: "lucas",     name: "Lucas",     gender: "male",   thumbnail: "" },
+  { id: "omar",      name: "Omar",      gender: "male",   thumbnail: "" },
 ];
 
 // ── Aspect / quality / duration ──────────────────────────────────
@@ -461,6 +502,29 @@ export const MARKETING_DEFAULTS = {
   deviceFrame:     "mobile" as MarketingDeviceFrame,
 };
 
+// ── Mode whitelist ───────────────────────────────────────────────
+// Hooks and Settings are NOT valid for every format. The reference
+// platform restricts them to the UGC family + product_review only —
+// passing hook_id or setting_id with other modes returns
+// "Unknown params: hook_id". We mirror that constraint client-side
+// so the picker chips become disabled instead of silently being
+// dropped server-side.
+
+const HOOK_SETTING_ALLOWED_FORMATS = new Set<string>([
+  "ugc",
+  "ugc_how_to",
+  "ugc_unboxing",
+  "product_review",
+  "ugc_virtual_try_on",
+  "ugc-app",                // App variant's UGC mode also allows hooks
+]);
+
+/** True when the chosen format supports hook/setting injection. */
+export function formatSupportsHookAndSetting(formatId: string | undefined): boolean {
+  if (!formatId) return false;
+  return HOOK_SETTING_ALLOWED_FORMATS.has(formatId);
+}
+
 // ── Endpoint resolution ──────────────────────────────────────────
 
 /** Pick the muapi endpoint based on the requested resolution. */
@@ -472,7 +536,7 @@ export function resolveMarketingEndpoint(resolution: string): string {
 
 // ── Cost ─────────────────────────────────────────────────────────
 //
-// Refit to match Higgsfield's reference (~90 cr at 5s/1080p Product,
+// Refit to match the reference platform's reference (~90 cr at 5s/1080p Product,
 // ~100 cr at 5s/1080p App). See research doc § 4.7.
 
 export function computeMarketingCost(opts: {

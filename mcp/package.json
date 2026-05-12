@@ -1,0 +1,19 @@
+{
+  "name": "@yilow/mcp-server",
+  "version": "0.1.0",
+  "description": "Yilow.ai Model Context Protocol server — exposes all Yilow tools to Claude Desktop / Cursor / agentic hosts.",
+  "type": "module",
+  "main": "server.mjs",
+  "bin": {
+    "yilow-mcp": "./server.mjs"
+  },
+  "files": ["server.mjs", "README.md"],
+  "keywords": ["mcp", "yilow", "claude", "ai", "image", "video"],
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yilow-ai/yilow"
+  },
+  "homepage": "https://yilow.ai"
+}

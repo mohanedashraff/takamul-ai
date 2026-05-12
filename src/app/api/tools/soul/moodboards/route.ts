@@ -4,7 +4,7 @@
 //
 //   GET  → list all moodboards belonging to the current user
 //   POST → create one. Body: { name, imageUrls[], description? }
-//          Hard minimum is 5 images (matches Higgsfield's UX).
+//          Hard minimum is 5 images (matches the reference platform's UX).
 //          Optionally we ask a Vision LLM to describe the
 //          aesthetic — that descriptor gets stamped onto every
 //          generation that uses this moodboard.

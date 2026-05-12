@@ -31,3 +31,7 @@ Thumbs.db
 tsconfig.tsbuildinfo
 .tmp-hf-research/
 .tmp-hf-models.md
+
+# Claude Code runtime
+.claude/scheduled_tasks.lock
+.claude/launch.json

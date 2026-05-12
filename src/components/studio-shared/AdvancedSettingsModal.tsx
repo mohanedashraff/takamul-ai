@@ -3,7 +3,7 @@
 // ════════════════════════════════════════════════════════════════
 // AdvancedSettingsModal — shared "advanced" overlay for studios
 // ════════════════════════════════════════════════════════════════
-// Holds the parameters Higgsfield exposes under their Settings cog:
+// Holds the parameters the reference platform exposes under their Settings cog:
 //   • Negative prompt (avoid these things)
 //   • Seed (lock for reproducible runs)
 //   • Style strength (Soul-only — how heavily to weight the moodboard)
@@ -22,15 +22,28 @@ export interface AdvancedSettings {
   seed: number | null;
   /** 0..100 — how aggressively to inject style descriptors. Soul only. */
   styleStrength: number;
+  /** 0..100 — how strongly the Soul ID character reference influences
+   *  the result. Higher = identity-locked, lower = freer interpretation. */
+  customReferenceStrength: number;
+  /** When true, post-process the result through the Refiner upscaler in
+   *  the same job. Adds latency + cost but boosts fine detail. */
+  useRefiner: boolean;
 }
 
 export const ADVANCED_DEFAULTS: AdvancedSettings = {
-  negativePrompt: "",
-  seed:           null,
-  styleStrength:  100,
+  negativePrompt:          "",
+  seed:                    null,
+  styleStrength:           100,
+  customReferenceStrength: 100,
+  useRefiner:              false,
 };
 
-export type AdvancedField = "negativePrompt" | "seed" | "styleStrength";
+export type AdvancedField =
+  | "negativePrompt"
+  | "seed"
+  | "styleStrength"
+  | "customReferenceStrength"
+  | "useRefiner";
 
 interface Props {
   open:     boolean;
@@ -189,6 +202,64 @@ export function AdvancedSettingsModal({
               </p>
             </div>
           )}
+
+          {/* ── Custom reference strength (Soul ID only) ─────────────── */}
+          {/* Only shown when the Soul Studio has a Soul Character pinned
+              — at strength 100 we send all 5 character thumbnails as
+              identity refs, at 0 we drop them entirely (prompt-only). */}
+          {fields.includes("customReferenceStrength") && (
+            <div>
+              <label className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-white">قوة الشخصية (Custom Reference)</span>
+                <span className="text-xs font-mono text-accent-400">{value.customReferenceStrength}%</span>
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={value.customReferenceStrength}
+                onChange={(e) => update("customReferenceStrength", Number(e.target.value))}
+                className="w-full accent-accent-400"
+              />
+              <div className="flex items-center justify-between text-[10px] text-gray-500 mt-1">
+                <span>حر (إعادة تخيّل)</span>
+                <span>متوسّط</span>
+                <span>هوية مقفولة (1:1)</span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
+                كلما زادت، كلما تمسّك الموديل بالشكل الأصلي للشخصية المختارة من Soul ID. ٠٪ = استلهام بدون قيود.
+              </p>
+            </div>
+          )}
+
+          {/* ── Use refiner toggle ───────────────────────────────────── */}
+          {fields.includes("useRefiner") && (
+            <div>
+              <label className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-white">تمرير على Refiner</span>
+                <button
+                  type="button"
+                  onClick={() => update("useRefiner", !value.useRefiner)}
+                  className={cn(
+                    "h-7 w-12 rounded-full relative transition-colors",
+                    value.useRefiner ? "bg-accent-400" : "bg-white/10",
+                  )}
+                  aria-pressed={value.useRefiner}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-0.5 w-6 h-6 rounded-full bg-white transition-all shadow-md",
+                      value.useRefiner ? "left-[22px]" : "left-0.5",
+                    )}
+                  />
+                </button>
+              </label>
+              <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+                بعد التوليد، Refiner تمر على الصورة وترفع تفاصيل البشرة والملمس. تكلفة ووقت إضافيين، نتيجة أنقى.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-white/5 bg-white/[0.02]">
@@ -227,7 +298,9 @@ export function AdvancedSettingsChip({
   const dirty =
     value.negativePrompt.trim() !== "" ||
     value.seed !== null ||
-    value.styleStrength !== ADVANCED_DEFAULTS.styleStrength;
+    value.styleStrength !== ADVANCED_DEFAULTS.styleStrength ||
+    value.customReferenceStrength !== ADVANCED_DEFAULTS.customReferenceStrength ||
+    value.useRefiner !== ADVANCED_DEFAULTS.useRefiner;
 
   return (
     <button

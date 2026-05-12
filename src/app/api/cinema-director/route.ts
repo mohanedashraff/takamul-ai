@@ -90,10 +90,11 @@ Rules:
 - "rationale" must be ONE short Arabic sentence (under 25 words) explaining the look you chose.
 - "prompt" must be a refined English scene description ready to feed to an image model. Keep it ~30-60 words. Don't repeat camera-spec language — that's appended later automatically.
 - Match the genre to the user's tone (action → action, romantic → drama, dark/eerie → horror, etc.).
-- If the user wants something cinematic & generic, prefer "drama" or "epic" over "general".
+- The catalog has 6 genres only (no "general"). When the description is neutral, prefer "noir" (the platform default) or "drama".
 - Pick paletteId/lightingId/movesetId based on the genre and mood. Avoid "auto" unless the description is truly neutral.
 - Default aspect: 16:9 unless a vertical/social context is implied (use 9:16 for reels/TikTok, 1:1 for IG square).
-- Default resolution: 2k.`;
+- Default resolution: 2k.
+- For cameraId / lensId / apertureId you may pick "auto" when no preference is implied — Auto means "let the underlying model choose".`;
 }
 
 export async function POST(req: Request) {

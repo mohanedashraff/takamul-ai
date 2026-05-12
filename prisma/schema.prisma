@@ -58,12 +58,28 @@ model User {
   referralCode       String?       @unique
   soulMoodboards     SoulMoodboard[]
   soulCharacters     SoulCharacter[]
+  userVoices         UserVoice[]
+  apiKeys            ApiKey[]
+  ownedTeams         Team[]              @relation("TeamOwner")
+  teamMemberships    TeamMember[]
+  folders            Folder[]
+  products           Product[]
+  adReferences       AdReference[]
 }
 
 enum Plan {
   FREE
-  BASIC
-  PRO
+  // Solo / personal tiers
+  STARTER       // $15
+  BASIC         // $9  — legacy name kept for backward compatibility
+  LITE          // $19
+  PRO           // $29
+  PLUS          // $49
+  CREATOR       // $79
+  ULTIMATE      // $99
+  ULTRA         // $129
+  // Org tiers
+  TEAM
   ENTERPRISE
 }
 
@@ -153,10 +169,21 @@ model Generation {
 
   inputs      Json              // form inputs object
   outputs     Json?             // MuAPI response (urls, text, etc.)
+  prompt      String?           // cached for search / display (extracted from inputs)
   errorMessage String?
 
   muapiJobId  String?           // for polling long-running jobs
   durationMs  Int?
+
+  // ── Organization ─────────────────────────────────────────────
+  folderId    String?
+  folder      Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  // ── Social ───────────────────────────────────────────────────
+  liked       Boolean  @default(false)
+  likeCount   Int      @default(0)
+  isPublic    Boolean  @default(false)
+  isFeatured  Boolean  @default(false)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -164,7 +191,29 @@ model Generation {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([userId, liked])
+  @@index([userId, folderId])
   @@index([toolId])
+  @@index([isPublic, createdAt])
+  @@index([isFeatured, createdAt])
+}
+
+model Folder {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  color       String?  // hex (#xxxxxx) for the chip in the picker
+  parentId    String?
+  parent      Folder?  @relation("FolderParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Folder[] @relation("FolderParent")
+  generations Generation[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, parentId])
 }
 
 enum GenerationStatus {
@@ -172,6 +221,8 @@ enum GenerationStatus {
   PROCESSING
   COMPLETED
   FAILED
+  NSFW           // model flagged the output as NSFW — auto-refunded
+  IP_DETECTED    // potential trademark / IP match — auto-refunded
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -466,10 +517,29 @@ model SoulCharacter {
   // (e.g. "the same young man with curly black hair from the
   // reference"). Auto-generated from the photos when possible.
   hintText    String?
-  // Whether the (fake) training has finished. We flip this to true
-  // ~3 minutes after creation to mirror Higgsfield's UX, even though
-  // there's no real training happening backstage.
+  // Whether training has finished. For real fal.ai-trained LoRAs this
+  // flips when the queue job returns COMPLETED. For legacy rows that
+  // pre-date the fal.ai integration, it's true immediately.
   trained     Boolean  @default(false)
+  // ── fal.ai Flux LoRA training metadata ──────────────────────────
+  // request_id from POST /fal-ai/flux-lora-fast-training. We persist
+  // it so users can navigate away during the ~5min training window
+  // and we can still poll for completion.
+  trainingId  String?
+  // Mirrors fal's FalStatus enum: "IN_QUEUE" | "IN_PROGRESS" |
+  //   "COMPLETED" | "ERROR". Null = pre-fal-ai legacy row.
+  trainingStatus String?
+  // The trained LoRA artifact URL (diffusers_lora_file.url). When
+  // present, Soul ID-aware tools should route through fal-ai/flux-lora
+  // inference with this LoRA loaded instead of the older "pass refs as
+  // images_list" hack.
+  loraUrl     String?
+  // Trigger token to invoke this identity in flux-lora prompts (e.g.
+  // "TOK"). Defaults to "TOK" matching fal-ai's default.
+  triggerWord String?
+  // When training fails, fal's error message lands here so the UI
+  // can show it instead of a generic "failed".
+  trainingError String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -477,4 +547,154 @@ model SoulCharacter {
 
   @@index([userId, createdAt])
   @@index([userId, variant])
+  @@index([trainingId])
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARKETING — saved products + reusable ad references
+// ════════════════════════════════════════════════════════════════
+// `Product` rows back the Marketing Studio's WebProducts library so
+// the user doesn't re-paste the same URL or re-upload the same image
+// each session. `AdReference` rows are reusable inspiration videos
+// (uploads or picks from previous jobs).
+
+model Product {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  url         String?                          // landing-page URL (optional)
+  imageUrl    String                           // primary image / icon
+  screenshots String[] @default([])            // up to ~10 thumbnails (App Store / web carousel)
+  source      String   @default("manual")      // "manual" | "url-fetch" | "app-store"
+  category    String?                          // free text — UI uses this for filter chips
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model AdReference {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  mediaUrl    String                          // image or video URL
+  mediaType   String   @default("video")      // "video" | "image"
+  thumbnail   String?
+  source      String   @default("upload")    // "upload" | "previous-job" | "library"
+  generationId String?                       // when source == previous-job
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// ════════════════════════════════════════════════════════════════
+// TEAMS / COLLAB (shared workspaces)
+// ════════════════════════════════════════════════════════════════
+// A user can belong to many teams. Each team has its own pool of
+// shared Spaces, Soul IDs, Moodboards, Canvases. Billing stays at
+// the user level for now (team-level billing comes later).
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  ownerId     String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  members     TeamMember[]
+  invites     TeamInvite[]
+
+  owner User @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      TeamRole @default(MEMBER)
+  joinedAt  DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+model TeamInvite {
+  id        String   @id @default(cuid())
+  teamId    String
+  email     String
+  role      TeamRole @default(MEMBER)
+  token     String   @unique
+  sentAt    DateTime @default(now())
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, sentAt])
+  @@index([email])
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// ════════════════════════════════════════════════════════════════
+// API KEYS (workspace-scoped auth for MCP / CLI / SDKs)
+// ════════════════════════════════════════════════════════════════
+// Each row is a personal access token a user generates from
+// /settings/api-keys. The plaintext key is shown once at creation;
+// we persist only an SHA-256 hash so a DB leak doesn't expose them.
+// `keyPrefix` (first 8 chars) is stored separately to display "yk_…"
+// in the management UI.
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String                          // user-chosen label
+  keyHash     String   @unique                // SHA-256 hex
+  keyPrefix   String                          // e.g. "yk_AbCd"
+  lastUsedAt  DateTime?
+  scopes      String[]  @default(["read","write"])
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// ════════════════════════════════════════════════════════════════
+// CUSTOM VOICES (ElevenLabs voice-cloning flow)
+// ════════════════════════════════════════════════════════════════
+// Each row is a successful clone — we persist the ElevenLabs
+// voice_id alongside our own user_id so the TTS / Lipsync /
+// Voice-Change pickers can group "your custom voices" separately
+// from the public catalogue.
+
+model UserVoice {
+  id          String   @id @default(cuid())
+  userId      String
+  voiceId     String                          // ElevenLabs voice_id
+  name        String
+  description String?
+  sampleUrl   String?                         // source sample (read-only)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, voiceId])
+  @@index([userId, createdAt])
 }

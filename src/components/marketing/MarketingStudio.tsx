@@ -7,6 +7,7 @@ import {
   Megaphone, Sparkles, Loader2, X, ChevronDown,
   Download, Maximize2, Package, User, ImagePlus, Zap,
   Zap as HookIcon, MapPin, Smartphone, Monitor, AppWindow,
+  Library, Save, Film, Apple, BookmarkPlus,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
@@ -14,7 +15,7 @@ import {
   MARKETING_FORMATS, MARKETING_HOOKS, MARKETING_SETTINGS, MARKETING_AVATARS,
   MARKETING_RATIOS, MARKETING_RESOLUTIONS, MARKETING_DURATIONS, MARKETING_DEVICE_FRAMES,
   MARKETING_DEFAULTS, resolveMarketingEndpoint, computeMarketingCost, composeMarketingPrompt,
-  getFormatsForVariant, getDefaultFormatId,
+  getFormatsForVariant, getDefaultFormatId, formatSupportsHookAndSetting,
   type MarketingVariant, type MarketingFormat,
   type MarketingHookCategory, type MarketingSettingCategory,
   type MarketingDeviceFrame,
@@ -44,6 +45,28 @@ interface MarketingAd {
   duration:     number;
   deviceFrame?: MarketingDeviceFrame;
   timestamp:    number;
+}
+
+interface MarketingSavedProduct {
+  id:           string;
+  name:         string;
+  description?: string;
+  url?:         string;
+  imageUrl:     string;
+  screenshots:  string[];
+  source:       string;
+  category?:    string;
+  createdAt:    string;
+}
+
+interface MarketingAdReference {
+  id:        string;
+  name:      string;
+  mediaUrl:  string;
+  mediaType: "video" | "image";
+  thumbnail?: string;
+  source:    string;
+  createdAt: string;
 }
 
 interface MarketingStudioProps {
@@ -78,10 +101,132 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
   const [fullscreen,       setFullscreen]       = useState<string | null>(null);
   const [advanced,         setAdvanced]         = useState<AdvancedSettings>(ADVANCED_DEFAULTS);
   const [advancedOpen,     setAdvancedOpen]     = useState(false);
+  // Click-to-Ad URL flow — paste a product URL and we auto-extract the
+  // hero image + description. Mirrors the reference platform's
+  // `feature: "click_to_ad"` shortcut. urlFetching shows a tiny spinner.
+  const [productUrl,       setProductUrl]       = useState<string>("");
+  const [urlFetching,      setUrlFetching]      = useState<boolean>(false);
+
+  // Saved Products + Ad References libraries.
+  const [productLibraryOpen, setProductLibraryOpen] = useState(false);
+  const [adRefsOpen,         setAdRefsOpen]         = useState(false);
+  const [savedProducts,      setSavedProducts]      = useState<MarketingSavedProduct[]>([]);
+  const [savedAdRefs,        setSavedAdRefs]        = useState<MarketingAdReference[]>([]);
 
   const productInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef  = useRef<HTMLInputElement>(null);
   const extrasInputRef  = useRef<HTMLInputElement>(null);
+
+  // Hydrate saved libraries on mount.
+  useEffect(() => {
+    fetch("/api/marketing/products")
+      .then((r) => r.json())
+      .then((d) => setSavedProducts(d.products ?? []))
+      .catch(() => {});
+    fetch("/api/marketing/ad-references")
+      .then((r) => r.json())
+      .then((d) => setSavedAdRefs(d.references ?? []))
+      .catch(() => {});
+  }, []);
+
+  async function saveCurrentProduct() {
+    if (!productImage) {
+      toast.error("ارفع صورة المنتج أو اعمل Click-to-Ad الأول");
+      return;
+    }
+    const name = window.prompt("اسم وصفي للمنتج") ?? "";
+    if (!name.trim()) return;
+    try {
+      const r = await fetch("/api/marketing/products", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name:        name.trim(),
+          imageUrl:    productImage,
+          url:         productUrl || undefined,
+          description: prompt || undefined,
+          source:      productUrl ? "url-fetch" : "manual",
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "فشل الحفظ");
+      setSavedProducts((p) => [d.product, ...p]);
+      toast.success("اتحفظ في مكتبتك ✓");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل الحفظ");
+    }
+  }
+
+  function loadSavedProduct(p: MarketingSavedProduct) {
+    setProductImage(p.imageUrl);
+    if (p.url)  setProductUrl(p.url);
+    if (p.description && !prompt.trim()) setPrompt(p.description);
+    setProductLibraryOpen(false);
+    toast.success(`اتحمّل: ${p.name}`);
+  }
+
+  async function importAppStoreUrl() {
+    const url = window.prompt("الصق رابط من apps.apple.com");
+    if (!url) return;
+    try {
+      const r = await fetch("/api/marketing/products/import-app-store", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ url }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "فشل استيراد التطبيق");
+      const p = d.product as MarketingSavedProduct;
+      setProductImage(p.imageUrl);
+      if (p.url) setProductUrl(p.url);
+      if (p.description) setPrompt((cur) => cur || p.description!);
+      toast.success(`اتحمّل: ${p.name}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل الاستيراد");
+    }
+  }
+
+  function pickAdReference(ref: MarketingAdReference) {
+    // Drop it into the extra-images strip so the executor passes it
+    // along as inspiration. The MuAPI generators all accept extra
+    // image URLs as references.
+    if (extraImages.includes(ref.mediaUrl)) {
+      toast("المرجع موجود بالفعل في الإعلان");
+    } else {
+      setExtraImages((x) => [...x, ref.mediaUrl]);
+      toast.success(`أُضيف كمرجع: ${ref.name}`);
+    }
+    setAdRefsOpen(false);
+  }
+
+  async function saveCurrentAsAdReference() {
+    if (history.length === 0) {
+      toast.error("اعمل إعلان واحد على الأقل عشان تحفظه كمرجع");
+      return;
+    }
+    const last = history[0]!;
+    const name = window.prompt("اسم وصفي للمرجع") ?? "";
+    if (!name.trim()) return;
+    try {
+      const r = await fetch("/api/marketing/ad-references", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name:         name.trim(),
+          mediaUrl:     last.url,
+          mediaType:    last.url.match(/\.(mp4|webm|mov)(\?|$)/i) ? "video" : "image",
+          source:       "previous-job",
+          generationId: last.id,
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "فشل الحفظ");
+      setSavedAdRefs((p) => [d.reference, ...p]);
+      toast.success("اتحفظ كمرجع ✓");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل الحفظ");
+    }
+  }
 
   // ── on variant change, re-pick a valid default format ─────────────
   useEffect(() => {
@@ -89,12 +234,20 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
     if (!formatsForVariant.find((f) => f.id === formatId)) {
       setFormatId(getDefaultFormatId(variant));
     }
-    // App variant has no hooks or settings on Higgsfield — clear them.
-    if (variant === "app") {
-      setHookId(null);
-      setSettingId(null);
-    }
   }, [variant, formatId]);
+
+  // ── enforce hook/setting whitelist by format ──────────────────────
+  // The reference platform restricts hook_id / setting_id to the UGC
+  // family + product_review only. When the user picks a format that
+  // doesn't support them (e.g. tv-spot-mini, wild_card), we silently
+  // clear any active hook/setting selection so the payload stays valid.
+  const formatAllowsHookAndSetting = formatSupportsHookAndSetting(formatId);
+  useEffect(() => {
+    if (!formatAllowsHookAndSetting) {
+      if (hookId)    setHookId(null);
+      if (settingId) setSettingId(null);
+    }
+  }, [formatAllowsHookAndSetting, hookId, settingId]);
 
   // ── persistence ───────────────────────────────────────────────────
   useEffect(() => {
@@ -168,12 +321,56 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
     }
   };
 
+  // ── Click-to-Ad: fetch product metadata from a URL ────────────────
+  // Calls /api/tools/marketing/fetch-url which scrapes Open Graph
+  // metadata. We use the returned hero image as productImage (only if
+  // the user hasn't uploaded one) and prepend the title + description
+  // to the prompt for richer context.
+  const onFetchUrl = async () => {
+    const trimmed = productUrl.trim();
+    if (!trimmed || urlFetching) return;
+    let parsed: URL;
+    try { parsed = new URL(trimmed); }
+    catch { toast.error("الرابط غير صحيح"); return; }
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      toast.error("لازم http(s)"); return;
+    }
+    setUrlFetching(true);
+    try {
+      const r = await fetch("/api/tools/marketing/fetch-url", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ url: trimmed }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error || "فشل تحميل الرابط");
+      // Use the OG image as productImage iff the user hasn't uploaded one.
+      if (d.imageUrl && !productImage) setProductImage(d.imageUrl);
+      // Build a one-line context snippet from title + description and
+      // prepend it to the prompt — but only if the prompt doesn't
+      // already contain it (avoid double-stamping on repeated fetches).
+      const contextPieces = [d.title, d.description].filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0);
+      const contextLine = contextPieces.join(" — ");
+      if (contextLine && !prompt.includes(contextLine)) {
+        setPrompt((p) => p.trim() ? `${contextLine}\n\n${p}` : contextLine);
+      }
+      toast.success(d.imageUrl ? "تم جلب صورة وبيانات المنتج" : "تم جلب البيانات");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل جلب الرابط");
+    } finally {
+      setUrlFetching(false);
+    }
+  };
+
   // ── generate ──────────────────────────────────────────────────────
   const canGenerate = prompt.trim().length > 0 || (productImage && format);
 
   const onGenerate = async () => {
     if (!canGenerate || isGenerating) return;
 
+    // Step 1 — assemble the base prompt from user text + selected
+    // hook / setting / format injection. This is what the user sees
+    // in the chips.
     const composedPrompt = composeMarketingPrompt({
       userPrompt: prompt,
       format,
@@ -183,10 +380,33 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
       variant,
     });
 
+    // Step 2 — server-side LLM enhancement. The reference platform
+    // does this transparently and exposes the result as the
+    // `enhanced_prompt` field. We mirror it: try Claude (via
+    // /api/ai/enhance-prompt with the marketing system prompt); if
+    // the call fails, fall back to the composed prompt without
+    // blocking the user from generating.
+    setIsGenerating(true);
+    setProgress("جاري تحسين الـprompt…");
+    let enhancedPrompt = composedPrompt;
+    try {
+      const r = await fetch("/api/ai/enhance-prompt", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ prompt: composedPrompt, variant: "marketing" }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        if (typeof d?.enhanced === "string" && d.enhanced.trim().length > 0) {
+          enhancedPrompt = d.enhanced.trim();
+        }
+      }
+    } catch { /* enhancement is best-effort — fall back silently */ }
+
     const endpoint   = resolveMarketingEndpoint(resolution);
     const imagesList = [productImage, avatarImage, ...extraImages].filter(Boolean) as string[];
     const payload: Record<string, unknown> = {
-      prompt:       composedPrompt,
+      prompt:       enhancedPrompt,
       aspect_ratio: ratio,
       duration,
       images_list:  imagesList,
@@ -195,7 +415,6 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
     if (advanced.negativePrompt.trim()) payload.negative_prompt = advanced.negativePrompt.trim();
     if (typeof advanced.seed === "number") payload.seed = advanced.seed;
 
-    setIsGenerating(true);
     setProgress("جاري التوليد…");
 
     try {
@@ -204,7 +423,11 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
         endpoint,
         payload,
         inputsForDb:  {
+          // Save both the composed prompt and the LLM-enhanced version
+          // so we can debug differences later. enhanced_prompt mirrors
+          // the reference platform's exposed payload field.
           prompt: composedPrompt, userPrompt: prompt,
+          enhanced_prompt: enhancedPrompt,
           variant, formatId, hookId, settingId,
           ratio, resolution, duration,
           deviceFrame: variant === "app" ? deviceFrame : null,
@@ -371,6 +594,112 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
               </div>
             )}
 
+            {/* Click-to-Ad: paste a product URL → auto-fill image + context.
+                Mirrors the reference platform's `feature: "click_to_ad"`
+                shortcut. The fetcher runs server-side and parses Open
+                Graph metadata. Only shown for the Product variant — the
+                App variant has its own product flow. */}
+            {variant === "product" && (
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <input
+                  type="url"
+                  value={productUrl}
+                  onChange={(e) => setProductUrl(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onFetchUrl(); } }}
+                  placeholder="أو الصق رابط صفحة المنتج… (Click-to-Ad)"
+                  className="flex-1 min-w-[200px] h-9 px-3 rounded-xl bg-white/[0.03] border border-white/10 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-accent-400/40 text-right"
+                  dir="rtl"
+                  inputMode="url"
+                  disabled={urlFetching}
+                />
+                <button
+                  onClick={onFetchUrl}
+                  disabled={!productUrl.trim() || urlFetching}
+                  type="button"
+                  className={cn(
+                    "h-9 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shrink-0",
+                    !productUrl.trim() || urlFetching
+                      ? "bg-white/5 text-gray-600 cursor-not-allowed"
+                      : "bg-accent-400/15 border border-accent-400/40 text-accent-400 hover:bg-accent-400/25",
+                  )}
+                  title="جلب صورة المنتج وبياناته من الرابط"
+                >
+                  {urlFetching ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <>
+                      <Zap className="w-3.5 h-3.5" />
+                      جلب
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setProductLibraryOpen(true)}
+                  type="button"
+                  className="h-9 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] text-white shrink-0"
+                  title="مكتبة المنتجات المحفوظة"
+                >
+                  <Library className="w-3.5 h-3.5" />
+                  مكتبة ({savedProducts.length})
+                </button>
+                {productImage && (
+                  <button
+                    onClick={saveCurrentProduct}
+                    type="button"
+                    className="h-9 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-300 shrink-0"
+                    title="احفظ المنتج الحالي في مكتبتك"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    حفظ
+                  </button>
+                )}
+              </div>
+            )}
+            {/* App-variant shortcut: import App Store metadata in one click. */}
+            {variant === "app" && (
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <button
+                  onClick={importAppStoreUrl}
+                  type="button"
+                  className="h-9 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] text-white"
+                >
+                  <Apple className="w-3.5 h-3.5" />
+                  استورد من App Store
+                </button>
+                <button
+                  onClick={() => setProductLibraryOpen(true)}
+                  type="button"
+                  className="h-9 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] text-white"
+                >
+                  <Library className="w-3.5 h-3.5" />
+                  مكتبة ({savedProducts.length})
+                </button>
+              </div>
+            )}
+            {/* Ad-references shortcut row (shown for both variants). */}
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <button
+                onClick={() => setAdRefsOpen(true)}
+                type="button"
+                className="h-8 px-2.5 rounded-lg text-[11px] font-medium flex items-center gap-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-gray-300"
+                title="استخدم إعلان قديم أو مرفوع كمرجع للنوع/الإيقاع"
+              >
+                <Film className="w-3 h-3" />
+                مراجع إعلانات ({savedAdRefs.length})
+              </button>
+              {history.length > 0 && (
+                <button
+                  onClick={saveCurrentAsAdReference}
+                  type="button"
+                  className="h-8 px-2.5 rounded-lg text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/[0.06] hover:bg-emerald-500/[0.12] text-emerald-300"
+                  title="احفظ آخر إعلان كمرجع للجلسات القادمة"
+                >
+                  <BookmarkPlus className="w-3 h-3" />
+                  احفظ كمرجع
+                </button>
+              )}
+            </div>
+
             <div className="flex items-start gap-2 mb-3">
               <textarea
                 value={prompt}
@@ -467,20 +796,33 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
                 )}
               </div>
 
-              {/* Hook picker — Product variant only */}
+              {/* Hook picker — Product variant + format must support hooks.
+                  When the chosen format doesn't allow hooks (tv-spot,
+                  wild_card, virtual_try_on, product_showcase) we
+                  visually disable the chip with an explanatory tooltip
+                  so the user understands why it isn't clickable. */}
               {variant === "product" && (
                 <div className="relative">
                   <button
-                    onClick={() => setOpenMenu(openMenu === "hook" ? null : "hook")}
-                    className="h-10 px-3 rounded-xl border border-white/10 hover:bg-white/[0.03] text-xs font-bold text-white flex items-center gap-2"
+                    onClick={() => formatAllowsHookAndSetting && setOpenMenu(openMenu === "hook" ? null : "hook")}
+                    disabled={!formatAllowsHookAndSetting}
+                    className={cn(
+                      "h-10 px-3 rounded-xl border text-xs font-bold flex items-center gap-2 transition-colors",
+                      formatAllowsHookAndSetting
+                        ? "border-white/10 hover:bg-white/[0.03] text-white"
+                        : "border-white/[0.04] text-gray-600 opacity-50 cursor-not-allowed",
+                    )}
                     type="button"
+                    title={formatAllowsHookAndSetting
+                      ? "اختر هوك (الـ3 ثواني الأولى)"
+                      : "الهوك متاح فقط مع UGC / مراجعة منتج / فتح صندوق / تجربة UGC / شرح"}
                   >
                     <HookIcon className="w-3 h-3 text-accent-400" />
                     <span className="text-gray-500">هوك:</span>
                     {hook?.name ?? "بدون"}
                     <ChevronDown className="w-3 h-3 text-gray-500" />
                   </button>
-                  {openMenu === "hook" && (
+                  {openMenu === "hook" && formatAllowsHookAndSetting && (
                     <HookPickerDropdown
                       selected={hookId}
                       onPick={(id) => { setHookId(id); setOpenMenu(null); }}
@@ -490,20 +832,29 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
                 </div>
               )}
 
-              {/* Setting picker — Product variant only */}
+              {/* Setting picker — same whitelist as the Hook picker */}
               {variant === "product" && (
                 <div className="relative">
                   <button
-                    onClick={() => setOpenMenu(openMenu === "setting" ? null : "setting")}
-                    className="h-10 px-3 rounded-xl border border-white/10 hover:bg-white/[0.03] text-xs font-bold text-white flex items-center gap-2"
+                    onClick={() => formatAllowsHookAndSetting && setOpenMenu(openMenu === "setting" ? null : "setting")}
+                    disabled={!formatAllowsHookAndSetting}
+                    className={cn(
+                      "h-10 px-3 rounded-xl border text-xs font-bold flex items-center gap-2 transition-colors",
+                      formatAllowsHookAndSetting
+                        ? "border-white/10 hover:bg-white/[0.03] text-white"
+                        : "border-white/[0.04] text-gray-600 opacity-50 cursor-not-allowed",
+                    )}
                     type="button"
+                    title={formatAllowsHookAndSetting
+                      ? "اختر مكان السيناريو"
+                      : "المكان متاح فقط مع UGC / مراجعة منتج / فتح صندوق / تجربة UGC / شرح"}
                   >
                     <MapPin className="w-3 h-3 text-accent-400" />
                     <span className="text-gray-500">مكان:</span>
                     {setting?.name ?? "بدون"}
                     <ChevronDown className="w-3 h-3 text-gray-500" />
                   </button>
-                  {openMenu === "setting" && (
+                  {openMenu === "setting" && formatAllowsHookAndSetting && (
                     <SettingPickerDropdown
                       selected={settingId}
                       onPick={(id) => { setSettingId(id); setOpenMenu(null); }}
@@ -624,6 +975,127 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
               <X className="w-5 h-5 text-white" />
             </button>
             <video src={fullscreen} controls autoPlay loop className="max-w-full max-h-full rounded-2xl" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Saved Products library modal ────────────────────────── */}
+      <AnimatePresence>
+        {productLibraryOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setProductLibraryOpen(false)}
+          >
+            <div
+              className="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+                <h3 className="text-base font-bold text-white">مكتبة المنتجات</h3>
+                <button
+                  onClick={() => setProductLibraryOpen(false)}
+                  className="text-gray-500 hover:text-white"
+                  aria-label="إغلاق"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {savedProducts.length === 0 ? (
+                  <div className="text-center text-sm text-gray-500 py-12">
+                    لسة مفيش منتجات محفوظة — اعمل Click-to-Ad أو ارفع صورة، وبعدين اضغط &quot;حفظ&quot;.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {savedProducts.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => loadSavedProduct(p)}
+                        className="text-right rounded-xl border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.16] transition overflow-hidden"
+                      >
+                        <div className="aspect-square bg-black/40">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={p.imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="p-2">
+                          <div className="text-xs font-medium truncate">{p.name}</div>
+                          <div className="text-[10px] text-gray-500 truncate">
+                            {p.source === "app-store" ? "App Store" : p.source === "url-fetch" ? "Click-to-Ad" : "Manual"}
+                            {p.category ? ` · ${p.category}` : ""}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Ad References modal ───────────────────────────────────── */}
+      <AnimatePresence>
+        {adRefsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setAdRefsOpen(false)}
+          >
+            <div
+              className="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+                <h3 className="text-base font-bold text-white">مراجع الإعلانات</h3>
+                <button
+                  onClick={() => setAdRefsOpen(false)}
+                  className="text-gray-500 hover:text-white"
+                  aria-label="إغلاق"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {savedAdRefs.length === 0 ? (
+                  <div className="text-center text-sm text-gray-500 py-12">
+                    لسة مفيش مراجع — اعمل إعلان وبعدين اضغط &quot;احفظ كمرجع&quot;.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {savedAdRefs.map((ref) => (
+                      <button
+                        key={ref.id}
+                        onClick={() => pickAdReference(ref)}
+                        className="text-right rounded-xl border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.16] transition overflow-hidden"
+                      >
+                        <div className="aspect-video bg-black/40">
+                          {ref.mediaType === "video" ? (
+                            <video
+                              src={ref.mediaUrl}
+                              muted loop playsInline
+                              className="w-full h-full object-cover"
+                              onMouseEnter={(e) => e.currentTarget.play()}
+                              onMouseLeave={(e) => e.currentTarget.pause()}
+                            />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={ref.thumbnail || ref.mediaUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div className="p-2">
+                          <div className="text-xs font-medium truncate">{ref.name}</div>
+                          <div className="text-[10px] text-gray-500 truncate">
+                            {ref.mediaType === "video" ? "فيديو" : "صورة"} · {ref.source === "previous-job" ? "إعلان سابق" : "رفع"}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1025,23 +1497,55 @@ function AvatarGalleryDropdown({
           </button>
         </div>
         <div className="grid grid-cols-4 gap-2">
-          {MARKETING_AVATARS.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => onPick(a.thumbnail)}
-              className={cn(
-                "rounded-xl overflow-hidden border transition-all hover:scale-[1.05]",
-                selected === a.thumbnail ? "border-accent-400/60 ring-1 ring-accent-400/40" : "border-white/10",
-              )}
-              type="button"
-              title={a.name}
-            >
-              <img src={a.thumbnail} alt={a.name} className="w-full aspect-square object-cover" />
-              <div className="px-2 py-1.5 text-center">
-                <p className="text-[10px] font-bold text-white">{a.name}</p>
-              </div>
-            </button>
-          ))}
+          {MARKETING_AVATARS.map((a) => {
+            // Avatars without a thumbnail asset render a gradient-initial
+            // fallback + a "قريباً" badge. They're shown so the picker
+            // matches the full reference roster (38 entries) but tapping
+            // them is a no-op until we drop in real images.
+            const hasThumb = !!a.thumbnail;
+            const isPicked = hasThumb && selected === a.thumbnail;
+            const initial  = a.name.charAt(0).toUpperCase();
+            const tint     = a.gender === "female"
+              ? "from-pink-500/30 to-purple-500/20"
+              : "from-blue-500/30 to-cyan-500/20";
+            return (
+              <button
+                key={a.id}
+                onClick={() => { if (hasThumb) onPick(a.thumbnail); }}
+                disabled={!hasThumb}
+                className={cn(
+                  "rounded-xl overflow-hidden border transition-all relative",
+                  hasThumb ? "hover:scale-[1.05]" : "opacity-60 cursor-not-allowed",
+                  isPicked ? "border-accent-400/60 ring-1 ring-accent-400/40" : "border-white/10",
+                )}
+                type="button"
+                title={hasThumb ? a.name : `${a.name} — صورة قريباً`}
+              >
+                {hasThumb ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={a.thumbnail} alt={a.name} className="w-full aspect-square object-cover" />
+                ) : (
+                  <div
+                    className={cn(
+                      "w-full aspect-square flex items-center justify-center bg-gradient-to-br text-white font-black text-2xl",
+                      tint,
+                    )}
+                    aria-hidden
+                  >
+                    {initial}
+                  </div>
+                )}
+                {!hasThumb && (
+                  <span className="absolute top-1 right-1 px-1 py-0.5 rounded text-[8px] font-black bg-black/70 text-gray-300 border border-white/10">
+                    قريباً
+                  </span>
+                )}
+                <div className="px-2 py-1.5 text-center">
+                  <p className="text-[10px] font-bold text-white">{a.name}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </>,

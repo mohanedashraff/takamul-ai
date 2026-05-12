@@ -3,7 +3,7 @@
 // ════════════════════════════════════════════════════════════════
 // Soul HEX — Color Signature Picker overlay
 // ════════════════════════════════════════════════════════════════
-// Mirrors Higgsfield's "CONTROL YOUR COLORS WITH SOUL HEX" modal:
+// Mirrors the reference platform's "CONTROL YOUR COLORS WITH SOUL HEX" modal:
 //
 //   Hero:   "CONTROL YOUR COLORS WITH SOUL HEX"
 //           [Upload & Create ✨]                ← extracts palette from any photo

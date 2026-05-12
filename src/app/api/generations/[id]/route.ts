@@ -13,11 +13,16 @@ import { addCredits } from "@/lib/credits";
 import { sendGenerationReadyEmail } from "@/lib/email";
 
 const PatchSchema = z.object({
-  status:       z.enum(["PROCESSING", "COMPLETED", "FAILED"]).optional(),
+  status:       z.enum(["PROCESSING", "COMPLETED", "FAILED", "NSFW", "IP_DETECTED"]).optional(),
   outputs:      z.unknown().optional(),
   errorMessage: z.string().optional(),
   muapiJobId:   z.string().optional(),
   durationMs:   z.number().optional(),
+  // Organisation — null = remove from folder.
+  folderId:     z.string().nullable().optional(),
+  // Social state — used by Like + Publish toggles.
+  liked:        z.boolean().optional(),
+  isPublic:     z.boolean().optional(),
 });
 
 export async function GET(
@@ -57,14 +62,26 @@ export async function PATCH(
 
   const data = parsed.data;
 
-  // Auto-refund on failure (only once — re-transitioning to FAILED is a no-op)
-  if (data.status === "FAILED" && gen.status !== "FAILED" && gen.creditsUsed > 0) {
+  // Auto-refund on any failure-class status (FAILED / NSFW / IP_DETECTED).
+  // Only fires once — re-transitioning to the same terminal state is a
+  // no-op so we don't double-refund.
+  const FAILURE_STATES: ReadonlyArray<typeof data.status> = ["FAILED", "NSFW", "IP_DETECTED"];
+  const previouslyTerminal = FAILURE_STATES.includes(gen.status as never);
+  if (
+    data.status && FAILURE_STATES.includes(data.status) &&
+    !previouslyTerminal &&
+    gen.creditsUsed > 0
+  ) {
+    const reasonSuffix =
+      data.status === "NSFW"        ? "nsfw" :
+      data.status === "IP_DETECTED" ? "ip-detected" :
+      "failed";
     await addCredits({
       userId: session.user.id,
       amount: gen.creditsUsed,
-      reason: `refund:${gen.toolId}`,
+      reason: `refund:${gen.toolId}:${reasonSuffix}`,
       type: "REFUND",
-      metadata: { generationId: gen.id, toolName: gen.toolName },
+      metadata: { generationId: gen.id, toolName: gen.toolName, reason: data.status },
     });
   }
 
@@ -76,6 +93,9 @@ export async function PATCH(
       ...(data.errorMessage !== undefined && { errorMessage: data.errorMessage }),
       ...(data.muapiJobId   !== undefined && { muapiJobId: data.muapiJobId }),
       ...(data.durationMs   !== undefined && { durationMs: data.durationMs }),
+      ...(data.folderId     !== undefined && { folderId: data.folderId }),
+      ...(data.liked        !== undefined && { liked: data.liked }),
+      ...(data.isPublic     !== undefined && { isPublic: data.isPublic }),
     },
   });
 

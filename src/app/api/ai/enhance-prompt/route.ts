@@ -1,7 +1,7 @@
 // ════════════════════════════════════════════════════════════════
 // POST /api/ai/enhance-prompt — auto-expand a user prompt
 // ════════════════════════════════════════════════════════════════
-// Mirrors Higgsfield's `enhance_prompt: true` flag — we run the user's
+// Mirrors the reference platform's `enhance_prompt: true` flag — we run the user's
 // short text through Claude Sonnet 4.5 (via OpenRouter) and expand
 // it into a richly-detailed English prompt tuned for the target
 // studio. If the input is in Arabic we translate as part of the

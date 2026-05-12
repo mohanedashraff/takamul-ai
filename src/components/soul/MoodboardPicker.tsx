@@ -3,7 +3,7 @@
 // ════════════════════════════════════════════════════════════════
 // Soul 2.0 — Moodboard Picker overlay
 // ════════════════════════════════════════════════════════════════
-// Mirrors Higgsfield's "CREATE YOUR MOODBOARD" modal:
+// Mirrors the reference platform's "CREATE YOUR MOODBOARD" modal:
 //
 //   [Build your moodboard ✨]                     ← opens BuildMoodboardModal
 //   [ Curated ] [ My Moodboards ]      [ Search ] ← tabs + search
@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Search, Sparkles, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
-import { MOODBOARDS } from "@/lib/data/soul";
+import { MOODBOARDS, CURATED_PICKS, type CuratedTheme } from "@/lib/data/soul";
 import type { SoulMoodboardRow } from "./types";
 
 interface Props {
@@ -30,7 +30,20 @@ interface Props {
   onBuildOwn: () => void;
 }
 
-type Tab = "curated" | "mine";
+// Three top-level tabs:
+//   • curated — 21 highlighted styles grouped into 3 themes (Mood,
+//     Styles, Camera). This is the default landing tab.
+//   • all     — the full library of 106 styles in one searchable grid.
+//   • mine    — user-built moodboards from BuildMoodboardModal.
+type Tab = "curated" | "all" | "mine";
+
+// Arabic labels for the 3 curated themes — match the reference's
+// section headings inside the prominent picker.
+const CURATED_THEMES: { id: CuratedTheme; label: string; sub: string }[] = [
+  { id: "mood",   label: "المزاج",  sub: "نغمة عاطفية وسينمائية" },
+  { id: "styles", label: "الستايلز", sub: "مدارس بصرية مميزة"     },
+  { id: "camera", label: "الكاميرا", sub: "إحساس الكاميرا والفيلم" },
+];
 
 export function MoodboardPicker({ open, value, onChange, onClose, onBuildOwn }: Props) {
   const [tab,    setTab]    = useState<Tab>("curated");
@@ -58,15 +71,22 @@ export function MoodboardPicker({ open, value, onChange, onClose, onBuildOwn }: 
     return () => window.removeEventListener("keydown", fn);
   }, [open, onClose]);
 
+  // Lookup helper — find a moodboard preset by id (used by curated theme
+  // sections to render only the highlighted picks).
+  const lookupById = (id: string) => MOODBOARDS.find((m) => m.id === id);
+
   const filtered = useMemo(() => {
-    if (tab === "curated") {
+    if (tab === "all") {
       const q = search.trim().toLowerCase();
       return MOODBOARDS.filter((m) =>
         !q || m.name.includes(q) || m.englishName.toLowerCase().includes(q)
       );
     }
-    const q = search.trim().toLowerCase();
-    return mine.filter((m) => !q || m.name.toLowerCase().includes(q));
+    if (tab === "mine") {
+      const q = search.trim().toLowerCase();
+      return mine.filter((m) => !q || m.name.toLowerCase().includes(q));
+    }
+    return [];   // curated tab renders custom 3-section layout below
   }, [tab, search, mine]);
 
   const deleteMine = async (id: string, e: React.MouseEvent) => {
@@ -133,6 +153,9 @@ export function MoodboardPicker({ open, value, onChange, onClose, onBuildOwn }: 
             <div className="flex items-center gap-3 px-5 sm:px-6 pb-3 flex-shrink-0">
               <div className="flex bg-white/[0.04] border border-white/10 rounded-xl p-1 gap-1">
                 <TabBtn active={tab === "curated"} onClick={() => setTab("curated")}>مختارة</TabBtn>
+                <TabBtn active={tab === "all"}     onClick={() => setTab("all")}>
+                  كل الستايلز <span className="opacity-60">({MOODBOARDS.length})</span>
+                </TabBtn>
                 <TabBtn active={tab === "mine"}    onClick={() => setTab("mine")}>
                   موود بوردزي {mine.length > 0 && <span className="opacity-60">({mine.length})</span>}
                 </TabBtn>
@@ -152,8 +175,16 @@ export function MoodboardPicker({ open, value, onChange, onClose, onBuildOwn }: 
             <div className="flex-1 overflow-y-auto px-5 sm:px-6 pb-6">
               {tab === "mine" && loading ? (
                 <div className="py-16 text-center text-sm text-gray-500">جاري التحميل…</div>
+              ) : tab === "curated" ? (
+                // ── Curated tab — 3 themed sections of 21 highlights ──
+                <CuratedSections
+                  value={value}
+                  onPick={(id) => { onChange(id); onClose(); }}
+                  onBrowseAll={() => setTab("all")}
+                  lookup={lookupById}
+                />
               ) : filtered.length === 0 ? (
-                tab === "curated" ? (
+                tab === "all" ? (
                   <div className="py-16 text-center text-sm text-gray-500">لا نتائج</div>
                 ) : (
                   <div className="py-16 flex flex-col items-center gap-3 text-center">
@@ -235,5 +266,80 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
     >
       {children}
     </button>
+  );
+}
+
+// ── Curated sections — 3 themed groups of highlighted styles ──────────
+// Mirrors the reference platform's prominent picker which highlights 21
+// hand-picked styles across Mood / Styles / Camera. Each section shows
+// only the curated picks for that theme; a "Browse all 106" link at
+// the bottom switches the picker over to the full grid.
+function CuratedSections({
+  value, onPick, onBrowseAll, lookup,
+}: {
+  value:        string;
+  onPick:       (id: string) => void;
+  onBrowseAll:  () => void;
+  lookup:       (id: string) => { id: string; name: string; englishName: string; thumbnail: string } | undefined;
+}) {
+  return (
+    <div className="space-y-7">
+      {CURATED_THEMES.map((theme) => {
+        const picks = (CURATED_PICKS[theme.id] ?? [])
+          .map(lookup)
+          .filter((m): m is NonNullable<ReturnType<typeof lookup>> => !!m);
+        if (picks.length === 0) return null;
+        return (
+          <section key={theme.id}>
+            <header className="flex items-baseline justify-between mb-3">
+              <div>
+                <h4 className="text-white font-black text-base leading-tight">{theme.label}</h4>
+                <p className="text-[11px] text-gray-500 mt-0.5">{theme.sub}</p>
+              </div>
+              <span className="text-[10px] text-gray-500 font-bold">{picks.length} مختار</span>
+            </header>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {picks.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => onPick(m.id)}
+                  type="button"
+                  className={cn(
+                    "relative aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all group text-left",
+                    value === m.id
+                      ? "border-accent-400 shadow-[0_0_18px_rgba(254,228,64,0.3)]"
+                      : "border-white/10 hover:border-white/30"
+                  )}
+                >
+                  {m.thumbnail ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={m.thumbnail} alt={m.englishName} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/[0.02]" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 inset-x-0 p-2 text-right">
+                    <div className="text-white text-xs font-black leading-tight truncate">{m.name}</div>
+                    <div className="text-[10px] text-white/55 font-medium truncate">{m.englishName}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+
+      {/* Browse-all CTA */}
+      <div className="pt-2 border-t border-white/[0.04]">
+        <button
+          onClick={onBrowseAll}
+          type="button"
+          className="w-full h-12 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] hover:border-accent-400/30 transition-colors text-sm font-bold text-white flex items-center justify-center gap-2"
+        >
+          تصفّح كل الـ{MOODBOARDS.length} ستايل
+          <span className="text-accent-400">←</span>
+        </button>
+      </div>
+    </div>
   );
 }
