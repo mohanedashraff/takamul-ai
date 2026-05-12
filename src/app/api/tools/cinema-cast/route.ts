@@ -47,9 +47,11 @@ const Schema = z.object({
   // prompt when explicitly picked).
   hair_style:     z.string().max(40).optional(),
   hair_color:     z.string().max(40).optional(),
+  hair_type:      z.string().max(40).optional(),
   eye_color:      z.string().max(40).optional(),
   outfit:         z.string().max(40).optional(),
   beard:          z.string().max(40).optional(),
+  beard_color:    z.string().max(40).optional(),
   imperfections:  z.string().max(40).optional(),
 });
 
@@ -104,6 +106,21 @@ const BEARD_HINTS: Record<string, string> = {
   beard:          "full beard",
   long_beard:     "long beard",
   mustache:       "groomed mustache",
+};
+const BEARD_COLOR_HINTS: Record<string, string> = {
+  black:        "black-coloured",
+  brown:        "brown-coloured",
+  "light-brown":"light-brown",
+  auburn:       "auburn-coloured",
+  red:          "red-coloured",
+  gray:         "grey-coloured",
+  white:        "white-coloured",
+};
+const HAIR_TYPE_HINTS: Record<string, string> = {
+  straight: "straight-textured hair",
+  wavy:     "wavy-textured hair",
+  curly:    "curly-textured hair",
+  coily:    "coily-textured hair",
 };
 const IMPERFECTIONS_HINTS: Record<string, string> = {
   none:        "",
@@ -213,6 +230,9 @@ function composePrompt(params: z.infer<typeof Schema>): string {
   if (params.hair_color && params.hair_color.length) {
     extras.push(HAIR_COLOR_HINTS[params.hair_color] ?? `${params.hair_color} hair colour`);
   }
+  if (params.hair_type && params.hair_type.length) {
+    extras.push(HAIR_TYPE_HINTS[params.hair_type] ?? `${params.hair_type} hair texture`);
+  }
   if (params.eye_color && params.eye_color.length) {
     extras.push(EYE_COLOR_HINTS[params.eye_color] ?? `${params.eye_color} eyes`);
   }
@@ -220,7 +240,14 @@ function composePrompt(params: z.infer<typeof Schema>): string {
     extras.push(OUTFIT_HINTS[params.outfit] ?? `${params.outfit} outfit`);
   }
   if (params.beard && params.beard.length && params.gender === "male") {
-    extras.push(BEARD_HINTS[params.beard] ?? params.beard);
+    const beardPhrase = BEARD_HINTS[params.beard] ?? params.beard;
+    // Only attach a beard colour when the beard isn't clean-shaven.
+    if (params.beard !== "clean-shaven" && params.beard_color && params.beard_color.length) {
+      const colourPhrase = BEARD_COLOR_HINTS[params.beard_color] ?? `${params.beard_color}-coloured`;
+      extras.push(`${colourPhrase} ${beardPhrase}`);
+    } else {
+      extras.push(beardPhrase);
+    }
   }
   if (params.imperfections && params.imperfections.length && params.imperfections !== "none") {
     extras.push(IMPERFECTIONS_HINTS[params.imperfections] ?? params.imperfections);
