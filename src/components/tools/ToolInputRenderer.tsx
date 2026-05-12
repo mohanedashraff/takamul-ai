@@ -190,13 +190,29 @@ function ButtonGroup({
               >
                 <div className="aspect-square bg-black/40 overflow-hidden">
                   {opt.image ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={opt.image}
-                      alt={opt.label}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    />
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={opt.image}
+                        alt={opt.label}
+                        loading="lazy"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        onError={(e) => {
+                          // 404 or broken asset — collapse the img and let
+                          // the label-fallback span show through.
+                          const img = e.currentTarget;
+                          img.style.display = "none";
+                          const fallback = img.nextElementSibling as HTMLElement | null;
+                          if (fallback) fallback.style.display = "flex";
+                        }}
+                      />
+                      <span
+                        className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-400 px-2 text-center"
+                        style={{ display: "none" }}
+                      >
+                        {opt.label}
+                      </span>
+                    </>
                   ) : (
                     <span className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-400 px-2 text-center">
                       {opt.label}
