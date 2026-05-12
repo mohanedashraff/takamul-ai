@@ -172,9 +172,13 @@ export interface FluxLoraInferenceResult {
   seed?:  number;
 }
 
-/** Submit a flux-lora inference call (uses the trained Soul ID LoRA). */
+/** Submit a flux-lora inference call (uses the trained Soul ID LoRA).
+ *  The cast is safe — FluxLoraInferenceInput's fields are all
+ *  JSON-serialisable so the shape satisfies Record<string, unknown>
+ *  at runtime; TypeScript just can't prove it without an explicit
+ *  index signature. */
 export async function falStartFluxLoraInference(input: FluxLoraInferenceInput): Promise<FalSubmitResponse> {
-  return falSubmit("fal-ai/flux-lora", input);
+  return falSubmit("fal-ai/flux-lora", input as unknown as Record<string, unknown>);
 }
 
 export function falLoraInferenceStatus(requestId: string) {
