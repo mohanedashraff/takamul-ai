@@ -43,7 +43,75 @@ const Schema = z.object({
   // Permissive enum makes adding genres a one-line change.
   genre:          z.string().min(1).max(40),
   attractiveness: z.number().int().min(0).max(10),
+  // Higgsfield Cast extras (all optional — only stitched into the
+  // prompt when explicitly picked).
+  hair_style:     z.string().max(40).optional(),
+  hair_color:     z.string().max(40).optional(),
+  eye_color:      z.string().max(40).optional(),
+  outfit:         z.string().max(40).optional(),
+  beard:          z.string().max(40).optional(),
+  imperfections:  z.string().max(40).optional(),
 });
+
+const HAIR_STYLE_HINTS: Record<string, string> = {
+  short:       "short hair",
+  medium:      "medium-length hair",
+  long:        "long flowing hair",
+  very_long:   "very long hair",
+  bangs:       "front bangs",
+  bun:         "neat hair bun",
+  ponytail:    "ponytail",
+  afro:        "afro hairstyle",
+  braids:      "braided hair",
+  dreadlocks:  "dreadlocks",
+  messy:       "tousled messy hair",
+  slick_back:  "slick-back hair",
+  shave_sides: "shaved-sides hairstyle",
+  undercut:    "undercut hairstyle",
+  blade:       "clean-shaven head",
+};
+const HAIR_COLOR_HINTS: Record<string, string> = {
+  black:  "jet-black hair",
+  brown:  "brown hair",
+  blonde: "blonde hair",
+  auburn: "auburn / chestnut hair",
+  red:    "red hair",
+  grey:   "grey hair",
+  white:  "white hair",
+};
+const EYE_COLOR_HINTS: Record<string, string> = {
+  brown: "warm brown eyes",
+  blue:  "bright blue eyes",
+  green: "green eyes",
+  hazel: "hazel eyes",
+  amber: "amber eyes",
+  gray:  "cool grey eyes",
+};
+const OUTFIT_HINTS: Record<string, string> = {
+  casual:      "casual everyday outfit",
+  formal:      "formal tailored outfit",
+  sporty:      "sporty athletic outfit",
+  highfashion: "high-fashion editorial outfit",
+  military:    "military-styled outfit",
+  workwear:    "workwear-styled outfit",
+  vintage:     "vintage period outfit",
+  punk:        "punk styling, leather and studs",
+};
+const BEARD_HINTS: Record<string, string> = {
+  "clean-shaven": "clean-shaven",
+  stubble:        "light stubble",
+  short_beard:    "short well-kept beard",
+  beard:          "full beard",
+  long_beard:     "long beard",
+  mustache:       "groomed mustache",
+};
+const IMPERFECTIONS_HINTS: Record<string, string> = {
+  none:        "",
+  freckles:    "soft freckles across the cheeks",
+  facial_scar: "small facial scar (character-building, not gruesome)",
+  tattoos:     "tasteful visible tattoos",
+  eye_patch:   "single eye patch",
+};
 
 // ── Composers ──────────────────────────────────────────────────────────
 
@@ -136,6 +204,29 @@ function composePrompt(params: z.infer<typeof Schema>): string {
     ?? `${params.body_type} build`;
   const charisma  = attractivenessHint(params.attractiveness);
 
+  // Optional Higgsfield Cast extras — combined into a single "Features"
+  // clause to keep the prompt readable.
+  const extras: string[] = [];
+  if (params.hair_style && params.hair_style.length) {
+    extras.push(HAIR_STYLE_HINTS[params.hair_style] ?? `${params.hair_style} hair`);
+  }
+  if (params.hair_color && params.hair_color.length) {
+    extras.push(HAIR_COLOR_HINTS[params.hair_color] ?? `${params.hair_color} hair colour`);
+  }
+  if (params.eye_color && params.eye_color.length) {
+    extras.push(EYE_COLOR_HINTS[params.eye_color] ?? `${params.eye_color} eyes`);
+  }
+  if (params.outfit && params.outfit.length) {
+    extras.push(OUTFIT_HINTS[params.outfit] ?? `${params.outfit} outfit`);
+  }
+  if (params.beard && params.beard.length && params.gender === "male") {
+    extras.push(BEARD_HINTS[params.beard] ?? params.beard);
+  }
+  if (params.imperfections && params.imperfections.length && params.imperfections !== "none") {
+    extras.push(IMPERFECTIONS_HINTS[params.imperfections] ?? params.imperfections);
+  }
+  const features = extras.length > 0 ? `Features: ${extras.join(", ")}.` : "";
+
   return [
     // Subject + name + backstory anchor the model on a specific person.
     `Cinematic character portrait of ${params.full_name.trim()}, a ${params.gender} character.`,
@@ -146,12 +237,13 @@ function composePrompt(params: z.infer<typeof Schema>): string {
     `Era: ${era}.`,
     `Mood: ${genre}.`,
     `Look: ${charisma}.`,
+    features,
     // Cinematic finishing tail.
     "Three-quarter framing, head and upper body, eye contact with camera.",
     "Shot on 35mm film, anamorphic widescreen feel, professional cinematography.",
     "Ultra-detailed face, sharp focus, natural skin tones, 8K finishing.",
     "No text, no watermarks, no logos.",
-  ].join(" ");
+  ].filter(Boolean).join(" ");
 }
 
 export async function POST(req: Request) {
