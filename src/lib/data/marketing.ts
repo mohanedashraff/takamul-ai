@@ -425,48 +425,58 @@ export interface MarketingAvatar {
   thumbnail: string;     // empty string → picker renders initial fallback
 }
 
+// Higgsfield identity portraits — proxied through /api/cdn/s/. We
+// reuse these for any of our named avatars that don't yet have a
+// dedicated portrait on the CloudFront CDN. Each name is mapped to
+// the closest identity bucket by name etymology so the picker shows
+// a visually diverse grid without burning gen-credits.
+const HF_ID = (path: string) => `/api/cdn/s/cast/${path}.webp`;
+
 export const MARKETING_AVATARS: MarketingAvatar[] = [
   // ── Female (22) ─────────────────────────────────────────────────
-  { id: "mei",       name: "Mei",       gender: "female", thumbnail: "" },
-  { id: "yuna",      name: "Yuna",      gender: "female", thumbnail: "" },
-  { id: "adriana",   name: "Adriana",   gender: "female", thumbnail: "" },
-  { id: "clara",     name: "Clara",     gender: "female", thumbnail: "" },
-  { id: "maria",     name: "Maria",     gender: "female", thumbnail: "" },
-  { id: "sofia",     name: "Sofia",     gender: "female", thumbnail: "" },
-  { id: "valentina", name: "Valentina", gender: "female", thumbnail: "" },
-  { id: "jia",       name: "Jia",       gender: "female", thumbnail: "" },
-  { id: "lily",      name: "Lily",      gender: "female", thumbnail: "" },
-  { id: "nia",       name: "Nia",       gender: "female", thumbnail: "" },
-  { id: "hana",      name: "Hana",      gender: "female", thumbnail: "" },
+  { id: "mei",       name: "Mei",       gender: "female", thumbnail: HF_ID("female-identity/asian")    },
+  { id: "yuna",      name: "Yuna",      gender: "female", thumbnail: HF_ID("female-identity/asian")    },
+  { id: "adriana",   name: "Adriana",   gender: "female", thumbnail: HF_ID("female-identity/european") },
+  { id: "clara",     name: "Clara",     gender: "female", thumbnail: HF_ID("female-identity/european") },
+  { id: "maria",     name: "Maria",     gender: "female", thumbnail: HF_ID("female-identity/latina")   },
+  { id: "sofia",     name: "Sofia",     gender: "female", thumbnail: HF_ID("female-identity/mixed")    },
+  { id: "valentina", name: "Valentina", gender: "female", thumbnail: HF_ID("female-identity/latina")   },
+  { id: "jia",       name: "Jia",       gender: "female", thumbnail: HF_ID("female-identity/asian")    },
+  { id: "lily",      name: "Lily",      gender: "female", thumbnail: HF_ID("female-identity/mixed")    },
+  { id: "nia",       name: "Nia",       gender: "female", thumbnail: HF_ID("female-identity/black")    },
+  { id: "hana",      name: "Hana",      gender: "female", thumbnail: HF_ID("female-identity/asian")    },
   { id: "priya",     name: "Priya",     gender: "female", thumbnail: `${AVATAR_CDN}/Priya.webp`  },
   { id: "elena",     name: "Elena",     gender: "female", thumbnail: `${AVATAR_CDN}/Elena.webp`  },
   { id: "sora",      name: "Sora",      gender: "female", thumbnail: `${AVATAR_CDN}/Sora.webp`   },
   { id: "minji",     name: "Minji",     gender: "female", thumbnail: `${AVATAR_CDN}/Minji.webp`  },
   { id: "margot",    name: "Margot",    gender: "female", thumbnail: `${AVATAR_CDN}/Margot.webp` },
-  { id: "yuki",      name: "Yuki",      gender: "female", thumbnail: "" },
-  { id: "zara",      name: "Zara",      gender: "female", thumbnail: "" },
-  { id: "naomi",     name: "Naomi",     gender: "female", thumbnail: "" },
-  { id: "megan",     name: "Megan",     gender: "female", thumbnail: "" },
-  { id: "miso",      name: "Miso",      gender: "female", thumbnail: "" },
-  { id: "scarlett",  name: "Scarlett",  gender: "female", thumbnail: "" },
+  // The next 6 already exist on our existing CloudFront mirror —
+  // probed by HEAD before wiring.
+  { id: "yuki",      name: "Yuki",      gender: "female", thumbnail: `${AVATAR_CDN}/Yuki.webp`    },
+  { id: "zara",      name: "Zara",      gender: "female", thumbnail: `${AVATAR_CDN}/Zara.webp`    },
+  { id: "naomi",     name: "Naomi",     gender: "female", thumbnail: `${AVATAR_CDN}/Naomi.webp`   },
+  { id: "megan",     name: "Megan",     gender: "female", thumbnail: `${AVATAR_CDN}/Megan.webp`   },
+  { id: "miso",      name: "Miso",      gender: "female", thumbnail: `${AVATAR_CDN}/Miso.webp`    },
+  { id: "scarlett",  name: "Scarlett",  gender: "female", thumbnail: `${AVATAR_CDN}/Scarlett.webp`},
 
   // ── Male (16) ───────────────────────────────────────────────────
-  { id: "jayden",    name: "Jayden",    gender: "male",   thumbnail: "" },
-  { id: "stefan",    name: "Stefan",    gender: "male",   thumbnail: "" },
-  { id: "tae",       name: "Tae",       gender: "male",   thumbnail: "" },
-  { id: "felix",     name: "Felix",     gender: "male",   thumbnail: "" },
-  { id: "malik",     name: "Malik",     gender: "male",   thumbnail: "" },
-  { id: "liam",      name: "Liam",      gender: "male",   thumbnail: "" },
-  { id: "joon",      name: "Joon",      gender: "male",   thumbnail: "" },
-  { id: "erik",      name: "Erik",      gender: "male",   thumbnail: "" },
-  { id: "ryu",       name: "Ryu",       gender: "male",   thumbnail: "" },
+  { id: "jayden",    name: "Jayden",    gender: "male",   thumbnail: HF_ID("male-identity/black")    },
+  { id: "stefan",    name: "Stefan",    gender: "male",   thumbnail: HF_ID("male-identity/european") },
+  { id: "tae",       name: "Tae",       gender: "male",   thumbnail: HF_ID("male-identity/asian")    },
+  { id: "felix",     name: "Felix",     gender: "male",   thumbnail: HF_ID("male-identity/european") },
+  { id: "malik",     name: "Malik",     gender: "male",   thumbnail: HF_ID("male-identity/black")    },
+  { id: "liam",      name: "Liam",      gender: "male",   thumbnail: HF_ID("male-identity/european") },
+  { id: "joon",      name: "Joon",      gender: "male",   thumbnail: HF_ID("male-identity/asian")    },
+  { id: "erik",      name: "Erik",      gender: "male",   thumbnail: HF_ID("male-identity/european") },
+  { id: "ryu",       name: "Ryu",       gender: "male",   thumbnail: HF_ID("male-identity/asian")    },
   { id: "kai",       name: "Kai",       gender: "male",   thumbnail: `${AVATAR_CDN}/Kai.webp`    },
   { id: "niko",      name: "Niko",      gender: "male",   thumbnail: `${AVATAR_CDN}/Niko.webp`   },
   { id: "jin",       name: "Jin",       gender: "male",   thumbnail: `${AVATAR_CDN}/Jin.webp`    },
-  { id: "marco",     name: "Marco",     gender: "male",   thumbnail: "" },
-  { id: "ren",       name: "Ren",       gender: "male",   thumbnail: "" },
-  { id: "lucas",     name: "Lucas",     gender: "male",   thumbnail: "" },
-  { id: "omar",      name: "Omar",      gender: "male",   thumbnail: "" },
+  // The next 4 already exist on our existing CloudFront mirror.
+  { id: "marco",     name: "Marco",     gender: "male",   thumbnail: `${AVATAR_CDN}/Marco.webp`  },
+  { id: "ren",       name: "Ren",       gender: "male",   thumbnail: `${AVATAR_CDN}/Ren.webp`    },
+  { id: "lucas",     name: "Lucas",     gender: "male",   thumbnail: `${AVATAR_CDN}/Lucas.webp`  },
+  { id: "omar",      name: "Omar",      gender: "male",   thumbnail: `${AVATAR_CDN}/Omar.webp`   },
 ];
 
 // ── Aspect / quality / duration ──────────────────────────────────
