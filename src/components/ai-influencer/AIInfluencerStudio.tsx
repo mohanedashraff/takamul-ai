@@ -152,7 +152,7 @@ export function AiInfluencerStudio() {
       </div>
 
       {/* Yilow-original presets row — quick-start kick */}
-      <div className="max-w-5xl mx-auto px-4 mb-4">
+      <div className="max-w-2xl mx-auto px-4 mb-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">انطلق بسرعة</span>
           <div className="flex-1 h-px bg-white/[0.05]" />
@@ -202,7 +202,7 @@ export function AiInfluencerStudio() {
       </div>
 
       {/* Panel tabs */}
-      <div className="max-w-5xl mx-auto px-4 mb-4">
+      <div className="max-w-2xl mx-auto px-4 mb-4">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
           {INFLUENCER_PANELS.map((panel) => {
             const isActive = activePanel === panel.id;
@@ -245,7 +245,7 @@ export function AiInfluencerStudio() {
       </div>
 
       {/* Active panel content */}
-      <div className="max-w-5xl mx-auto px-4 mb-8">
+      <div className="max-w-2xl mx-auto px-4 mb-8">
         <PanelContent
           subcategories={INFLUENCER_PANELS.find((p) => p.id === activePanel)?.subcategories ?? []}
           config={config}
@@ -398,7 +398,7 @@ function PanelContent({
   onToggleMulti: (subId: string, optId: string) => void;
 }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {subcategories.map((sub) => (
         <SubcategorySection
           key={sub.id}
@@ -420,6 +420,12 @@ function SubcategorySection({
   onPickSingle:  (optId: string) => void;
   onToggleMulti: (optId: string) => void;
 }) {
+  // Higgsfield collapses every subcategory by default. Click the header
+  // row to expand the option grid. Keeping it controlled with React
+  // state lets us "auto-collapse on pick" for single-select fields
+  // which matches their interaction model.
+  const [expanded, setExpanded] = useState(false);
+
   const isPicked = (optId: string) => {
     if (sub.selection === "multi") {
       return Array.isArray(value) && value.includes(optId);
@@ -427,107 +433,175 @@ function SubcategorySection({
     return value === optId;
   };
 
-  // Categories with visual hints (thumbnail / swatch on at least one
-  // option) OR explicitly opted-in via display:"card" render as a
-  // card grid. Plain text-only categories (gender, age, rendering
-  // style — matching Higgsfield's UI) keep the compact-chip layout.
   const useCards = sub.display === "card" || sub.options.some(
     (o) => o.thumbnail || o.swatch,
   );
 
+  // Resolve the active selection for the header preview chip.
+  const activeIds = Array.isArray(value) ? value : (value ? [value] : []);
+  const activeOpts = activeIds
+    .map((id) => sub.options.find((o) => o.id === id))
+    .filter(Boolean) as typeof sub.options;
+  const headerThumb = activeOpts[0]?.thumbnail;
+  const headerSwatch = activeOpts[0]?.swatch;
+  const summary =
+    sub.selection === "multi"
+      ? (activeOpts.length === 0
+        ? "—"
+        : activeOpts.length === 1
+          ? activeOpts[0]!.label
+          : `${activeOpts[0]!.label} + ${activeOpts.length - 1}`)
+      : (activeOpts[0]?.label ?? "—");
+
   return (
-    <section>
-      <header className="flex items-baseline justify-between mb-2.5">
-        <div>
-          <h4 className="text-white font-black text-sm leading-tight">{sub.name}</h4>
-          <p className="text-[10px] text-gray-500 mt-0.5">{sub.englishName}{sub.hint ? ` — ${sub.hint}` : ""}</p>
+    <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      {/* Header row — Higgsfield uses grid-cols-[2.5rem_1fr_auto] for
+          this layout (icon/preview · label · chevron). Click to toggle. */}
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="w-full grid grid-cols-[2.5rem_1fr_auto] gap-3 px-3 py-2.5 items-center text-right hover:bg-white/[0.03] transition-colors"
+      >
+        <div
+          className={cn(
+            "w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center shrink-0",
+            headerThumb ? "bg-black/40" :
+            headerSwatch ? "" :
+            "bg-gradient-to-br from-white/[0.04] to-white/[0.08]",
+          )}
+          style={headerSwatch ? { backgroundColor: headerSwatch } : undefined}
+        >
+          {headerThumb && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={headerThumb} alt="" className="w-full h-full object-cover" loading="lazy" />
+          )}
+          {!headerThumb && !headerSwatch && activeOpts.length > 0 && (
+            <span className="text-[10px] font-black text-gray-400 px-1 text-center leading-tight">
+              {activeOpts[0]!.label.slice(0, 2)}
+            </span>
+          )}
         </div>
-        <span className="text-[10px] text-gray-500 font-bold">
-          {sub.selection === "multi" ? "متعدد" : "واحد"}
-        </span>
-      </header>
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-2">
+            <h4 className="text-white font-black text-sm leading-tight">{sub.name}</h4>
+            <span className="text-[10px] text-gray-600 font-bold">
+              {sub.selection === "multi" ? "متعدد" : "واحد"}
+            </span>
+          </div>
+          <p className="text-[10px] text-gray-500 mt-0.5 truncate">
+            <span className="text-gray-400">{summary}</span>
+            {sub.englishName ? <span className="text-gray-600"> · {sub.englishName}</span> : null}
+          </p>
+        </div>
+        <ChevronDown
+          className={cn(
+            "w-4 h-4 text-gray-500 shrink-0 transition-transform",
+            expanded ? "rotate-180" : "",
+          )}
+        />
+      </button>
 
-      {useCards ? (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-          {sub.options.map((o) => {
-            const picked = isPicked(o.id);
-            return (
-              <button
-                key={o.id}
-                onClick={() => sub.selection === "multi" ? onToggleMulti(o.id) : onPickSingle(o.id)}
-                type="button"
-                className={cn(
-                  "relative rounded-xl overflow-hidden border transition-all group",
-                  picked
-                    ? "border-accent-400 shadow-[0_0_18px_rgba(254,228,64,0.35)]"
-                    : "border-white/10 hover:border-white/30",
-                )}
-              >
-                {/* Visual area: thumbnail > swatch > label-only fallback */}
-                <div className={cn(
-                  "aspect-square flex items-center justify-center",
-                  o.thumbnail ? "bg-black/40" :
-                  o.swatch    ? "" :
-                  "bg-gradient-to-br from-white/[0.03] to-white/[0.06]",
-                )}
-                style={o.swatch ? { backgroundColor: o.swatch } : undefined}
-                >
-                  {o.thumbnail && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={o.thumbnail}
-                      alt={o.label}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    />
-                  )}
-                  {!o.thumbnail && !o.swatch && (
-                    <span className="text-base font-bold text-gray-300 px-2 text-center leading-tight select-none">
+      {/* Body — collapsible options grid */}
+      {expanded && (
+        <div className="px-3 pb-3 pt-1">
+          {useCards ? (
+            <div className="grid grid-cols-3 gap-1.5">
+              {sub.options.map((o) => {
+                const picked = isPicked(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    onClick={() => {
+                      if (sub.selection === "multi") onToggleMulti(o.id);
+                      else { onPickSingle(o.id); setExpanded(false); /* Higgsfield auto-collapses on single-pick */ }
+                    }}
+                    type="button"
+                    className={cn(
+                      "relative rounded-lg overflow-hidden border transition-all group text-right",
+                      picked
+                        ? "border-accent-400 shadow-[0_0_14px_rgba(254,228,64,0.30)]"
+                        : "border-white/10 hover:border-white/30",
+                    )}
+                  >
+                    <div className={cn(
+                      "aspect-square flex items-center justify-center",
+                      o.thumbnail ? "bg-black/40" :
+                      o.swatch    ? "" :
+                      "bg-gradient-to-br from-white/[0.03] to-white/[0.06]",
+                    )}
+                    style={o.swatch ? { backgroundColor: o.swatch } : undefined}
+                    >
+                      {o.thumbnail && (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={o.thumbnail}
+                            alt={o.label}
+                            loading="lazy"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            onError={(e) => {
+                              const img = e.currentTarget;
+                              img.style.display = "none";
+                              const fb = img.nextElementSibling as HTMLElement | null;
+                              if (fb) fb.style.display = "flex";
+                            }}
+                          />
+                          <span
+                            className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-300 px-1 text-center leading-tight"
+                            style={{ display: "none" }}
+                          >
+                            {o.label}
+                          </span>
+                        </>
+                      )}
+                      {!o.thumbnail && !o.swatch && (
+                        <span className="text-xs font-bold text-gray-300 px-1 text-center leading-tight">
+                          {o.label}
+                        </span>
+                      )}
+                    </div>
+                    <div className={cn(
+                      "px-1.5 py-1 text-[10px] font-bold leading-tight text-right",
+                      picked
+                        ? "bg-accent-400 text-black"
+                        : "bg-black/40 text-gray-200 group-hover:bg-white/[0.04]",
+                    )}>
                       {o.label}
-                    </span>
-                  )}
-                </div>
-
-                {/* Label */}
-                <div className={cn(
-                  "px-2 py-1.5 text-[10px] font-bold leading-tight text-right",
-                  picked
-                    ? "bg-accent-400 text-black"
-                    : "bg-black/40 text-gray-200 group-hover:bg-white/[0.04]",
-                )}>
-                  {o.label}
-                </div>
-
-                {/* Selected checkmark */}
-                {picked && (
-                  <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-accent-400 text-black flex items-center justify-center text-xs font-black shadow">
-                    ✓
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-1.5">
-          {sub.options.map((o) => {
-            const picked = isPicked(o.id);
-            return (
-              <button
-                key={o.id}
-                onClick={() => sub.selection === "multi" ? onToggleMulti(o.id) : onPickSingle(o.id)}
-                type="button"
-                className={cn(
-                  "h-8 px-3 rounded-lg text-[11px] font-bold transition-all border",
-                  picked
-                    ? "bg-accent-400 text-black border-accent-400 shadow-[0_0_12px_rgba(254,228,64,0.35)]"
-                    : "bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/[0.06] hover:border-white/20",
-                )}
-              >
-                {o.label}
-              </button>
-            );
-          })}
+                    </div>
+                    {picked && (
+                      <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-accent-400 text-black flex items-center justify-center text-[10px] font-black">
+                        ✓
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {sub.options.map((o) => {
+                const picked = isPicked(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    onClick={() => {
+                      if (sub.selection === "multi") onToggleMulti(o.id);
+                      else { onPickSingle(o.id); setExpanded(false); }
+                    }}
+                    type="button"
+                    className={cn(
+                      "h-7 px-3 rounded-md text-[11px] font-bold transition-all border",
+                      picked
+                        ? "bg-accent-400 text-black border-accent-400"
+                        : "bg-white/[0.03] text-gray-300 border-white/10 hover:bg-white/[0.06] hover:border-white/20",
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </section>
