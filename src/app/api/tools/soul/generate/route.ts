@@ -21,6 +21,7 @@ import { submitAndPollServer, pickResultUrl } from "@/lib/muapi-server";
 import { buildSoulPrompt } from "@/lib/data/soul";
 import { deductCredits, addCredits, InsufficientCreditsError } from "@/lib/credits";
 import { ALL_TOOLS_FLAT } from "@/lib/data/tools";
+import { aspectToFalImageSize } from "@/lib/fal";
 
 export const runtime    = "nodejs";
 export const maxDuration = 240;

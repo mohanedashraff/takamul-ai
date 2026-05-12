@@ -191,6 +191,50 @@ export function falLoraInferenceResult(requestId: string) {
 // when the caller can afford to wait inline (e.g. inference). Long
 // jobs like training should use the explicit submit + status pattern.
 
+/** Map our app's aspect-ratio enum onto fal.ai's `image_size` enum.
+ *  fal accepts a fixed set of named sizes for flux-lora inference —
+ *  closest-match snapping keeps Soul ID generations looking right
+ *  without forcing the user to know fal's naming.
+ *
+ *  fal enums:
+ *    square_hd | square
+ *    portrait_4_3 | portrait_16_9
+ *    landscape_4_3 | landscape_16_9 */
+export type FalImageSize =
+  | "square_hd" | "square"
+  | "portrait_4_3" | "portrait_16_9"
+  | "landscape_4_3" | "landscape_16_9";
+
+export function aspectToFalImageSize(
+  aspect: string | null | undefined,
+): FalImageSize {
+  if (!aspect || aspect === "auto") return "square_hd";
+  // Normalise "1:1" / "1x1" / "1:1 square" → numeric ratio.
+  const m = String(aspect).match(/(\d+(?:\.\d+)?)[:xX](\d+(?:\.\d+)?)/);
+  if (!m) return "square_hd";
+  const w = parseFloat(m[1]!);
+  const h = parseFloat(m[2]!);
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
+    return "square_hd";
+  }
+  const r = w / h;
+  // Snap to the nearest fal preset by log-distance.
+  const presets: Array<[FalImageSize, number]> = [
+    ["portrait_16_9",  9 / 16],
+    ["portrait_4_3",   3 / 4 ],
+    ["square_hd",      1     ],
+    ["landscape_4_3",  4 / 3 ],
+    ["landscape_16_9", 16 / 9],
+  ];
+  let best: FalImageSize = "square_hd";
+  let bestDist = Infinity;
+  for (const [name, target] of presets) {
+    const d = Math.abs(Math.log(r / target));
+    if (d < bestDist) { bestDist = d; best = name; }
+  }
+  return best;
+}
+
 export async function falSubmitAndWait<TResult>(
   modelPath: string,
   input:     Record<string, unknown>,
