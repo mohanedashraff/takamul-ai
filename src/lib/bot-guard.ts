@@ -12,8 +12,24 @@
 //
 // The score is added to the request as a header so downstream
 // handlers can include it in logs without re-computing.
+//
+// IMPORTANT: this module runs inside Edge Middleware. We CANNOT
+// import `node:crypto` — it's a Node-only module. The fingerprint
+// only needs to be stable + unique, not cryptographically secure,
+// so we use a tiny FNV-1a 32-bit hash instead.
 
-import { createHash } from "node:crypto";
+/** FNV-1a 32-bit hash. Returns an 8-char lowercase hex string.
+ *  Stable across cold-starts because the constants are fixed. */
+function fnv1a(input: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    // 32-bit FNV prime: 16777619 — multiply via shifts + adds to
+    // stay inside the JS-safe-int range.
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return h.toString(16).padStart(8, "0");
+}
 
 export interface BotScore {
   score:     number;          // 0 (looks human) — 100 (definitely a bot)
@@ -64,10 +80,7 @@ export function scoreRequest(req: Request): BotScore {
   // sweep of paths in seconds will trip the per-fingerprint counter
   // we keep in rate-limit.ts.
   const ip24 = ip.split(".").slice(0, 3).join(".") || "0.0.0";
-  const fp = createHash("sha256")
-    .update(`${ip24}|${ua}|${lang}`)
-    .digest("hex")
-    .slice(0, 16);
+  const fp = fnv1a(`${ip24}|${ua}|${lang}`);
 
   return {
     score: Math.min(100, score),

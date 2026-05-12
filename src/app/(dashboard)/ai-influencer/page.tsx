@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AiInfluencerStudio } from "@/components/ai-influencer/AiInfluencerStudio";
+import { AiInfluencerStudio } from "@/components/ai-influencer/AIInfluencerStudio";
 
 export const metadata: Metadata = {
   title:       "AI Influencer Studio — Yilow.ai",
