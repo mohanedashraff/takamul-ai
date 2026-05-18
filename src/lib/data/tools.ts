@@ -5515,11 +5515,8 @@ export const AUDIO_TOOLS: Tool[] = [
     image: "/tool-thumbnails/voice-change.png",
     credits: 12,
     isNew: true,
-    // ⚠️ Pipeline stage 1 (audio extraction) hits MuAPI's
-    // `audio-from-video` which doesn't exist → 404 before stage 2
-    // can run. Marked coming-soon until we wire ffmpeg-based
-    // extraction OR MuAPI exposes the endpoint.
-    comingSoon: true,
+    // Iter 16b: audio extraction now uses server-side ffmpeg (the
+    // dead `audio-from-video` MuAPI endpoint is gone). Tool is live.
     layout: "centered",
     customRunner: {
       endpoint: "/api/audio/voice-change",
