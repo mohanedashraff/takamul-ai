@@ -214,7 +214,8 @@ const LIGHT_DIRECTION: ToolInputOption[] = [
 // so they can flow straight into the muapi proxy without translation.
 
 const IMAGE_MODELS: ToolInputOption[] = [
-  { value: "nano-banana",                 label: "Nano Banana ✨"       },
+  { value: "nano-banana-pro",             label: "Nano Banana Pro 🔥"    },
+  { value: "nano-banana",                 label: "Nano Banana ✨"        },
   { value: "flux-schnell",                label: "Flux Schnell — أسرع"  },
   { value: "flux-dev",                    label: "Flux Dev"             },
   { value: "bytedance-seedream-v4",       label: "Seedream 4"           },
@@ -650,7 +651,11 @@ export const IMAGE_TOOLS: Tool[] = [
         type: "select",
         label: "النموذج",
         options: IMAGE_MODELS,
-        defaultValue: "nano_banana_pro",
+        // Was 'nano_banana_pro' (underscores) which doesn't match any
+        // IMAGE_MODELS entry — every text-to-image submission with the
+        // default selection 404'd because MuAPI receives a model id
+        // that doesn't exist. Now matches the real registry slug.
+        defaultValue: "nano-banana-pro",
       },
       {
         id: "ratio",

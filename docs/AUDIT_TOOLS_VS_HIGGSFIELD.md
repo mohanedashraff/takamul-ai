@@ -162,6 +162,49 @@ Each loop iteration appends a new section:
 
 ---
 
+## Iteration 10 (2026-05-12) — Specialty tools + final endpoint sweep
+
+### Specialty tools — ✅ all healthy
+All 4 use `generateObject` from `@ai-sdk/openai` (OpenRouter gateway, no MuAPI):
+- `virality-predictor` — Claude vision over video → 0-100 scores + attention timeline
+- `storyboard-extractor` — Claude vision over image → per-panel shot list
+- `breakdown` — Claude vision → structured subject/items/palette/mood
+- `similarity-score` — Claude vision over 2 images → similarity + identity + style scores
+
+All healthy by construction. Only depend on `OPENROUTER_API_KEY`.
+
+### 🔴 12th critical bug found in sweep
+Ran a final regex sweep over `tools.ts` for endpoint-like strings; cross-checked each against `full-registry.js`. Found one more critical bug:
+
+**`text-to-image`**: `defaultValue: "nano_banana_pro"` (underscores) doesn't match any IMAGE_MODELS entry (they all use hyphens). When the form renders, the dropdown shows... nothing pre-selected, and if the user submits without explicitly picking a model, the form sends `"nano_banana_pro"` to MuAPI → 404 because the real endpoint is `nano-banana-pro`.
+
+### Fix
+- Added `nano-banana-pro` to IMAGE_MODELS as the new first entry (was missing entirely — we had `nano-banana` but not the Pro variant)
+- Changed `text-to-image.defaultValue` from `"nano_banana_pro"` → `"nano-banana-pro"`
+
+### Final critical-bug tally
+
+| # | Tool | Iter | Status |
+|---|---|---|---|
+| 1 | text-to-image quality silently dropped | 1 | ✅ |
+| 2 | text-to-video duration=8 rejects on Kling | 2 | ✅ |
+| 3 | Soul Studio wrong engine | 4 | ✅ |
+| 4 | Marketing Studio endpoint 404 | 6 | ✅ |
+| 5 | video-face-swap endpoint 404 | 7 | ✅ comingSoon |
+| 6 | video-background-remover endpoint 404 | 7 | ✅ comingSoon |
+| 7 | video-editor endpoint 404 (4 models) | 8 | ✅ comingSoon |
+| 8 | transcribe endpoint 404 | 9 | ✅ OpenAI direct |
+| 9 | music-create endpoint 404 | 9 | ✅ comingSoon |
+| 10 | music-remix endpoint 404 | 9 | ✅ comingSoon |
+| 11 | voice-change-merge endpoint 404 | 9 | ✅ comingSoon |
+| 12 | text-to-image default model invalid | 10 | ✅ |
+
+**Total: 12 critical bugs. All fixed/mitigated.**
+
+The pattern that emerged: most bugs were aspirational endpoint names wired into tools during earlier rapid-prototype sessions without verifying they existed in the MuAPI registry. The per-model param filter (iter 3) plus the endpoint sweep (iters 6-10) caught the core class. Users were paying credits for 404s on at least 5 tools (Marketing, video-face-swap, video-bg-remover, video-editor, music-create, music-remix, transcribe, voice-change-merge, text-to-image default).
+
+---
+
 ## Iteration 9 (2026-05-12) — Audio batch (transcribe + music + voice-change)
 
 ### 🔴 FOUR more 404 endpoints in audio routes
