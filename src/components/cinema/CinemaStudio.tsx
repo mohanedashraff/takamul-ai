@@ -16,11 +16,11 @@ import {
   CINEMA_VIDEO_ASPECTS, CINEMA_VIDEO_DURATIONS, CINEMA_VIDEO_RESOLUTIONS,
   CINEMA_DEFAULTS,
   GENRES, COLOR_PALETTES, LIGHTING_STYLES, MOVESETS,
-  VARIANTS_OPTIONS, SPEEDRAMP_OPTIONS, CINEMA_VERSIONS,
+  VARIANTS_OPTIONS, SPEEDRAMP_OPTIONS, CINEMA_VERSIONS, CINEMA_VIDEO_MODELS,
   MULTI_SHOT_MODES, parseMultiShotPrompts,
   buildCinemaPrompt, resolveCinemaEndpointV2, coerceVeoVideoPayload, computeCinemaCost,
   renderContactSheetPrompt, CONTACT_SHEET_DIMENSIONS,
-  type CinemaMode, type CinemaVersionId,
+  type CinemaMode, type CinemaVersionId, type CinemaVideoModelId,
 } from "@/lib/data/cinema";
 import { CameraSettingsOverlay, type CameraConfig } from "./CameraSettingsOverlay";
 import { GenrePicker } from "./GenrePicker";
@@ -99,6 +99,7 @@ export function CinemaStudio() {
   const [generateAudio,    setGenerateAudio]    = useState<boolean>(CINEMA_DEFAULTS.generateAudio);
   const [speedramp,        setSpeedramp]        = useState<string>(CINEMA_DEFAULTS.speedramp);
   const [versionId,        setVersionId]        = useState<CinemaVersionId>(CINEMA_DEFAULTS.versionId);
+  const [videoModelId,     setVideoModelId]     = useState<CinemaVideoModelId>(CINEMA_DEFAULTS.videoModelId);
   const [multiShotMode,    setMultiShotMode]    = useState<string>(CINEMA_DEFAULTS.multiShotMode);
   const [multiShotPrompts, setMultiShotPrompts] = useState<string>(CINEMA_DEFAULTS.multiShotPrompts);
   // Soul ID character refs — array of character IDs the user has
@@ -142,6 +143,7 @@ export function CinemaStudio() {
         advanced: AdvancedSettings;
         variants: number; generateAudio: boolean; speedramp: string;
         versionId: CinemaVersionId;
+        videoModelId: CinemaVideoModelId;
         multiShotMode: string; multiShotPrompts: string;
         characterIds: string[];
       }>;
@@ -162,6 +164,7 @@ export function CinemaStudio() {
       if (typeof parsed.generateAudio === "boolean")   setGenerateAudio(parsed.generateAudio);
       if (typeof parsed.speedramp === "string")        setSpeedramp(parsed.speedramp);
       if (typeof parsed.versionId === "string")        setVersionId(parsed.versionId as CinemaVersionId);
+      if (typeof parsed.videoModelId === "string")     setVideoModelId(parsed.videoModelId as CinemaVideoModelId);
       if (typeof parsed.multiShotMode === "string")    setMultiShotMode(parsed.multiShotMode);
       if (typeof parsed.multiShotPrompts === "string") setMultiShotPrompts(parsed.multiShotPrompts);
       if (Array.isArray(parsed.characterIds))          setCharacterIds(parsed.characterIds);
@@ -174,7 +177,7 @@ export function CinemaStudio() {
         localStorage.setItem(PERSIST_KEY, JSON.stringify({
           config, aspect, resolution, reference, history, genreId, style,
           mode, videoAspect, videoResolution, videoDuration, advanced,
-          variants, generateAudio, speedramp, versionId,
+          variants, generateAudio, speedramp, versionId, videoModelId,
           multiShotMode, multiShotPrompts, characterIds,
         }));
       } catch {}
@@ -182,7 +185,7 @@ export function CinemaStudio() {
     return () => clearTimeout(t);
   }, [config, aspect, resolution, reference, history, genreId, style,
       mode, videoAspect, videoResolution, videoDuration, advanced,
-      variants, generateAudio, speedramp, versionId,
+      variants, generateAudio, speedramp, versionId, videoModelId,
       multiShotMode, multiShotPrompts, characterIds]);
 
   // ── Lazy-load the user's Soul Character catalog when the picker is
@@ -294,7 +297,12 @@ export function CinemaStudio() {
       hasReference: !!reference,
       versionId,
       generateAudio: useVeoForAudio,
+      videoModelId:  mode === "video" ? videoModelId : undefined,
     });
+    // Detect whether the chosen route actually points to a Veo model
+    // (audio path OR explicit Veo pick). The payload coercion below
+    // strips Kling-only fields and forces Veo's stricter contract.
+    const isVeoRoute = useVeoForAudio || endpoint.startsWith("veo3");
 
     const DEFAULT_NEG = "blurry, low quality, distortion, bad composition";
     const negative_prompt = advanced.negativePrompt.trim()
@@ -407,12 +415,12 @@ export function CinemaStudio() {
           if (imagesList.length > 0) payload.images_list = imagesList;
         }
 
-        // When audio is enabled the resolver re-routes to Veo 3.1.
         // Veo's input contract is much stricter than Kling's — coerce
         // the payload to match (1:1 → 16:9, duration → 8s, res →
-        // 1080p, drop fields Veo doesn't accept). Without this MuAPI
-        // returns 422.
-        const finalPayload = useVeoForAudio
+        // 1080p, drop fields Veo doesn't accept). Fires for BOTH the
+        // audio-toggle re-route and the explicit Veo model pick.
+        // Without this MuAPI returns 422.
+        const finalPayload = isVeoRoute
           ? coerceVeoVideoPayload(payload)
           : payload;
 
@@ -952,6 +960,21 @@ export function CinemaStudio() {
                     {generateAudio ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
                     <span className="hidden sm:inline">صوت</span>
                   </button>
+                )}
+
+                {/* Video-model picker — video mode only. Mirrors the
+                    reference platform's "Featured video models" dropdown
+                    (8 models: Kling 3.0, Seedance 2.0, Veo 3.1, Wan 2.7,
+                    etc.). "Auto" follows the Cinema version's default.
+                    When audio is ON the resolver hard-routes to Veo 3.1
+                    Fast regardless of this pick. */}
+                {mode === "video" && (
+                  <SelectChip
+                    label="النموذج"
+                    value={videoModelId}
+                    options={CINEMA_VIDEO_MODELS.map((m) => ({ value: m.id, label: m.label }))}
+                    onChange={(v) => setVideoModelId(v as CinemaVideoModelId)}
+                  />
                 )}
 
                 {/* Speedramp dropdown — video mode only */}

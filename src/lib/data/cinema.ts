@@ -474,6 +474,87 @@ export const SPEEDRAMP_OPTIONS = [
 ] as const;
 
 /**
+ * Video model picker — mirrors the eight "Featured video models" the
+ * reference platform exposes inside Cinema Studio's model dropdown.
+ * Each id is verified live on MuAPI (HTTP probe — 422 on empty body
+ * means the endpoint exists). Cross-referenced against the static
+ * registry in `src/lib/data/models/full-registry.js`.
+ *
+ * Routing strategy: when the user picks "auto", we keep the version-
+ * based mapping (3.5 → kling-v3.0-pro, 3.0 → kling-v2.6-pro, etc.).
+ * Otherwise the explicit model overrides the version's default.
+ *
+ * Audio note: ONLY veo-3-1-lite synthesises native audio. The audio
+ * toggle still re-routes to veo3.1-fast-* via the resolver. When
+ * audio is OFF the user's videoModel pick decides the endpoint.
+ */
+export const CINEMA_VIDEO_MODELS = [
+  {
+    id:    "auto",
+    label: "تلقائي (حسب الإصدار)",
+    note:  "يتبع إصدار Cinema Studio المختار",
+    t2v:   null,                            // resolver picks per version
+    i2v:   null,
+  },
+  {
+    id:    "kling3_0",
+    label: "Kling 3.0 Pro",
+    note:  "حركة سلسة، 5-10 ثوان",
+    t2v:   "kling-v3.0-pro-text-to-video",
+    i2v:   "kling-v3.0-pro-image-to-video",
+  },
+  {
+    id:    "seedance_2_0",
+    label: "Seedance 2.0",
+    note:  "جودة سينمائية عالية",
+    t2v:   "seedance-v2.0-t2v",
+    i2v:   "seedance-v2.0-i2v",
+  },
+  {
+    id:    "seedance_2_0_fast",
+    label: "Seedance 2.0 Fast",
+    note:  "أسرع، تكلفة أقل",
+    t2v:   "seedance-pro-t2v-fast",
+    i2v:   "seedance-pro-i2v",
+  },
+  {
+    id:    "veo_3_1",
+    label: "Google Veo 3.1",
+    note:  "صوت طبيعي، 8 ثوان، 1080p",
+    t2v:   "veo3.1-text-to-video",
+    i2v:   "veo3.1-image-to-video",
+  },
+  {
+    id:    "veo_3_1_lite",
+    label: "Google Veo 3.1 Lite",
+    note:  "صوت طبيعي، أرخص من Veo 3.1",
+    t2v:   "veo3.1-lite-text-to-video",
+    i2v:   "veo3.1-lite-image-to-video",
+  },
+  {
+    id:    "wan_2_7",
+    label: "Wan 2.7",
+    note:  "نموذج جديد",
+    t2v:   "wan2.7-text-to-video",
+    i2v:   "wan2.7-image-to-video",
+  },
+  {
+    id:    "kling_motion_control",
+    label: "Kling 3.0 Motion Control",
+    note:  "يحتاج فيديو مرجعي للحركة",
+    t2v:   null,                            // motion-control needs both image+video reference
+    i2v:   "kling-v3.0-pro-motion-control",
+  },
+] as const;
+
+export type CinemaVideoModelId = (typeof CINEMA_VIDEO_MODELS)[number]["id"];
+
+/** Look up a video model record by id, falling back to "auto". */
+export function getCinemaVideoModel(id?: string) {
+  return CINEMA_VIDEO_MODELS.find((m) => m.id === id) ?? CINEMA_VIDEO_MODELS[0]!;
+}
+
+/**
  * Cinema Studio version selector. the reference exposes 3.5 (default),
  * 3.0, and 2.5 in their picker, plus 4 derivative models. We map each
  * to the closest available muapi endpoint.
@@ -492,7 +573,11 @@ export const CINEMA_VERSIONS = [
     imageT2iEndpoint: "nano-banana-pro",
     imageEndpoint:    "nano-banana-pro-edit",
     videoEndpoint:    "kling-v3.0-pro-text-to-video",
-    videoI2vEndpoint: "kling-v2.1-pro-i2v",
+    // Was kling-v2.1-pro-i2v. Iter 14 probed `kling-v3.0-pro-image-
+    // to-video` directly against MuAPI and found it live (HTTP 422
+    // on empty body = exists). v3.0 i2v is a massive quality jump
+    // over v2.1 — same pair as the t2v endpoint above.
+    videoI2vEndpoint: "kling-v3.0-pro-image-to-video",
   },
   {
     id:               "v3-0",
@@ -501,7 +586,9 @@ export const CINEMA_VERSIONS = [
     imageT2iEndpoint: "nano-banana-pro",
     imageEndpoint:    "nano-banana-pro-edit",
     videoEndpoint:    "kling-v2.6-pro-t2v",
-    videoI2vEndpoint: "kling-v2.1-pro-i2v",
+    // Was kling-v2.1-pro-i2v. kling-v2.6-pro-i2v is also live on
+    // MuAPI and pairs cleanly with the v2.6 t2v endpoint above.
+    videoI2vEndpoint: "kling-v2.6-pro-i2v",
   },
   {
     id:               "v2-5",
@@ -520,7 +607,7 @@ export const CINEMA_VERSIONS = [
     imageT2iEndpoint: "nano-banana-pro",
     imageEndpoint:    "nano-banana-pro-edit",
     videoEndpoint:    "kling-v3.0-pro-text-to-video",
-    videoI2vEndpoint: "kling-v2.1-pro-i2v",
+    videoI2vEndpoint: "kling-v3.0-pro-image-to-video",
     /** When set, the Cinema prompt builder injects this descriptor. */
     soulDescriptor:   "Soul Cinema editorial atmosphere, dreamy color science, cinematic depth",
   },
@@ -734,6 +821,7 @@ export const CINEMA_DEFAULTS = {
   generateAudio:   false,
   speedramp:       "auto"   as string,
   versionId:       "v3-5"   as CinemaVersionId,
+  videoModelId:    "auto"   as CinemaVideoModelId,
   multiShotMode:   "disabled" as string,
   multiShotPrompts: ""      as string,   // newline-separated shot prompts
 };
@@ -764,6 +852,12 @@ export function resolveCinemaEndpointV2(opts: {
    * Helper {@link coerceVeoVideoPayload} does this.
    */
   generateAudio?: boolean;
+  /**
+   * Explicit user pick from the video-model dropdown. Overrides the
+   * version-based default unless set to "auto". `generateAudio` still
+   * takes precedence (audio toggle hard-routes to Veo).
+   */
+  videoModelId?: string;
 }): string {
   const version = CINEMA_VERSIONS.find((v) => v.id === (opts.versionId ?? "v3-5")) ?? CINEMA_VERSIONS[0]!;
   if (opts.mode === "video") {
@@ -771,6 +865,15 @@ export function resolveCinemaEndpointV2(opts: {
       // Veo 3.1 Fast — verified live (HTTP 422 on empty body = exists).
       // i2v variant uses `image_url`; t2v takes prompt only.
       return opts.hasReference ? "veo3.1-fast-image-to-video" : "veo3.1-fast-text-to-video";
+    }
+    // User explicitly picked a model from the dropdown — honour it
+    // before falling back to the version's default endpoint.
+    if (opts.videoModelId && opts.videoModelId !== "auto") {
+      const m = getCinemaVideoModel(opts.videoModelId);
+      const ep = opts.hasReference ? m.i2v : m.t2v;
+      if (ep) return ep;
+      // If the model doesn't support the current direction (e.g.
+      // motion-control has no t2v), fall through to version default.
     }
     return opts.hasReference ? version.videoI2vEndpoint : version.videoEndpoint;
   }
