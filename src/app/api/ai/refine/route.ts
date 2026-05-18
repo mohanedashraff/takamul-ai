@@ -102,8 +102,11 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Iter 16: `ai-image-upscaler` is in the static registry file
+    // but returns 404 on the live MuAPI gateway. `topaz-image-upscale`
+    // is the live equivalent (HTTP 422 on empty body = exists).
     const result = await submitAndPollServer({
-      endpoint:  "ai-image-upscaler",
+      endpoint:  "topaz-image-upscale",
       apiKey:    muKey,
       payload:   { image_url: url },
       timeoutMs: 90 * 1000,

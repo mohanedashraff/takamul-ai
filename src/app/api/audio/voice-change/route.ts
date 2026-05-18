@@ -15,11 +15,57 @@
 // Credit cost: 12 (flat). Refunded on any failure.
 
 import { z } from "zod";
+import { spawn } from "node:child_process";
 import { auth } from "@/auth";
 import { jsonError, jsonOk } from "@/lib/api";
 import { submitAndPollServer, pickResultUrl } from "@/lib/muapi-server";
 import { deductCredits, addCredits, InsufficientCreditsError } from "@/lib/credits";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
+
+/**
+ * Extract the audio track from a video URL using ffmpeg piped through
+ * stdio. Replaces the MuAPI `audio-from-video` endpoint which is in
+ * our static registry but returns 404 on the live gateway (iter 16).
+ *
+ * Streams the source video into ffmpeg's stdin and reads mp3 bytes
+ * out of stdout — no temp files. Requires ffmpeg on PATH (verified
+ * present on the production server: /usr/bin/ffmpeg).
+ */
+async function extractAudioWithFfmpeg(videoUrl: string): Promise<ArrayBuffer> {
+  const videoRes = await fetch(videoUrl);
+  if (!videoRes.ok) throw new Error(`Could not fetch source video (${videoRes.status})`);
+  const videoBuf = Buffer.from(await videoRes.arrayBuffer());
+
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    // -i pipe:0  → read from stdin
+    // -vn        → drop video stream
+    // -acodec libmp3lame → MP3 encoder
+    // -f mp3     → force mp3 container so it works on stdout
+    // pipe:1     → write to stdout
+    const ff = spawn("ffmpeg", [
+      "-loglevel", "error",
+      "-i", "pipe:0",
+      "-vn",
+      "-acodec", "libmp3lame",
+      "-q:a", "2",        // VBR quality ~190kbps — good for STS
+      "-f", "mp3",
+      "pipe:1",
+    ]);
+    const chunks: Buffer[] = [];
+    let stderr = "";
+    ff.stdout.on("data", (c: Buffer) => chunks.push(c));
+    ff.stderr.on("data", (c: Buffer) => { stderr += c.toString(); });
+    ff.on("error", reject);
+    ff.on("close", (code) => {
+      if (code !== 0) return reject(new Error(`ffmpeg exited ${code}: ${stderr.slice(0, 300)}`));
+      const out = Buffer.concat(chunks);
+      // Buffer's underlying ArrayBuffer may have offset/length; return a copy.
+      resolve(out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength) as ArrayBuffer);
+    });
+    ff.stdin.on("error", reject);
+    ff.stdin.end(videoBuf);
+  });
+}
 
 export const runtime    = "nodejs";
 export const maxDuration = 540;
@@ -76,21 +122,10 @@ export async function POST(req: Request) {
 
   try {
     // ── 1. Extract audio from the video ──
-    // MuAPI's `audio-from-video` returns an mp3 URL we can pull bytes from.
-    const extracted = await submitAndPollServer({
-      endpoint:  "audio-from-video",
-      apiKey:    muKey,
-      payload:   { video_url },
-      timeoutMs: 3 * 60 * 1000,
-    });
-    const audioUrl = pickResultUrl(extracted);
-    if (!audioUrl) throw new Error("Failed to extract audio from video");
-
-    // ── 2. Pull the audio bytes & send through ElevenLabs speech-to-speech ──
-    const audioBuf = await fetch(audioUrl).then((r) => {
-      if (!r.ok) throw new Error(`Could not fetch extracted audio (${r.status})`);
-      return r.arrayBuffer();
-    });
+    // Was MuAPI's `audio-from-video`. Iter 16 found it 404s on the
+    // live gateway. Replaced with a server-side ffmpeg pipe — keeps
+    // the same downstream contract (mp3 bytes for ElevenLabs STS).
+    const audioBuf = await extractAudioWithFfmpeg(video_url);
 
     const sts = new FormData();
     sts.append("audio", new Blob([audioBuf], { type: "audio/mpeg" }), "input.mp3");
