@@ -811,8 +811,10 @@ export const IMAGE_TOOLS: Tool[] = [
     muapi: {
       category: "i2i",
       models: [
+        // Iter 16: `ai-image-upscaler` is in the static registry but
+        // 404s on live MuAPI — removed from the picker. Topaz and
+        // SeedVR2 are both verified live.
         { id: "topaz-image-upscale", label: "Topaz Redefine — أعلى جودة 🔥" },
-        { id: "ai-image-upscaler",   label: "AI Upscaler — السريع" },
         { id: "seedvr2-image-upscale", label: "SeedVR2 — متقدم" },
       ],
       paramMap: {
