@@ -513,4 +513,131 @@ Smoke test plan after deploy:
 
 ---
 
+## Iter 13: 3 more bugs — Soul 404, schema-validator 400s in 2 routes
+
+User feedback after iter 12 deploy:
+> "و تقريبا الكاميرا و العدسات و الكلام ده مش شغال"
+> "و soul مش شغال"
+
+### Bug 13a — `/api/cinema-director` 400 (cameras/lenses unusable)
+**Symptom:** AI Director sidebar in Cinema Studio returned an error; users couldn't auto-pick cameras/lenses from a description.
+
+**Root cause:** Zod's `z.number().int()` silently emits `{minimum, maximum}` into the JSON Schema (the int32 range bounds). Anthropic's structured-output validator rejects `minimum`/`maximum` on integer types, so the gateway 400s before the model runs with:
+```
+output_config.format.schema: For 'integer' type, properties maximum, minimum are not supported
+```
+
+**Fix:** Replaced the `focal` field's `z.number().int()` with a literal union of the six allowed values (`8`/`14`/`24`/`35`/`50`/`85`). Same enforcement, schema-validator-safe.
+
+### Bug 13b — `/api/tools/storyboard-extractor` would 400 (same class)
+**Symptom:** Not yet user-reported, but the route would 400 as soon as anyone hit it — same Anthropic int-bounds bug as 13a.
+
+**Fix:** Dropped `.min().max()` from the three `z.number().int()` fields (`expectedPanels`, `panelIndex`, `totalPanels`). Bounds documented in `.describe()` so the model still respects them.
+
+### Bug 13c — Soul Studio Branch D returning 404
+**Symptom:** User-reported "soul مش شغال". Internal probing shows `higgsfield-soul-image-to-image` returns `{"detail":"Not Found"}` on the live MuAPI server.
+
+**Root cause:** Iter 4's "Soul Engine routing via MuAPI" claim was invalidated. The endpoint is declared in `src/lib/data/models/full-registry.js` but NOT deployed on `api.muapi.ai`. Same for `higgsfield-dop-image-to-video`.
+
+**Fix:** Removed Branch D from `src/app/api/tools/soul/generate/route.ts`. Soul now falls through to Branch B (`nano-banana-pro-edit`, verified live, works). Style helpers kept inert in case MuAPI re-enables the endpoint later.
+
+### Audit-methodology lesson
+**Registry file ≠ live server availability.** Iter 4's win was based on grepping `full-registry.js` and finding the endpoint declared. The audit needs direct HTTP probing (`curl POST` to `api.muapi.ai/api/v1/<endpoint>` with empty body and checking for 422 = exists / 404 = dead), not just registry grep.
+
+---
+
+## Iter 14: Cinema Studio audio actually works now
+
+User bug from same message: "و غير كده الصوت سعات كتير اوي مبيشتغلش — مبيطلعش فيديوهات بصوت" (audio often doesn't work — outputs come back silent).
+
+### Root cause
+Cinema Studio's "صوت" toggle sets `payload.generate_audio = true`. But every Kling model we use for video (v3.0-pro-t2v, v2.6-pro-t2v, v2.1-pro-i2v) declares an input schema of ONLY `prompt` / `aspect_ratio` / `duration`. They don't accept any audio field. The gateway silently drops it.
+
+Only Google's **Veo 3 / 3.1 family** synthesises native audio (the model's flagship feature — dialogue and ambient sound derived from prompt cues). No payload toggle needed.
+
+### Live HTTP probe results
+```
+veo3.1-fast-text-to-video    → HTTP 422 (alive)
+veo3.1-fast-image-to-video   → HTTP 422 (alive)
+veo3.1-text-to-video         → HTTP 422 (alive)
+veo3-fast-text-to-video      → HTTP 422 (alive)
+veo3.1-lite-text-to-video    → HTTP 422 (alive)
+seedance-v2.0-t2v            → HTTP 422 (alive)
+kling-v3.0-pro-text-to-video → HTTP 422 (alive)
+higgsfield-soul-image-to-image → HTTP 404 (DEAD — confirms iter 13)
+```
+
+### Fix
+1. `resolveCinemaEndpointV2` accepts `generateAudio?: boolean`. When `mode==="video"` AND `generateAudio===true`, hard-routes to `veo3.1-fast-image-to-video` (with reference) or `veo3.1-fast-text-to-video` (without).
+
+2. New helper `coerceVeoVideoPayload()` rewrites the payload to Veo's stricter contract:
+   - `aspect_ratio: "1:1"` → `"16:9"`
+   - `duration` → `8` (Veo's only allowed value)
+   - `resolution` → `"1080p"` (Veo's only allowed value)
+   - Strips `generate_audio`, `speedramp`, `negative_prompt` (fields Veo doesn't accept)
+
+3. Cinema's audio-toggle tooltip now explains the trade-off in Arabic: "صوت تلقائي مفعّل — يستخدم Veo 3.1 (8 ثواني، 1080p)".
+
+---
+
+## Iter 15: Cinema video-model picker (8 models, parity with reference platform)
+
+User bug: "ده مش seedance — سينما ستوديو بتستخدم seedance 2 تقريبا" (this isn't Seedance — Cinema Studio probably uses Seedance 2).
+
+### What the reference actually offers
+`docs/higgsfield-research/05_CATALOGS/image-video-model-picker.md` (live React-fiber walk) shows Cinema Studio's "Featured video models" dropdown exposes **8 models**:
+1. Seedance 2.0
+2. Seedance 2.0 Fast
+3. Kling 3.0
+4. Kling 3.0 Motion Control
+5. HappyHorse
+6. Grok Imagine
+7. Google Veo 3.1 Lite
+8. Wan 2.7
+
+Plus the reference's own proprietary `cinematic_studio_video_3_5` is the default when no model is explicitly chosen.
+
+We were locking to a single model based on the Cinema version pick — no Seedance/Veo/Wan option at all. Hence user's complaint.
+
+### Fix
+1. NEW `CINEMA_VIDEO_MODELS` catalog with **6 of the 8** (Grok and HappyHorse are 404 on MuAPI — verified by probe). Each entry has verified-live t2v + i2v endpoints.
+
+2. `resolveCinemaEndpointV2` accepts `videoModelId?: string`. Precedence:
+   - `generateAudio === true` → hard Veo 3.1 Fast (overrides everything)
+   - Explicit `videoModelId !== "auto"` → user's pick
+   - Otherwise → version's default
+
+3. `CINEMA_DEFAULTS.videoModelId = "auto"` preserves previous behaviour.
+
+4. CinemaStudio.tsx adds a `SelectChip` (label: "النموذج") in video mode with all 6 options. State persisted to localStorage.
+
+5. Veo-payload coercion now fires for BOTH the audio re-route AND explicit Veo picks (Veo 3.1 / Veo 3.1 Lite).
+
+### Bonus i2v upgrade (bundled in iter 15)
+Cinema 3.5's `videoI2vEndpoint` was hard-coded to `kling-v2.1-pro-i2v` even when the t2v was `kling-v3.0-pro-text-to-video` — a quality regression for image-to-video. Probe revealed `kling-v3.0-pro-image-to-video` IS live, so:
+- Cinema 3.5: `videoI2vEndpoint` upgraded `v2.1-pro-i2v` → `v3.0-pro-image-to-video`
+- Cinema 3.0: `videoI2vEndpoint` upgraded `v2.1-pro-i2v` → `v2.6-pro-i2v` (matched pair)
+
+### Newly-probed endpoint inventory
+**Live (HTTP 422 on empty body):**
+- ✅ kling-v3.0-pro-image-to-video
+- ✅ kling-v3.0-standard-image-to-video
+- ✅ kling-v2.6-pro-i2v
+- ✅ kling-v3.0-pro-motion-control
+- ✅ seedance-v2.0-t2v / -i2v
+- ✅ seedance-pro-t2v-fast / -i2v
+- ✅ seedance-v2.0-extend
+- ✅ veo3.1-text-to-video / -image-to-video
+- ✅ veo3.1-lite-text-to-video / -image-to-video
+- ✅ wan2.7-text-to-video / -image-to-video
+- ✅ wan2.5-text-to-video
+
+**Dead (HTTP 404):**
+- ❌ grok-video / grok-2-video
+- ❌ happy-horse-text-to-video
+- ❌ kling-v3.0-pro-i2v (the slug naming differs — use `-image-to-video` suffix instead)
+- ❌ higgsfield-soul-image-to-image (re-confirms iter 13)
+
+---
+
 _This document is appended to on every `/loop` iteration of the audit task._
