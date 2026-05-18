@@ -22,6 +22,56 @@ import { buildSoulPrompt } from "@/lib/data/soul";
 import { deductCredits, addCredits, InsufficientCreditsError } from "@/lib/credits";
 import { ALL_TOOLS_FLAT } from "@/lib/data/tools";
 import { aspectToFalImageSize } from "@/lib/fal";
+import { MOODBOARDS } from "@/lib/data/soul";
+
+/** MuAPI's higgsfield-soul-image-to-image model accepts a `style`
+ *  enum of 100+ preset names (e.g. "Movie", "iPhone", "DigitalCam").
+ *  Our MOODBOARDS catalog uses the same `englishName` strings as the
+ *  enum values for almost every entry — so the mapping is identity
+ *  except where Higgsfield's enum has a different casing/spelling.
+ *  This map captures the known divergences. Anything not in this
+ *  override list falls back to the moodboard's englishName as-is. */
+const MOODBOARD_TO_SOUL_STYLE_OVERRIDE: Record<string, string> = {
+  // Higgsfield's enum uses "mount view" lowercase (we already match)
+  // Higgsfield's enum spells "DigitalCam" with capital D (we match)
+  // Add overrides here if a future audit finds divergent names.
+};
+
+/** Map our moodboardId → the exact `style` enum value MuAPI's
+ *  higgsfield-soul-image-to-image accepts. Returns undefined when no
+ *  match (caller will fall back to a different model). */
+function moodboardToSoulStyle(moodboardId: string | undefined): string | undefined {
+  if (!moodboardId) return undefined;
+  const mb = MOODBOARDS.find((m) => m.id === moodboardId);
+  if (!mb) return undefined;
+  return MOODBOARD_TO_SOUL_STYLE_OVERRIDE[moodboardId] ?? mb.englishName;
+}
+
+/** The exact 100-entry enum from full-registry.js for the
+ *  higgsfield-soul-image-to-image model. Used to validate that a
+ *  moodboard's englishName is actually accepted by MuAPI before we
+ *  route through the Soul Engine path. Keep this in sync with the
+ *  registry; if it drifts we silently fall back to nano-banana-pro. */
+const SOUL_STYLE_ENUM = new Set([
+  "Creatures","Medieval","Spotlight","Giant People","Red balloon","green editorial",
+  "Subway","Library","Realistic","DigitalCam","Grillz Selfie","Bleached Brows",
+  "Sitting on the Street","Crossing the street","Angel Wings","Duplicate","cocktail",
+  "Quiet luxury","Fireproof","Elevator Mirror","360 cam","Glitch","FashionShow",
+  "PixeletedFace","Sunbathing","Paper Face","90s Grain","Geominimal","Foggy Morning",
+  "Overexposed","Sunset beach","Giant Accessory","RingSelfie","Street view",
+  "90’s Editorial","Rhyme & blues","2000s Cam","CCTV","0.5 Outfit","Amalfi Summer",
+  "Bimbocore","0.5 Selfie","Sand","Vintage PhotoBooth","afterparty cam",
+  "Babydoll MakeUp","Through The Glass","Gallery","Eating Food","Swords Hill",
+  "Office beach","Help It's Too Big","Japandi","iPhone","Gorpcore","Indie sleaze",
+  "Fairycore","Tumblr","Avant-garde","HairClips","birthday mess","Clouded Dream",
+  "Y2K Posters","tokyo drift","Object Makeup","Graffiti","Sunburnt","hallway noir",
+  "2000s Fashion","Night Beach","Movie","Long legs","7\"","General","Nail Check",
+  "Coquette core","Mixed Media","Selfcare","Grunge","Double take","505room",
+  "Flight mode","Escalator","burgundy suit","Fisheye","Shoe Check","Rainy Day",
+  "Mt. Fuji","Sea breeze","Invertethereal","Glazed doll skin makeup","mount view",
+  "2049","blackout fit","Bike mafia","static glow","Nicotine glow","brick shade",
+  "dmv","Fish-eye twin","It’s french",
+]);
 
 export const runtime    = "nodejs";
 export const maxDuration = 240;
@@ -306,8 +356,50 @@ export async function POST(req: Request) {
       url  = falUrls[0] ?? null;
       urls = falUrls.length > 0 ? falUrls : undefined;
       providerRequestId = falResult.request_id;
+    } else if (
+      // ── BRANCH D: Higgsfield Soul Engine via MuAPI ─────────────────
+      // MuAPI ships the actual `higgsfield-soul-image-to-image` model
+      // (same engine the reference platform uses internally). It needs
+      // a `style` enum value + an `image_url`. When both are present
+      // we route here — closest fidelity to the reference platform's
+      // Soul output. Falls through to BRANCH B if either is missing.
+      moodboardToSoulStyle(moodboardId) &&
+      SOUL_STYLE_ENUM.has(moodboardToSoulStyle(moodboardId)!) &&
+      imagesList.length > 0
+    ) {
+      const soulStyle = moodboardToSoulStyle(moodboardId)!;
+      // Map our 1.5k / 2k / 4k → MuAPI's medium / high. 1.5k = medium,
+      // 2k+ = high. (4k was already coerced to 2k by the schema.)
+      const soulQuality = quality === "1.5k" ? "medium" : "high";
+      // Map our 0-100 style_strength → MuAPI's 0..1 float.
+      const soulStrength = Math.max(0, Math.min(1, style_strength / 100));
+
+      const soulPayload: Record<string, unknown> = {
+        prompt:        finalPrompt,
+        style:         soulStyle,
+        aspect_ratio,
+        quality:       soulQuality,
+        strength:      soulStrength,
+        image_url:     imagesList[0],   // model takes a single reference
+        ...(typeof seed === "number" ? { seed } : {}),
+      };
+      const result = await submitAndPollServer({
+        endpoint:  "higgsfield-soul-image-to-image",
+        apiKey:    muKey,
+        payload:   soulPayload,
+        timeoutMs: 4 * 60 * 1000,
+      });
+      url  = pickResultUrl(result);
+      urls = Array.isArray(result.urls)   ? result.urls
+           : Array.isArray(result.outputs) ? (result.outputs as string[])
+           : undefined;
+      providerRequestId = result.requestId;
     } else {
-      // ── BRANCH B: existing nano-banana / nano-banana-edit flow
+      // ── BRANCH B: nano-banana / nano-banana-edit fallback ────────
+      // Used when we don't have a Higgsfield-recognised style OR no
+      // reference image. The descriptor-based prompt still encodes
+      // the picked moodboard's mood, just not via the proprietary
+      // Soul engine.
       const result = await submitAndPollServer({
         endpoint,
         apiKey:    muKey,

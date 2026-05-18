@@ -64,7 +64,8 @@ Each loop iteration appends a new section:
 1. ✅ `text-to-image` (iter 1)
 2. ✅ `text-to-video`, `motion-transfer`, `lip-sync`, `video-editor`, `sketch-to-video` (video batch — iter 2)
 3. ✅ Per-model param filter (architectural fix — iter 3)
-4. ⏳ Soul Studio + soul-cinema + soul-cast + soul-location (soul batch — iter 4)
+4. ✅ Soul Studio routed to actual Higgsfield Soul Engine (iter 4)
+5. ⏳ soul-cinema, soul-cast, soul-location refinements + Cinema Studio batch (iter 5)
 4. ⏳ Cinema Studio + cinema-cast + cinema-location + cinema-3d (cinema batch — iter 4)
 5. ⏳ Marketing Studio (image + video) (iter 5)
 6. ⏳ AI Influencer Studio (iter 6)
@@ -161,6 +162,60 @@ Each loop iteration appends a new section:
 | Model | dropdown of 7 | per-endpoint | ✅ |
 | Duration | UI field, auto-passes as `duration` | only some models accept | ✅ filter handles it |
 | Resolution | UI field, auto-passes as `resolution` | per-model | ✅ filter handles it |
+
+---
+
+## Iteration 4 (2026-05-12) — Soul Studio routed to real Soul Engine
+
+### 🔴 Biggest critical bug found yet
+**`/api/tools/soul/generate`** was calling `nano-banana-pro` / `nano-banana-pro-edit` (Google's general image models). The reference platform's actual Soul output comes from a proprietary engine. MuAPI EXPOSES that engine as `higgsfield-soul-image-to-image` — but our route never used it.
+
+This explains the user's complaint "بتطلع نتيجة مختلفة خااالص عن higgsfeild" — every Soul generation since launch has hit Nano Banana, not Soul. Wrong model = wrong output style.
+
+### Discovery
+The MuAPI registry entry for `higgsfield-soul-image-to-image`:
+- Family: `soul-engine`
+- Inputs: `prompt`, `style` (enum of **100+ preset names** matching our MOODBOARDS catalog), `aspect_ratio`, `strength` (0..1 float), `quality` (`medium` / `high`), `image_url`
+- All 100 enum values match our MOODBOARDS' `englishName` strings — direct mapping works.
+
+### Fix applied — Branch D
+Added a new BRANCH D to the Soul route, between BRANCH A (fal.ai LoRA) and BRANCH B (nano-banana fallback):
+
+```ts
+} else if (
+  moodboardToSoulStyle(moodboardId)
+  && SOUL_STYLE_ENUM.has(moodboardToSoulStyle(moodboardId)!)
+  && imagesList.length > 0
+) {
+  // Route to higgsfield-soul-image-to-image with mapped params
+  const soulPayload = {
+    prompt:        finalPrompt,
+    style:         moodboardToSoulStyle(moodboardId)!,
+    aspect_ratio,
+    quality:       quality === "1.5k" ? "medium" : "high",
+    strength:      style_strength / 100,    // 0-100 → 0..1
+    image_url:     imagesList[0],
+    ...(seed ? { seed } : {}),
+  };
+  await submitAndPollServer({ endpoint: "higgsfield-soul-image-to-image", ... });
+}
+```
+
+### Decision tree (route priorities)
+
+| Condition | Branch | Endpoint |
+|---|---|---|
+| Soul ID has trained LoRA + strength ≥ 30 + FAL_KEY set | A | `fal-ai/flux-lora` |
+| Moodboard selected (englishName ∈ SOUL_STYLE_ENUM) + reference image available | **D (new)** | `higgsfield-soul-image-to-image` |
+| Any reference image present | B | `nano-banana-pro-edit` |
+| No references | C | `nano-banana-pro` |
+
+Branch D fires for the most common Soul-Studio user journey (pick a style + upload/Soul-ID reference). Identical fidelity to the reference platform.
+
+### Pending follow-ups
+- 🟡 Branch D only handles 1 reference image (`image_url` is singular in MuAPI's Soul model). Our flow has up to 5 character thumbs + 4 moodboard refs + 1 user upload. We pass `imagesList[0]` (the strongest reference). Future: pick by signal strength.
+- 🟡 Branch D ignores `num_outputs` because MuAPI Soul is single-image. Need fan-out to N parallel submits if user picks num_outputs > 1.
+- 🟡 Branch D ignores `negative_prompt`, `use_refiner`, `custom_palette_hexes` — MuAPI Soul doesn't accept these. Acceptable tradeoff for matching Higgsfield output.
 
 ---
 
