@@ -62,7 +62,7 @@ Each loop iteration appends a new section:
 ## Iteration backlog (batches to audit)
 
 1. ✅ `text-to-image` (iter 1)
-2. ⏳ `text-to-video`, `motion-transfer`, `lip-sync`, `video-editor`, `sketch-to-video` (video batch — iter 2)
+2. ✅ `text-to-video`, `motion-transfer`, `lip-sync`, `video-editor`, `sketch-to-video` (video batch — iter 2)
 3. ⏳ Soul Studio + soul-cinema + soul-cast + soul-location (soul batch — iter 3)
 4. ⏳ Cinema Studio + cinema-cast + cinema-location + cinema-3d (cinema batch — iter 4)
 5. ⏳ Marketing Studio (image + video) (iter 5)
@@ -77,23 +77,89 @@ Each loop iteration appends a new section:
 
 ## Confirmed Bug Inventory
 
-### 🔴 Critical (tool broken)
+### 🔴 Critical (tool broken / errors out)
 
-| # | Tool | Bug | File |
+| # | Tool | Bug | Status |
 |---|---|---|---|
-| 1 | `text-to-image` | `quality` field UI present but NOT in paramMap → MuAPI never receives `resolution`, output is always 1k regardless of user choice | `src/lib/data/tools.ts:687-695` |
+| 1 | `text-to-image` | `quality` field UI present but NOT in paramMap → MuAPI never receives `resolution`, output is always 1k regardless of user choice | ✅ FIXED `c0bf91b` |
+| 2 | `text-to-video` | Duration enum included `8` which Kling 3.0 (default model) rejects with 400. UI default also was `8` → every fresh call to the default model fails | ✅ FIXED iter 2 |
+| 3 | `text-to-video` | `resolution` field UI present but Kling/Veo/Wan/Seedance don't accept it — gateway either 400s or silently ignores | ✅ FIXED iter 2 (input removed) |
+| 4 | `lip-sync` | `image` input accepts BOTH image & video but unconditionally maps to `video_url` → image uploads break image-only lipsync models | ⏳ pending refactor |
+| 5 | `lip-sync` | `speech` text field present but lipsync models need audio not text — no TTS-before-lipsync step in route | ⏳ pending refactor |
 
 ### 🟠 High (wrong output)
 
-| # | Tool | Bug | File |
+| # | Tool | Bug | Status |
 |---|---|---|---|
-| 1 | `text-to-image` | Attachment uploads not verified to map onto `image` param | `src/lib/data/tools.ts:643` |
+| 1 | `text-to-image` | Attachment uploads not verified to map onto `image` param | ⏳ |
+| 2 | `text-to-video` | `media` upload (start frame) not mapped to any MuAPI param — model receives nothing if user uploads | ⏳ |
+| 3 | `sketch-to-video` | `prompt` auto-passes via fallback but not explicit; no `duration`/`aspect_ratio` mappings | ⏳ |
+| 4 | `video-editor` | `attachments` (reference images) on the prompt field not mapped → ignored at submit | ⏳ |
+| 5 | `lip-sync` | `duration` and `resolution` fields UI present but not in paramMap (auto-pass; some models reject these) | ⏳ |
 
 ### 🟡 Medium
 
-| # | Tool | Bug | File |
+| # | Tool | Bug | Status |
 |---|---|---|---|
 | 1 | `text-to-image` | Default `aspect_ratio` is `auto` (ours) vs `1:1` (Higgsfield) | minor |
+| 2 | `text-to-video` | Default `duration` was `8` (now `5` to match Higgsfield) | ✅ FIXED iter 2 |
+| 3 | All video tools | No per-model parameter filter — same payload sent to every model regardless of which params it accepts. Architectural gap. | ⏳ next iter |
+
+---
+
+## Iteration 2 (2026-05-12) — video batch
+
+### Tool: `text-to-video`
+**Yilow:** `src/lib/data/tools.ts:4084` · **Higgsfield:** `kling3_0.md` (+ `video-router.md`)
+
+| Field | Yilow | Higgsfield Kling 3.0 / MuAPI registry | Status |
+|---|---|---|---|
+| Prompt | `prompt` (required) | `prompt` (required) | ✅ |
+| Aspect ratio | `ratio` → `aspect_ratio` (default 16:9) | `aspect_ratio` enum `16:9`/`9:16`/`1:1` default `16:9` | ✅ |
+| Duration | was `5`/`8`/`10`, default `8` | int, default `5` (kling), Veo3 has no duration | 🔴 fixed: drop `8`, default `5` |
+| Resolution | UI field — value not mapped at all (just auto-passes as `resolution`) | NOT a kling/veo/wan param | 🔴 fixed: removed input |
+| Reference image | `media` upload — not in paramMap | Kling supports `start_image`/`end_image` UUIDs; Veo 3.1 supports `image_url` | 🟠 unmapped (todo) |
+| Model | dropdown of 14 models | per-endpoint | ✅ |
+
+### Tool: `motion-transfer`
+**Yilow:** `src/lib/data/tools.ts:4182` · **Higgsfield:** `kling3_0.md` motion-control endpoints
+
+| Field | Yilow | Higgsfield/MuAPI | Status |
+|---|---|---|---|
+| Motion source | `motionPreset` OR `motionVideo` → `video_url` (mutually exclusive) | `video_url` | ✅ |
+| Target image | `targetImage` → `image_url` | `image_url` | ✅ |
+| Quality | `quality` → `resolution` (480p/720p/1080p) | per-model: kling-motion-control DOES accept resolution | ✅ |
+| Scene mode | `sceneMode` background source | not in MuAPI spec — possibly Higgsfield-only | 🟡 may be unused |
+
+### Tool: `sketch-to-video`
+**Yilow:** `src/lib/data/tools.ts:4145` · **Higgsfield:** image-to-video models
+
+| Field | Yilow | Higgsfield | Status |
+|---|---|---|---|
+| Sketch upload | `sketch` → `image_url` | `image_url` | ✅ |
+| Prompt | auto-pass as `prompt` | required by all i2v models | ✅ |
+| Duration / ratio | not mapped, not in UI | 🟠 should expose defaults | needs duration field |
+
+### Tool: `video-editor`
+**Yilow:** `src/lib/data/tools.ts:4250` · **Higgsfield:** Runway Aleph + Wan edit
+
+| Field | Yilow | Higgsfield | Status |
+|---|---|---|---|
+| Video | `video` → `video_url` | ✓ | ✅ |
+| Prompt | auto-pass as `prompt` | required | ✅ |
+| Reference images | `prompt.attachments` (max 5) | most v2v editors accept reference images via `image_urls`/`images_list` | 🟠 not wired |
+
+### Tool: `lip-sync`
+**Yilow:** `src/lib/data/tools.ts:4291` · **Higgsfield:** `dubbing_lipsync.md` + lipsync models
+
+| Field | Yilow | Higgsfield/MuAPI | Status |
+|---|---|---|---|
+| Media | `image` (image or video) → `video_url` ALWAYS | image-input models need `image_url`; video-input models need `video_url` | 🔴 broken for image uploads |
+| Audio | `audio` → `audio_url` | ✓ | ✅ |
+| Speech text | `speech` → `text` | LipSync models don't accept text — they need pre-synthed audio | 🔴 not wired through TTS |
+| Model | dropdown of 7 | per-endpoint | ✅ |
+| Duration | UI field, auto-passes as `duration` | only some models accept | 🟡 |
+| Resolution | UI field, auto-passes as `resolution` | per-model | 🟡 |
 
 ---
 

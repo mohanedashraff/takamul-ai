@@ -175,9 +175,12 @@ const RATIO_VIDEO: ToolInputOption[] = [
   { value: "21:9", label: "21:9"  },
 ];
 
+// Kling, Veo, Wan and Seedance all accept a single integer `duration`
+// in seconds. The accepted ENUM is per-model (Kling: 5 or 10; Veo 3: 8
+// only via separate endpoint; Seedance: 5 or 10). 8 is the odd one out
+// — picking it hits a hard 400 from Kling. Keep the two safe values.
 const DURATION_VIDEO: ToolInputOption[] = [
   { value: "5",  label: "5 ث"  },
-  { value: "8",  label: "8 ث"  },
   { value: "10", label: "10 ث" },
 ];
 
@@ -4122,21 +4125,25 @@ export const VIDEO_TOOLS: Tool[] = [
         type: "button-group",
         label: "المدة",
         options: DURATION_VIDEO,
-        defaultValue: "8",
+        // 5 matches Higgsfield's default for kling3_0/seedance/veo. 8
+        // (the previous default) is a Kling-incompatible value and
+        // would 400 on the most-used model.
+        defaultValue: "5",
       },
-      {
-        id: "resolution",
-        type: "button-group",
-        label: "الجودة",
-        options: RESOLUTION_VIDEO,
-        defaultValue: "1080p",
-      },
+      // NOTE: `resolution` is NOT a universal video param. Kling 3.0,
+      // Veo 3.1 and most of our VIDEO_MODELS don't accept it — the
+      // gateway either 400s or silently ignores. We removed the
+      // resolution input here until we wire a per-model param filter
+      // (tracked in docs/AUDIT_TOOLS_VS_HIGGSFIELD.md). Tools where
+      // resolution IS accepted (e.g. ltx-2.3-lipsync) keep their own
+      // resolution field.
     ],
     muapi: {
       category: "t2v",
       models: VIDEO_MODELS.map((m) => ({ id: m.value, label: m.label })),
       paramMap: {
-        ratio: "aspect_ratio",
+        ratio:    "aspect_ratio",
+        duration: "duration",   // explicit even though it'd auto-pass
       },
       dynamicCost: true,
     },
