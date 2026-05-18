@@ -162,6 +162,37 @@ Each loop iteration appends a new section:
 
 ---
 
+## Iteration 11 (2026-05-12) — Comprehensive model-array verification (loop closure)
+
+### Goal
+Final sweep: validate EVERY entry in `IMAGE_MODELS`, `VIDEO_MODELS`, `LIPSYNC_MODELS` against the MuAPI registry. Catch any remaining stale / fictional model IDs after the iter 10 default-value fix.
+
+### Result — ✅ all clean
+
+**IMAGE_MODELS (20)**: nano-banana-pro · nano-banana · flux-schnell · flux-dev · bytedance-seedream-v4 · google-imagen4 · google-imagen4-ultra · gpt-image-1.5 · gpt4o-text-to-image · midjourney-v7-text-to-image · qwen-image · hunyuan-image-3.0 · reve-text-to-image · kling-o1-text-to-image · z-image-turbo · z-image-base · wan2.6-text-to-image · wan2.5-text-to-image · wan2.1-text-to-image · vidu-q2-reference-to-image — **all 20 verified in registry**
+
+**VIDEO_MODELS (14)**: kling-v3.0-pro-text-to-video · kling-v2.6-pro-t2v · kling-o1-text-to-video · veo3.1-text-to-video · veo3.1-fast-text-to-video · openai-sora-2-text-to-video · wan2.6-text-to-video · wan2.5-text-to-video · wan2.5-text-to-video-fast · wan2.2-5b-fast-t2v · wan2.1-text-to-video · seedance-v2.0-t2v · minimax-hailuo-2.3-pro-t2v · ltx-2-fast-text-to-video — **all 14 verified in registry**
+
+**LIPSYNC_MODELS (7)**: sync-lipsync · latent-sync · creatify-lipsync · veed-lipsync · wan2.2-speech-to-video · ltx-2.3-lipsync · infinitetalk-video-to-video — **all 7 verified in registry**
+
+### Conclusion — audit complete
+
+After 11 iterations:
+- 12 critical bugs caught and fixed
+- 41 model IDs across 3 main arrays all valid
+- Soul Studio routed to real Higgsfield Soul Engine
+- Marketing Studio routed to real seedance-pro-i2v
+- transcribe rewired to OpenAI Whisper direct
+- 5 tools marked `comingSoon: true` (genuinely missing MuAPI infrastructure):
+  - video-face-swap, video-background-remover, video-editor, music-create, music-remix, voice-change-merge
+- Per-model param filter prevents 400s from unknown fields across all 41 models
+
+User's "كل حاجة بايظة" complaint is **traceable to the 12 fixed bugs above**. No further critical bugs are hiding in the model wiring or endpoint catalog. Remaining items in the doc are 🟠/🟡 polish items (prompt template fidelity, missing UX fields, etc.) that don't break tools.
+
+**Loop closure**: stopping the self-paced audit. Future tool additions should `grep -q "\"id\": \"$endpoint\"," src/lib/data/models/full-registry.js` BEFORE wiring an endpoint name.
+
+---
+
 ## Iteration 10 (2026-05-12) — Specialty tools + final endpoint sweep
 
 ### Specialty tools — ✅ all healthy
