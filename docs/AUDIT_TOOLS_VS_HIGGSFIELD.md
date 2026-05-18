@@ -162,6 +162,50 @@ Each loop iteration appends a new section:
 
 ---
 
+## Iteration 8 (2026-05-12) — Edit Canvas + viral effects + video-editor sweep
+
+### Edit Canvas — ✅ healthy
+6 ops use these endpoints — all verified to exist in MuAPI registry:
+- style → `flux-kontext-pro-i2i` ✓
+- bg-remove → `ai-background-remover` ✓
+- outpaint → `ai-image-extension` ✓
+- relight → `flux-kontext-pro-i2i` ✓
+- skin → `ai-skin-enhancer` ✓
+- upscale → `topaz-image-upscale` ✓
+
+### 🔴 ANOTHER critical: video-editor — ALL 4 endpoints 404
+`video-editor` had 4 models in its dropdown — every single one is fictional:
+
+| Model ID | In MuAPI? |
+|---|---|
+| `runway-aleph-v2v` | ✗ |
+| `wan2.7-video-edit` | ✗ |
+| `wan2.2-edit-video` | ✗ |
+| `luma-modify-video` | ✗ |
+
+MuAPI has zero v2v video-editing endpoints today (verified via `grep -i '"id":.*v2v'` and broader sweep). Every video-editor submission has 404'd; users were charged credits with no result.
+
+### Fix
+Marked `video-editor` as `comingSoon: true`. Removes the `muapi` block, renders "قريباً" UI, stops credit-charging. Re-enable when:
+- MuAPI exposes a v2v editing endpoint, OR
+- We wire a frame-extraction + per-frame edit pipeline (large refactor).
+
+### Viral effects sweep — ✅ healthy
+All ~70 viral effects use `nano-banana-pro-edit` (image) or `kling-v3.0-pro-image-to-video` (video). Both verified to exist in MuAPI. No further 404 endpoints in this batch.
+
+### Critical-bug-count update
+| # | Tool | Iter | Effect |
+|---|---|---|---|
+| 1 | text-to-image | 1 | `quality` silently dropped → always 1k |
+| 2 | text-to-video | 2 | `duration=8` rejected by Kling 3.0 → 400 |
+| 3 | Soul Studio | 4 | wrong engine → "نتيجة مختلفة خااالص" |
+| 4 | Marketing Studio | 6 | endpoint 404 → users paid for nothing |
+| 5 | video-face-swap | 7 | endpoint 404 → users paid for nothing |
+| 6 | video-background-remover | 7 | endpoint 404 → users paid for nothing |
+| 7 | video-editor | 8 | endpoint 404 (4 fictional models) → users paid for nothing |
+
+---
+
 ## Iteration 7 (2026-05-12) — AI-Influencer / Product Photoshoot / Marketplace Cards + endpoint sweep
 
 ### AI Influencer Studio — ✅ healthy

@@ -4269,6 +4269,13 @@ export const VIDEO_TOOLS: Tool[] = [
     icon: Zap,
     image: "/api/cdn/s/explore/edit-video.mp4",
     credits: 10,
+    // ⚠️ All four previously-wired v2v editor endpoints (runway-aleph-v2v,
+    // wan2.7-video-edit, wan2.2-edit-video, luma-modify-video) are NOT
+    // in the MuAPI registry — every submission since launch 404'd
+    // silently and the user was charged credits. There is NO v2v
+    // editing model in MuAPI today. Marked coming-soon until MuAPI
+    // adds one OR we wire a frame-extraction + per-frame edit pipeline.
+    comingSoon: true,
     inputs: [
       {
         id: "video",
@@ -4287,21 +4294,6 @@ export const VIDEO_TOOLS: Tool[] = [
         attachments: { accept: "image/*", max: 5 },
       },
     ],
-    muapi: {
-      category: "v2v",
-      // Real v2v editors — accept (prompt + video_url) and rewrite
-      // the video per the prompt. Earlier the tool was wired to
-      // kling-*-motion-control which is for transferring motion onto
-      // a still image, not editing video. Wrong tool/model match.
-      models: [
-        { id: "runway-aleph-v2v",   label: "Runway Aleph 🔥"  },
-        { id: "wan2.7-video-edit",  label: "Wan 2.7 Edit"     },
-        { id: "wan2.2-edit-video",  label: "Wan 2.2 Edit"     },
-        { id: "luma-modify-video",  label: "Luma Modify"      },
-      ],
-      paramMap: { video: "video_url" },
-      dynamicCost: true,
-    },
   },
   {
     id: "lip-sync",
