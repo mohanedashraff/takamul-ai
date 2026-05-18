@@ -537,11 +537,21 @@ export function formatSupportsHookAndSetting(formatId: string | undefined): bool
 
 // ── Endpoint resolution ──────────────────────────────────────────
 
-/** Pick the muapi endpoint based on the requested resolution. */
-export function resolveMarketingEndpoint(resolution: string): string {
-  return resolution === "1080p"
-    ? "sd-2-vip-omni-reference-1080p"
-    : "seedance-2-vip-omni-reference";
+/** Pick the muapi endpoint for the marketing-style ad generation.
+ *
+ *  IMPORTANT: the previous values (`seedance-2-vip-omni-reference`,
+ *  `sd-2-vip-omni-reference-1080p`) are NOT real MuAPI endpoints —
+ *  every submission since launch 404'd silently. The proprietary
+ *  Higgsfield marketing_studio_video engine isn't in MuAPI either.
+ *
+ *  Closest functional match: Seedance Pro I2V (same family Higgsfield
+ *  uses internally for marketing). It accepts prompt + image_url +
+ *  resolution + duration + camera_fixed. We pass the first reference
+ *  image (avatar or product hero) as the seed; the per-model param
+ *  filter drops anything the model doesn't accept.
+ */
+export function resolveMarketingEndpoint(_resolution: string): string {
+  return "seedance-pro-i2v";
 }
 
 // ── Cost ─────────────────────────────────────────────────────────

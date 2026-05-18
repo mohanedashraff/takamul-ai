@@ -162,6 +162,34 @@ Each loop iteration appends a new section:
 
 ---
 
+## Iteration 6 (2026-05-12) — Marketing Studio (CRITICAL endpoint 404)
+
+### 🔴 ANOTHER critical bug found
+
+`resolveMarketingEndpoint()` in `src/lib/data/marketing.ts` returned `seedance-2-vip-omni-reference` (720p) or `sd-2-vip-omni-reference-1080p` (1080p). **Neither of these MuAPI endpoints exists.** Every Marketing Studio submission since launch has returned 404 from MuAPI silently — the user spent credits for nothing.
+
+Verified via grep on `full-registry.js`:
+- `seedance-2-vip-omni-reference` → 0 matches
+- `sd-2-vip-omni-reference-1080p` → 0 matches
+
+Available seedance models in MuAPI:
+- `seedance-lite-t2v`, `seedance-pro-t2v`, `seedance-pro-t2v-fast`
+- `seedance-v1.5-pro-t2v` / `-fast`
+- `seedance-v2.0-t2v`, `seedance-v2.0-extend`
+- `seedance-lite-i2v`, `seedance-pro-i2v` ← chosen
+
+### Fix
+Rerouted `resolveMarketingEndpoint()` to return `seedance-pro-i2v` for both resolutions. The model accepts `resolution` as a payload param so the user's quality choice is preserved. Updated the payload in `MarketingStudio.tsx`:
+- Added `image_url: imagesList[0]` (required seed image for seedance-pro-i2v)
+- Added `resolution` to payload (was missing)
+- Kept `images_list` and `video_files` for legacy / future endpoints — the iter 3 per-model filter drops them silently for seedance.
+
+### Pending follow-ups
+- 🟡 seedance-pro-i2v is single-image only. Marketing's multi-reference design (avatar + product + ad reference video) doesn't fully translate. The primary seed comes from `imagesList[0]` which is the **product image** first, then avatar fallback. Future: build a 2-pass pipeline (avatar + product → composite → seedance) OR await a MuAPI omni-reference endpoint.
+- 🟡 `format.videoUrl` (the hook/setting reference video) currently has no model that accepts it. Reference platform's proprietary engine handles this; we can't replicate without MuAPI exposing it.
+
+---
+
 ## Iteration 5 (2026-05-12) — MuAPI Higgsfield-engine survey
 
 ### Survey question

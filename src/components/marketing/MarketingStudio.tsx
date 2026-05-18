@@ -404,13 +404,22 @@ export function MarketingStudio({ variant: variantProp }: MarketingStudioProps =
     } catch { /* enhancement is best-effort — fall back silently */ }
 
     const endpoint   = resolveMarketingEndpoint(resolution);
+    // Marketing references → ranked list (most important first). The
+    // seedance-pro-i2v endpoint is single-image — we use [0] as the
+    // seed. Per-model param filter (iter 3) drops `images_list` and
+    // `video_files` cleanly when the model doesn't accept them.
     const imagesList = [productImage, avatarImage, ...extraImages].filter(Boolean) as string[];
     const payload: Record<string, unknown> = {
       prompt:       enhancedPrompt,
       aspect_ratio: ratio,
       duration,
+      resolution,
+      // Primary seed image — required by seedance-pro-i2v.
+      image_url:    imagesList[0],
+      // Extras kept for legacy / future endpoints. Filter drops these
+      // automatically when the chosen model doesn't accept them.
       images_list:  imagesList,
-      video_files:  [format.videoUrl],
+      video_files:  format.videoUrl ? [format.videoUrl] : undefined,
     };
     if (advanced.negativePrompt.trim()) payload.negative_prompt = advanced.negativePrompt.trim();
     if (typeof advanced.seed === "number") payload.seed = advanced.seed;
