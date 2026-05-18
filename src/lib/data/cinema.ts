@@ -595,7 +595,10 @@ export const CINEMA_VERSIONS = [
     label:            "Cinema Studio 2.5",
     sublabel:         "كلاسيكي",
     // Flux Kontext is i2i only — fall back to flux-dev for text-only.
-    imageT2iEndpoint: "flux-dev",
+    // NB: the live MuAPI slug is `flux-dev-image` (HTTP 402 = exists).
+    // Plain `flux-dev` is in the registry file but returns 404 on the
+    // live gateway — iter 16 caught this.
+    imageT2iEndpoint: "flux-dev-image",
     imageEndpoint:    "flux-kontext-pro-i2i",
     videoEndpoint:    "kling-v2.1-pro-i2v",
     videoI2vEndpoint: "kling-v2.1-pro-i2v",

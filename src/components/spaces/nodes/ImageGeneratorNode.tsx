@@ -13,8 +13,9 @@ import {
 // Curated list of MuAPI text-to-image models (subset of registry)
 const MODELS = [
   { id: "nano-banana",                   label: "Nano Banana ✨"      },
-  { id: "flux-schnell",                  label: "Flux Schnell — أسرع" },
-  { id: "flux-dev",                      label: "Flux Dev"            },
+  // iter 16: live slugs are `flux-*-image`; bare slugs 404 on MuAPI.
+  { id: "flux-schnell-image",            label: "Flux Schnell — أسرع" },
+  { id: "flux-dev-image",                label: "Flux Dev"            },
   { id: "bytedance-seedream-v4",         label: "Seedream 4"          },
   { id: "google-imagen4",                label: "Google Imagen 4"     },
   { id: "google-imagen4-ultra",          label: "Imagen 4 Ultra 🔥"   },

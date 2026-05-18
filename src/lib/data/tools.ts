@@ -216,8 +216,12 @@ const LIGHT_DIRECTION: ToolInputOption[] = [
 const IMAGE_MODELS: ToolInputOption[] = [
   { value: "nano-banana-pro",             label: "Nano Banana Pro 🔥"    },
   { value: "nano-banana",                 label: "Nano Banana ✨"        },
-  { value: "flux-schnell",                label: "Flux Schnell — أسرع"  },
-  { value: "flux-dev",                    label: "Flux Dev"             },
+  // iter 16: probed live — `flux-schnell` / `flux-dev` 404 on MuAPI.
+  // The real live slugs are `flux-schnell-image` / `flux-dev-image`
+  // (HTTP 402 = exists, just out of credit). The bare slugs are in
+  // the static registry file but not deployed.
+  { value: "flux-schnell-image",          label: "Flux Schnell — أسرع"  },
+  { value: "flux-dev-image",              label: "Flux Dev"             },
   { value: "bytedance-seedream-v4",       label: "Seedream 4"           },
   { value: "google-imagen4",              label: "Google Imagen 4"      },
   { value: "google-imagen4-ultra",        label: "Imagen 4 Ultra 🔥"     },
@@ -1325,7 +1329,7 @@ export const IMAGE_TOOLS: Tool[] = [
       category: "t2i",
       models: [
         { id: "nano-banana",                    label: "Nano Banana ✨"     },
-        { id: "flux-dev",                       label: "Flux Dev"           },
+        { id: "flux-dev-image",                 label: "Flux Dev"           },
         { id: "midjourney-v7-text-to-image",    label: "Midjourney v7"      },
         { id: "google-imagen4-ultra",           label: "Imagen 4 Ultra 🔥"  },
       ],
