@@ -5171,6 +5171,11 @@ export const AUDIO_TOOLS: Tool[] = [
     image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=600&auto=format&fit=crop",
     credits: 8,
     isNew: true,
+    // ⚠️ Backend route /api/audio/music-create hits MuAPI's
+    // `suno-create-music` endpoint — does NOT exist in the registry.
+    // Every submission since launch 404'd. Marked coming-soon until
+    // we wire Suno's official API directly (needs SUNO_API_KEY).
+    comingSoon: true,
     customRunner: {
       endpoint: "/api/audio/music-create",
       paramMap: {
@@ -5242,6 +5247,10 @@ export const AUDIO_TOOLS: Tool[] = [
     image: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=600&auto=format&fit=crop",
     credits: 8,
     isNew: true,
+    // ⚠️ Same as music-create — backend hits MuAPI's
+    // `suno-remix-music` which does NOT exist. Marked coming-soon
+    // until Suno's official API integration lands.
+    comingSoon: true,
     customRunner: {
       endpoint: "/api/audio/music-remix",
       paramMap: {
@@ -5497,6 +5506,11 @@ export const AUDIO_TOOLS: Tool[] = [
     image: "/tool-thumbnails/voice-change.png",
     credits: 12,
     isNew: true,
+    // ⚠️ Pipeline stage 1 (audio extraction) hits MuAPI's
+    // `audio-from-video` which doesn't exist → 404 before stage 2
+    // can run. Marked coming-soon until we wire ffmpeg-based
+    // extraction OR MuAPI exposes the endpoint.
+    comingSoon: true,
     layout: "centered",
     customRunner: {
       endpoint: "/api/audio/voice-change",

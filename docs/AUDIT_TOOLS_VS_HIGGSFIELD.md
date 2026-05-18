@@ -162,6 +162,45 @@ Each loop iteration appends a new section:
 
 ---
 
+## Iteration 9 (2026-05-12) — Audio batch (transcribe + music + voice-change)
+
+### 🔴 FOUR more 404 endpoints in audio routes
+Sweep on `/api/audio/*/route.ts` for endpoint strings:
+
+| Route | Broken MuAPI endpoint | Reality |
+|---|---|---|
+| `/api/audio/transcribe` | `openai-whisper` | doesn't exist in MuAPI |
+| `/api/audio/music-create` | `suno-create-music` | doesn't exist in MuAPI |
+| `/api/audio/music-remix` | `suno-remix-music` | doesn't exist in MuAPI |
+| `/api/audio/voice-change` (stage 1) | `audio-from-video` | doesn't exist in MuAPI; entire 3-stage pipeline 404s |
+
+### Fixes
+- **transcribe**: rewrote `/api/audio/transcribe/route.ts` to call OpenAI Whisper API **directly** using `OPENAI_API_KEY`. No MuAPI involvement. Pulls audio bytes, builds multipart form with `whisper-1`, returns text. ✅ working.
+- **music-create**: marked `comingSoon: true` (needs SUNO_API_KEY + direct Suno integration)
+- **music-remix**: marked `comingSoon: true` (same)
+- **voice-change-merge**: marked `comingSoon: true` (audio extraction stage 1 fictional)
+
+### Healthy audio tools (verified)
+- `text-to-speech` ✓ (ElevenLabs direct)
+- `audio-enhance` ✓ (Replicate / resemble-enhance)
+- `audio-separate` ✓ (Replicate / htdemucs)
+- `lipsync-speak` ✓ (MuAPI ltx-2.3-lipsync etc.)
+- `dubbing-lipsync` ✓ (ElevenLabs dubbing + MuAPI latentsync-video)
+- `voice-cloning` ✓ (ElevenLabs voice/add)
+
+### Critical-bug-count update
+| # | Tool | Iter | Status |
+|---|---|---|---|
+| 1-7 | (prev iters) | 1-8 | ✅ |
+| 8 | `transcribe` 404 | 9 | ✅ rewired to OpenAI direct |
+| 9 | `music-create` 404 | 9 | ✅ comingSoon |
+| 10 | `music-remix` 404 | 9 | ✅ comingSoon |
+| 11 | `voice-change-merge` 404 | 9 | ✅ comingSoon |
+
+**Total critical bugs found: 11. All fixed/mitigated.**
+
+---
+
 ## Iteration 8 (2026-05-12) — Edit Canvas + viral effects + video-editor sweep
 
 ### Edit Canvas — ✅ healthy
