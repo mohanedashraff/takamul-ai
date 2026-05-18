@@ -162,6 +162,51 @@ Each loop iteration appends a new section:
 
 ---
 
+## Iteration 7 (2026-05-12) — AI-Influencer / Product Photoshoot / Marketplace Cards + endpoint sweep
+
+### AI Influencer Studio — ✅ healthy
+**Route:** `/api/tools/ai-influencer/generate` → `nano-banana-pro`
+**Higgsfield equivalent:** `ai_influencer` job_set_type (likely Nano Banana Pro under the hood per their docs)
+
+Same engine. Payload composition (prompt + aspect_ratio + resolution + width/height) matches Higgsfield's verified payload structure. The 22-subcategory config flattens into a richly-templated English prompt via `composeInfluencerPrompt()` — equivalent fidelity.
+
+🟡 Minor: we send `num_images: 1`, Higgsfield uses `batch_size: 1` (different field name; nano-banana ignores both since it's single-image per call). Not a bug.
+
+### Product Photoshoot — ✅ healthy
+**Route:** `/api/tools/product-photoshoot/generate` → `nano-banana-pro-edit`
+
+Yilow-original 10-mode studio (no Higgsfield equivalent). Each mode has a Claude system prompt that rewrites user intent into a 200-word brief, then submits to nano-banana-pro-edit with the product image as the visual anchor. Architecture sound.
+
+### Marketplace Cards — ✅ healthy
+**Route:** `/api/tools/marketplace-cards/generate` → `nano-banana-pro-edit`
+
+Yilow-original 13-asset studio. Per-asset Claude system prompt + nano-banana-pro-edit submission. Same architecture as Product Photoshoot. Architecture sound.
+
+### 🔴 ANOTHER 2 CRITICAL endpoint-404 bugs found via sweep
+Ran a grep across `tools.ts` for endpoint strings, then verified each against `full-registry.js`:
+
+| Tool | Broken endpoint | Reality |
+|---|---|---|
+| `video-face-swap` | `video-face-swap` | Endpoint doesn't exist. `ai-image-face-swap` handles still images only. No MuAPI video face-swap engine. |
+| `video-background-remover` | `video-bg-remover` | Endpoint doesn't exist. `ai-background-remover` handles still images only. No MuAPI video bg-removal engine. |
+
+Both tools were created in an earlier session with imaginary endpoint names. Every submission since launch 404'd silently. Users charged credits for nothing (same bug class as Marketing iter 6).
+
+### Fix
+Marked both tools as `comingSoon: true`. This removes their `muapi` blocks (no more 404), renders a "coming soon" UI instead of the submit form, stops credit-charging until we wire frame-extraction + per-frame substitution pipelines.
+
+### Critical-bug-count update
+| # | Tool | Iter | Effect |
+|---|---|---|---|
+| 1 | text-to-image | 1 | `quality` silently dropped → always 1k |
+| 2 | text-to-video | 2 | `duration=8` rejected by Kling 3.0 → 400 |
+| 3 | Soul Studio | 4 | wrong engine (nano-banana) → "نتيجة مختلفة خااالص" |
+| 4 | Marketing Studio | 6 | endpoint 404 → users paid for nothing |
+| 5 | video-face-swap | 7 | endpoint 404 → users paid for nothing |
+| 6 | video-background-remover | 7 | endpoint 404 → users paid for nothing |
+
+---
+
 ## Iteration 6 (2026-05-12) — Marketing Studio (CRITICAL endpoint 404)
 
 ### 🔴 ANOTHER critical bug found

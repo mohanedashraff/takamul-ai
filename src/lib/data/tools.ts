@@ -4659,17 +4659,15 @@ export const VIDEO_TOOLS: Tool[] = [
     image: "/api/cdn/c/application_main/video-face-swap.mp4",
     credits: 18,
     isNew: true,
+    // ⚠️ NO real MuAPI endpoint for video face-swap exists.
+    // ai-image-face-swap handles still images only. Mark coming-soon
+    // until we wire a frame-extraction + per-frame face-swap pipeline.
+    comingSoon: true,
     layout: "centered",
     inputs: [
       { id: "video", type: "upload", label: "ارفع الفيديو الأصلي", accept: "video/*", required: true },
       { id: "face",  type: "upload", label: "ارفع وش بديل (صورة)", accept: "image/*", required: true },
     ],
-    muapi: {
-      category: "v2v",
-      models: [{ id: "video-face-swap", label: "Face Swap Engine" }],
-      paramMap: { video: "video_url", face: "face_image_url" },
-      dynamicCost: true,
-    },
   },
 
   {
@@ -4680,16 +4678,14 @@ export const VIDEO_TOOLS: Tool[] = [
     image: "/api/cdn/c/application_main/video-bg-remover.mp4",
     credits: 12,
     isNew: true,
+    // ⚠️ NO real MuAPI endpoint for video bg removal exists.
+    // ai-background-remover handles still images only. Mark coming-soon
+    // until we wire a frame-extraction + per-frame bg-remove pipeline.
+    comingSoon: true,
     layout: "centered",
     inputs: [
       { id: "video", type: "upload", label: "ارفع الفيديو", accept: "video/*", required: true },
     ],
-    muapi: {
-      category: "v2v",
-      models: [{ id: "video-bg-remover", label: "BG Remover" }],
-      paramMap: { video: "video_url" },
-      dynamicCost: true,
-    },
   },
 
   {
