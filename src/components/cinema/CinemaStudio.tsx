@@ -18,7 +18,7 @@ import {
   GENRES, COLOR_PALETTES, LIGHTING_STYLES, MOVESETS,
   VARIANTS_OPTIONS, SPEEDRAMP_OPTIONS, CINEMA_VERSIONS,
   MULTI_SHOT_MODES, parseMultiShotPrompts,
-  buildCinemaPrompt, resolveCinemaEndpointV2, computeCinemaCost,
+  buildCinemaPrompt, resolveCinemaEndpointV2, coerceVeoVideoPayload, computeCinemaCost,
   renderContactSheetPrompt, CONTACT_SHEET_DIMENSIONS,
   type CinemaMode, type CinemaVersionId,
 } from "@/lib/data/cinema";
@@ -283,11 +283,17 @@ export function CinemaStudio() {
 
     // Endpoint resolver is version-aware: 3.5 → kling-v3.0-pro,
     // 3.0 → kling-v2.6-pro, 2.5 → kling-v2.1-pro, Soul Cinema → same
-    // as 3.5 with a Soul descriptor stitched into the prompt.
+    // as 3.5 with a Soul descriptor stitched into the prompt. When
+    // mode==="video" AND the user toggled audio on, the resolver
+    // overrides to Veo 3.1 Fast (the only MuAPI video model that
+    // synthesises native audio — Kling outputs silent regardless of
+    // any `generate_audio` flag).
+    const useVeoForAudio = mode === "video" && generateAudio;
     const endpoint = resolveCinemaEndpointV2({
       mode,
       hasReference: !!reference,
       versionId,
+      generateAudio: useVeoForAudio,
     });
 
     const DEFAULT_NEG = "blurry, low quality, distortion, bad composition";
@@ -401,10 +407,19 @@ export function CinemaStudio() {
           if (imagesList.length > 0) payload.images_list = imagesList;
         }
 
+        // When audio is enabled the resolver re-routes to Veo 3.1.
+        // Veo's input contract is much stricter than Kling's — coerce
+        // the payload to match (1:1 → 16:9, duration → 8s, res →
+        // 1080p, drop fields Veo doesn't accept). Without this MuAPI
+        // returns 422.
+        const finalPayload = useVeoForAudio
+          ? coerceVeoVideoPayload(payload)
+          : payload;
+
         const { result, generationId } = await runMuapiTool({
           toolId:      "cinema-studio",
           endpoint,
-          payload,
+          payload:     finalPayload,
           overrideCredits: computeCinemaCost({
             mode,
             duration:   mode === "video" ? videoDuration : undefined,
@@ -916,8 +931,10 @@ export function CinemaStudio() {
                   </button>
                 )}
 
-                {/* Audio toggle — video mode only. Maps to
-                    `generate_audio: true` in the Cinema 3.5 payload. */}
+                {/* Audio toggle — video mode only. When enabled we
+                    route to Veo 3.1 Fast (native audio gen) instead
+                    of Kling 3.0 (silent). Veo's contract forces 8s /
+                    1080p / 16:9 or 9:16 — coerced in the payload. */}
                 {mode === "video" && (
                   <button
                     onClick={() => setGenerateAudio(!generateAudio)}
@@ -928,7 +945,9 @@ export function CinemaStudio() {
                         ? "bg-accent-400/15 border-accent-400/40 text-accent-400"
                         : "border-white/10 text-gray-300 hover:bg-white/[0.03]",
                     )}
-                    title={generateAudio ? "صوت تلقائي مفعّل" : "بدون صوت"}
+                    title={generateAudio
+                      ? "صوت تلقائي مفعّل — يستخدم Veo 3.1 (8 ثواني، 1080p)"
+                      : "بدون صوت — يستخدم Kling 3.0"}
                   >
                     {generateAudio ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
                     <span className="hidden sm:inline">صوت</span>

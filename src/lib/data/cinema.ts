@@ -748,9 +748,30 @@ export function resolveCinemaEndpointV2(opts: {
   mode:         CinemaMode;
   hasReference: boolean;
   versionId?:   CinemaVersionId;
+  /**
+   * When true and mode==="video", we route to Google's Veo 3.1 Fast
+   * (the only MuAPI video model with native audio synthesis). Kling
+   * 3.0 / 2.6 / 2.1 don't accept any audio-related field — their
+   * `generate_audio` is silently dropped by the per-model param filter
+   * and the output ships silent. Veo 3.1 generates dialogue + ambient
+   * audio natively from the prompt.
+   *
+   * Callers should also coerce the payload to Veo's contract when
+   * this branch fires:
+   *   • aspect: only 16:9 / 9:16   (no 1:1)
+   *   • duration: only 8 seconds
+   *   • resolution: only 1080p
+   * Helper {@link coerceVeoVideoPayload} does this.
+   */
+  generateAudio?: boolean;
 }): string {
   const version = CINEMA_VERSIONS.find((v) => v.id === (opts.versionId ?? "v3-5")) ?? CINEMA_VERSIONS[0]!;
   if (opts.mode === "video") {
+    if (opts.generateAudio) {
+      // Veo 3.1 Fast — verified live (HTTP 422 on empty body = exists).
+      // i2v variant uses `image_url`; t2v takes prompt only.
+      return opts.hasReference ? "veo3.1-fast-image-to-video" : "veo3.1-fast-text-to-video";
+    }
     return opts.hasReference ? version.videoI2vEndpoint : version.videoEndpoint;
   }
   // For image mode: when a reference is uploaded, use the i2i edit
@@ -765,4 +786,35 @@ export function resolveCinemaEndpointV2(opts: {
     return version.imageEndpoint;
   }
   return version.imageT2iEndpoint;
+}
+
+/**
+ * Coerce a Cinema video payload to Veo 3.1's contract. Veo's input
+ * schema is much narrower than Kling's:
+ *   • aspect_ratio: only 16:9 / 9:16   (no 1:1)
+ *   • duration:     locked to 8s
+ *   • resolution:   locked to 1080p
+ * MuAPI returns 422 on anything else. We coerce silently because the
+ * audio toggle is the user's stronger preference — they wanted sound
+ * more than they wanted "exactly 5 seconds at 720p in 1:1".
+ *
+ * Returns a NEW payload object — does not mutate the input.
+ */
+export function coerceVeoVideoPayload(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
+  const out = { ...payload };
+  // 1:1 isn't supported — fall back to 16:9 (Cinema's default).
+  if (out.aspect_ratio === "1:1") out.aspect_ratio = "16:9";
+  // Veo 3.1 only does 8-second clips.
+  out.duration = 8;
+  // Veo 3.1 only does 1080p.
+  out.resolution = "1080p";
+  // Veo doesn't accept generate_audio / speedramp — strip them so
+  // they don't end up in the payload payload-filter doesn't catch
+  // (we route around the static registry for the Veo branch).
+  delete out.generate_audio;
+  delete out.speedramp;
+  delete out.negative_prompt;
+  return out;
 }
