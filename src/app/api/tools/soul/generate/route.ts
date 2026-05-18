@@ -356,45 +356,21 @@ export async function POST(req: Request) {
       url  = falUrls[0] ?? null;
       urls = falUrls.length > 0 ? falUrls : undefined;
       providerRequestId = falResult.request_id;
-    } else if (
-      // ── BRANCH D: Higgsfield Soul Engine via MuAPI ─────────────────
-      // MuAPI ships the actual `higgsfield-soul-image-to-image` model
-      // (same engine the reference platform uses internally). It needs
-      // a `style` enum value + an `image_url`. When both are present
-      // we route here — closest fidelity to the reference platform's
-      // Soul output. Falls through to BRANCH B if either is missing.
-      moodboardToSoulStyle(moodboardId) &&
-      SOUL_STYLE_ENUM.has(moodboardToSoulStyle(moodboardId)!) &&
-      imagesList.length > 0
-    ) {
-      const soulStyle = moodboardToSoulStyle(moodboardId)!;
-      // Map our 1.5k / 2k / 4k → MuAPI's medium / high. 1.5k = medium,
-      // 2k+ = high. (4k was already coerced to 2k by the schema.)
-      const soulQuality = quality === "1.5k" ? "medium" : "high";
-      // Map our 0-100 style_strength → MuAPI's 0..1 float.
-      const soulStrength = Math.max(0, Math.min(1, style_strength / 100));
-
-      const soulPayload: Record<string, unknown> = {
-        prompt:        finalPrompt,
-        style:         soulStyle,
-        aspect_ratio,
-        quality:       soulQuality,
-        strength:      soulStrength,
-        image_url:     imagesList[0],   // model takes a single reference
-        ...(typeof seed === "number" ? { seed } : {}),
-      };
-      const result = await submitAndPollServer({
-        endpoint:  "higgsfield-soul-image-to-image",
-        apiKey:    muKey,
-        payload:   soulPayload,
-        timeoutMs: 4 * 60 * 1000,
-      });
-      url  = pickResultUrl(result);
-      urls = Array.isArray(result.urls)   ? result.urls
-           : Array.isArray(result.outputs) ? (result.outputs as string[])
-           : undefined;
-      providerRequestId = result.requestId;
     } else {
+      // ── (Removed) BRANCH D: Higgsfield Soul Engine ────────────────
+      // Iter 4 wired the route to `higgsfield-soul-image-to-image`
+      // based on its presence in our static full-registry.js. Probe
+      // against the LIVE MuAPI server (curl POST) revealed the
+      // endpoint returns 404 — the model is in the registry file but
+      // not deployed on api.muapi.ai. Same for higgsfield-dop-image-
+      // to-video. Branch removed; route falls through to BRANCH B
+      // which uses nano-banana-pro-edit (live, works).
+      //
+      // Lesson: registry file ≠ live server availability. Audits
+      // need actual HTTP probing of endpoints, not just registry
+      // grep. The moodboardToSoulStyle/SOUL_STYLE_ENUM helpers above
+      // are kept inert (not invoked) in case MuAPI re-enables it.
+      void moodboardToSoulStyle; void SOUL_STYLE_ENUM;
       // ── BRANCH B: nano-banana / nano-banana-edit fallback ────────
       // Used when we don't have a Higgsfield-recognised style OR no
       // reference image. The descriptor-based prompt still encodes

@@ -32,13 +32,18 @@ export const maxDuration = 90;
 
 const COST = 4;
 
+// Anthropic's structured-output schema validator rejects `minimum`
+// and `maximum` on `integer` types. Zod's `.int().min().max()` emits
+// all three; the gateway 400s before the model runs. We keep `.int()`
+// only and surface the allowed range in the `.describe()` text so the
+// model still respects it.
 const Schema = z.object({
   image_url:       z.string().url(),
-  expectedPanels:  z.number().int().min(2).max(30).optional(),
+  expectedPanels:  z.number().int().describe("2 to 30 panels").optional(),
 });
 
 const ShotSchema = z.object({
-  panelIndex:  z.number().int().min(1).max(30),
+  panelIndex:  z.number().int().describe("1-based panel index, 1 to 30"),
   shotType: z.enum([
     "wide", "medium", "close", "extreme-close",
     "aerial", "pov", "two-shot", "over-shoulder",
@@ -54,7 +59,7 @@ const ShotSchema = z.object({
 });
 
 const ResultSchema = z.object({
-  totalPanels: z.number().int().min(1).max(30),
+  totalPanels: z.number().int().describe("Number of panels detected, 1 to 30"),
   shots:       z.array(ShotSchema).min(1).max(30),
   /** Overall storyline arc — one paragraph linking the shots. */
   arcSummary:  z.string().min(1).max(600),

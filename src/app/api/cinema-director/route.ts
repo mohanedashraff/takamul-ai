@@ -36,7 +36,15 @@ const PicksSchema = z.object({
   rationale:  z.string().describe("One short Arabic sentence explaining the directorial choices."),
   cameraId:   z.enum(CAMERAS.map((c) => c.id) as [string, ...string[]]),
   lensId:     z.enum(LENSES.map((l)  => l.id) as [string, ...string[]]),
-  focal:      z.number().int().describe("Focal length in mm. Pick from 8, 14, 24, 35, 50, 85."),
+  // Anthropic's structured-output schema validator rejects `minimum`
+  // and `maximum` on `integer` types. Zod's `.int()` emits both
+  // (silently — to bound to int32), so the schema is rejected with
+  // 400 from the gateway. Use a literal union of the allowed focal
+  // values instead — same effect (enforces the 6 valid choices) and
+  // the schema validator accepts it cleanly.
+  focal:      z.union([z.literal(8), z.literal(14), z.literal(24),
+                       z.literal(35), z.literal(50), z.literal(85)])
+              .describe("Focal length in mm. One of: 8, 14, 24, 35, 50, 85."),
   apertureId: z.enum(APERTURES.map((a) => a.id) as [string, ...string[]]),
   genreId:    z.enum(GENRES.map((g)   => g.id) as [string, ...string[]]),
   paletteId:  z.enum(COLOR_PALETTES.map((p)  => p.id) as [string, ...string[]]),
