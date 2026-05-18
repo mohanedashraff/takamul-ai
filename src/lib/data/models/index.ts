@@ -80,6 +80,88 @@ export function resolveEndpoint(model: ModelEntry): string {
   return (typeof model.endpoint === "string" && model.endpoint) || model.id;
 }
 
+/** Set of payload keys that are valid for this model per its
+ *  `inputs` schema. Returns an empty set if the model has no inputs
+ *  declared (so callers know they can't filter against it). */
+export function getModelInputKeys(model: ModelEntry): Set<string> {
+  return new Set(Object.keys(model.inputs ?? {}));
+}
+
+/** Filter a built payload to keys the model actually accepts.
+ *
+ *  Why: each tool's `paramMap` is the UNION of params needed across
+ *  every model in its dropdown (text-to-video has 14). Passing the
+ *  full union to a model that doesn't accept some of them either
+ *  400s on a strict MuAPI gateway or silently ignores values on a
+ *  lenient one — both produce wrong / failing output the user can't
+ *  diagnose.
+ *
+ *  Behaviour:
+ *  - If the model has NO `inputs` declared (registry gap), pass the
+ *    payload through unchanged. Better to over-send than block.
+ *  - Otherwise keep only the keys the model lists. Common URL
+ *    aliases (image / image_url / init_image) are folded into the
+ *    accepted variant for the model. Returns the filtered payload
+ *    plus the list of dropped keys (for logging / debugging).
+ */
+export function filterPayloadForModel(
+  model: ModelEntry,
+  payload: Record<string, unknown>,
+): { filtered: Record<string, unknown>; dropped: string[]; remapped: string[] } {
+  const allowed = getModelInputKeys(model);
+  if (allowed.size === 0) {
+    // Registry gap — be permissive.
+    return { filtered: payload, dropped: [], remapped: [] };
+  }
+
+  // Models name URL fields inconsistently. Same content can land in
+  // any of these depending on the model. If our paramMap targeted
+  // one name but the model expects another, remap rather than drop.
+  const URL_ALIASES: Record<string, string[]> = {
+    image_url:    ["image",       "input_image", "init_image", "image_urls"],
+    images_list:  ["images",      "image_urls"],
+    video_url:    ["video",       "video_urls",  "input_video"],
+    audio_url:    ["audio",       "audio_input"],
+    init_image:   ["image",       "image_url"],
+    start_image:  ["first_image", "first_frame", "start_image_url"],
+    end_image:    ["last_image",  "last_frame",  "end_image_url"],
+  };
+
+  const filtered: Record<string, unknown> = {};
+  const dropped: string[] = [];
+  const remapped: string[] = [];
+
+  for (const [k, v] of Object.entries(payload)) {
+    if (allowed.has(k)) {
+      filtered[k] = v;
+      continue;
+    }
+    // Try the alias map: find a canonical key the model DOES accept.
+    const alias = Object.keys(URL_ALIASES).find(
+      (canonical) =>
+        URL_ALIASES[canonical]!.includes(k) && allowed.has(canonical),
+    );
+    if (alias) {
+      filtered[alias] = v;
+      remapped.push(`${k} → ${alias}`);
+      continue;
+    }
+    // Reverse alias: payload key is canonical, model accepts a variant.
+    const reverseAlias = Object.entries(URL_ALIASES).find(
+      ([canonical, variants]) => canonical === k && variants.some((va) => allowed.has(va)),
+    );
+    if (reverseAlias) {
+      const target = reverseAlias[1].find((va) => allowed.has(va))!;
+      filtered[target] = v;
+      remapped.push(`${k} → ${target}`);
+      continue;
+    }
+    dropped.push(k);
+  }
+
+  return { filtered, dropped, remapped };
+}
+
 /** All categories with their counts. */
 export function modelCounts(): Record<ModelCategory, number> {
   return {

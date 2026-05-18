@@ -15,7 +15,7 @@ import { runMuapiTool } from "@/lib/run-tool";
 import { calculateCost } from "@/lib/muapi";
 import type { MuapiResult, PollOptions } from "@/lib/muapi";
 import type { Tool, ToolMuapiBinding } from "@/lib/data/tools";
-import { findModelAnywhere, resolveEndpoint } from "@/lib/data/models";
+import { findModelAnywhere, resolveEndpoint, filterPayloadForModel } from "@/lib/data/models";
 
 export interface ExecuteToolOptions {
   /** signal allows the caller to cancel a running generation */
@@ -64,7 +64,23 @@ export async function executeTool(
   const endpoint = opts.endpointOverride ?? resolveEndpoint(lookup.model);
 
   // 2. Build muapi payload (apply paramMap; drop empty fields; drop "model")
-  const payload = buildPayload(values, binding);
+  const rawPayload = buildPayload(values, binding);
+
+  // 2b. Filter the payload to params this specific model actually
+  //     accepts. Each tool's paramMap is the UNION of params across
+  //     every model in its dropdown (e.g. text-to-video has 14
+  //     models, each with a slightly different schema). Without this
+  //     step we'd send 'resolution' to Kling 3.0 (which doesn't
+  //     accept it → 400) or 'duration' to Veo 3 (silently ignored).
+  const filtered = filterPayloadForModel(lookup.model, rawPayload);
+  const payload = filtered.filtered;
+  if (filtered.dropped.length > 0 || filtered.remapped.length > 0) {
+    console.info(
+      `[execute-tool] model=${modelId} ` +
+      `dropped=[${filtered.dropped.join(",")}] ` +
+      `remapped=[${filtered.remapped.join(", ")}]`,
+    );
+  }
 
   // 3. Optional dynamic cost lookup → override the static credit cost
   let overrideCredits: number | undefined;

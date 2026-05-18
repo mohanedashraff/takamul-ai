@@ -4130,20 +4130,29 @@ export const VIDEO_TOOLS: Tool[] = [
         // would 400 on the most-used model.
         defaultValue: "5",
       },
-      // NOTE: `resolution` is NOT a universal video param. Kling 3.0,
-      // Veo 3.1 and most of our VIDEO_MODELS don't accept it — the
-      // gateway either 400s or silently ignores. We removed the
-      // resolution input here until we wire a per-model param filter
-      // (tracked in docs/AUDIT_TOOLS_VS_HIGGSFIELD.md). Tools where
-      // resolution IS accepted (e.g. ltx-2.3-lipsync) keep their own
-      // resolution field.
+      // `resolution` is back: the executor now filters the payload
+      // per-model via filterPayloadForModel(), so the field is sent
+      // only to models that actually accept it (Wan 2.7 etc.). Models
+      // that don't (Kling 3.0, Veo 3.1) silently drop it without
+      // breaking the request.
+      {
+        id: "resolution",
+        type: "button-group",
+        label: "الجودة",
+        options: RESOLUTION_VIDEO,
+        defaultValue: "1080p",
+      },
     ],
     muapi: {
       category: "t2v",
       models: VIDEO_MODELS.map((m) => ({ id: m.value, label: m.label })),
       paramMap: {
         ratio:    "aspect_ratio",
-        duration: "duration",   // explicit even though it'd auto-pass
+        duration: "duration",
+        // `resolution` and any other top-level field auto-pass via
+        // the executor's fall-through (key == muapi key). The
+        // per-model filter then drops anything the chosen model
+        // doesn't declare in its inputs schema.
       },
       dynamicCost: true,
     },

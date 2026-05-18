@@ -63,7 +63,8 @@ Each loop iteration appends a new section:
 
 1. ✅ `text-to-image` (iter 1)
 2. ✅ `text-to-video`, `motion-transfer`, `lip-sync`, `video-editor`, `sketch-to-video` (video batch — iter 2)
-3. ⏳ Soul Studio + soul-cinema + soul-cast + soul-location (soul batch — iter 3)
+3. ✅ Per-model param filter (architectural fix — iter 3)
+4. ⏳ Soul Studio + soul-cinema + soul-cast + soul-location (soul batch — iter 4)
 4. ⏳ Cinema Studio + cinema-cast + cinema-location + cinema-3d (cinema batch — iter 4)
 5. ⏳ Marketing Studio (image + video) (iter 5)
 6. ⏳ AI Influencer Studio (iter 6)
@@ -154,12 +155,40 @@ Each loop iteration appends a new section:
 
 | Field | Yilow | Higgsfield/MuAPI | Status |
 |---|---|---|---|
-| Media | `image` (image or video) → `video_url` ALWAYS | image-input models need `image_url`; video-input models need `video_url` | 🔴 broken for image uploads |
+| Media | `image` (image or video) → `video_url` ALWAYS | image-input models need `image_url`; video-input models need `video_url` | 🔴 broken for image uploads (mitigated by iter 3 filter aliasing) |
 | Audio | `audio` → `audio_url` | ✓ | ✅ |
 | Speech text | `speech` → `text` | LipSync models don't accept text — they need pre-synthed audio | 🔴 not wired through TTS |
 | Model | dropdown of 7 | per-endpoint | ✅ |
-| Duration | UI field, auto-passes as `duration` | only some models accept | 🟡 |
-| Resolution | UI field, auto-passes as `resolution` | per-model | 🟡 |
+| Duration | UI field, auto-passes as `duration` | only some models accept | ✅ filter handles it |
+| Resolution | UI field, auto-passes as `resolution` | per-model | ✅ filter handles it |
+
+---
+
+## Iteration 3 (2026-05-12) — architectural: per-model param filter
+
+### What changed
+`src/lib/data/models/index.ts` exports a new `filterPayloadForModel(model, payload)` helper that:
+1. Looks up the model's accepted input keys from `inputs` schema in the registry
+2. Drops any payload key the model doesn't declare
+3. Remaps common URL-field aliases (`image` ↔ `image_url` ↔ `init_image`, `video` ↔ `video_url`, etc.) so a paramMap targeting one canonical name still lands on the variant the model expects
+4. Returns `{ filtered, dropped, remapped }` so the executor can log what got filtered
+
+`src/lib/execute-tool.ts` calls this between `buildPayload` and the actual MuAPI submission. Now:
+- ✅ Tools with multi-model dropdowns can have a paramMap that's the UNION of all needed params; each model only receives what it actually accepts.
+- ✅ `resolution` is restored on `text-to-video` — it'll auto-drop for Kling/Veo and auto-pass for Wan/LTX.
+- ✅ Future tools don't need to manually maintain per-model paramMaps.
+
+### Bug class this closes
+- 🔴 Kling 3.0 400-errors from receiving `resolution`
+- 🔴 Veo 3 silently dropping duration (in some MuAPI gateway modes)
+- 🔴 lipsync `image` upload landing on `video_url` for image-input models
+- 🟠 reference-image fields named differently across models (image_url vs init_image)
+
+### Verification
+Smoke test plan after deploy:
+1. Submit text-to-video with Kling 3.0 + resolution=1080p → should succeed (filter drops resolution)
+2. Submit text-to-video with Wan 2.7 + resolution=1080p → should succeed AND get 1080p output
+3. Check server logs for `[execute-tool] model=… dropped=[…] remapped=[…]` confirmation lines
 
 ---
 
