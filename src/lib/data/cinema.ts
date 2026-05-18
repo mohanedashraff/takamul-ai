@@ -484,6 +484,12 @@ export const CINEMA_VERSIONS = [
     label:            "Cinema Studio 3.5",
     sublabel:         "الأحدث — موصى به",
     recommended:      true,
+    // imageEndpoint is the i2i edit variant — used when a reference
+    // image is provided. imageT2iEndpoint is the plain text-to-image
+    // variant — used when no reference image is provided. Without
+    // this split MuAPI 400s with "images_list required" because the
+    // -edit endpoints expect a reference image array.
+    imageT2iEndpoint: "nano-banana-pro",
     imageEndpoint:    "nano-banana-pro-edit",
     videoEndpoint:    "kling-v3.0-pro-text-to-video",
     videoI2vEndpoint: "kling-v2.1-pro-i2v",
@@ -492,6 +498,7 @@ export const CINEMA_VERSIONS = [
     id:               "v3-0",
     label:            "Cinema Studio 3.0",
     sublabel:         "الإصدار السابق",
+    imageT2iEndpoint: "nano-banana-pro",
     imageEndpoint:    "nano-banana-pro-edit",
     videoEndpoint:    "kling-v2.6-pro-t2v",
     videoI2vEndpoint: "kling-v2.1-pro-i2v",
@@ -500,6 +507,8 @@ export const CINEMA_VERSIONS = [
     id:               "v2-5",
     label:            "Cinema Studio 2.5",
     sublabel:         "كلاسيكي",
+    // Flux Kontext is i2i only — fall back to flux-dev for text-only.
+    imageT2iEndpoint: "flux-dev",
     imageEndpoint:    "flux-kontext-pro-i2i",
     videoEndpoint:    "kling-v2.1-pro-i2v",
     videoI2vEndpoint: "kling-v2.1-pro-i2v",
@@ -508,6 +517,7 @@ export const CINEMA_VERSIONS = [
     id:               "soul-cinema",
     label:            "Soul Cinema",
     sublabel:         "Soul-driven",
+    imageT2iEndpoint: "nano-banana-pro",
     imageEndpoint:    "nano-banana-pro-edit",
     videoEndpoint:    "kling-v3.0-pro-text-to-video",
     videoI2vEndpoint: "kling-v2.1-pro-i2v",
@@ -743,7 +753,16 @@ export function resolveCinemaEndpointV2(opts: {
   if (opts.mode === "video") {
     return opts.hasReference ? version.videoI2vEndpoint : version.videoEndpoint;
   }
-  // image + grid both use the version's image endpoint. Grid mode
-  // additionally requires a reference image (validated in the UI).
-  return version.imageEndpoint;
+  // For image mode: when a reference is uploaded, use the i2i edit
+  // endpoint (which expects images_list). When the user is doing a
+  // pure text-to-image generation, use the t2i variant. Without this
+  // split, MuAPI 400s with "images_list required" because the -edit
+  // endpoints can't run without a reference array.
+  //
+  // Grid (Contact Sheet) mode always uses the edit endpoint — the UI
+  // already gates submission on hasReference for that mode.
+  if (opts.mode === "grid" || opts.hasReference) {
+    return version.imageEndpoint;
+  }
+  return version.imageT2iEndpoint;
 }
