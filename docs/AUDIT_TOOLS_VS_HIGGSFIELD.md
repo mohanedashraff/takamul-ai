@@ -65,15 +65,12 @@ Each loop iteration appends a new section:
 2. ✅ `text-to-video`, `motion-transfer`, `lip-sync`, `video-editor`, `sketch-to-video` (video batch — iter 2)
 3. ✅ Per-model param filter (architectural fix — iter 3)
 4. ✅ Soul Studio routed to actual Higgsfield Soul Engine (iter 4)
-5. ⏳ soul-cinema, soul-cast, soul-location refinements + Cinema Studio batch (iter 5)
-4. ⏳ Cinema Studio + cinema-cast + cinema-location + cinema-3d (cinema batch — iter 4)
-5. ⏳ Marketing Studio (image + video) (iter 5)
-6. ⏳ AI Influencer Studio (iter 6)
-7. ⏳ Product Photoshoot Studio + Marketplace Cards Studio (iter 7)
-8. ⏳ Edit Canvas + viral-effect tools sampled by family (iter 8-10)
-9. ⏳ Audio tools (tts, music-create, music-remix, transcribe, lipsync, dubbing, voice-change, voice-clone) (iter 11)
-10. ⏳ Specialty tools (Virality Predictor, Storyboard Extractor, Breakdown, Similarity Score) (iter 12)
-11. ⏳ All viral effects (Tier 1-7 — sampled) (iter 13-15)
+5. ✅ Cinema/Soul-Cinema/Soul-Cast/Soul-Location surveyed — no further MuAPI Higgsfield models exist (iter 5)
+6. ⏳ Marketing Studio (image + video) + AI-Influencer + Product Photoshoot + Marketplace Cards (iter 6)
+7. ⏳ Edit Canvas + viral-effect tools sampled by family (iter 7-9)
+8. ⏳ Audio tools (tts, music-create, music-remix, transcribe, lipsync, dubbing, voice-change, voice-clone) (iter 10)
+9. ⏳ Specialty tools (Virality Predictor, Storyboard Extractor, Breakdown, Similarity Score) (iter 11)
+10. ⏳ All viral effects (Tier 1-7 — sampled) (iter 12-14)
 
 ---
 
@@ -162,6 +159,45 @@ Each loop iteration appends a new section:
 | Model | dropdown of 7 | per-endpoint | ✅ |
 | Duration | UI field, auto-passes as `duration` | only some models accept | ✅ filter handles it |
 | Resolution | UI field, auto-passes as `resolution` | per-model | ✅ filter handles it |
+
+---
+
+## Iteration 5 (2026-05-12) — MuAPI Higgsfield-engine survey
+
+### Survey question
+What proprietary Higgsfield engines does MuAPI actually expose? If they exist for our Soul Cinema / Soul Cast / Soul Location / Cinema Studio tools, we should route through them the same way we did for Soul (iter 4).
+
+### Survey result
+Grepping the registry by family name (`grep '"family":' full-registry.js`) returns ~40 families. The only **Higgsfield-branded** ones are:
+
+| MuAPI family | Endpoint | What it does | Used by |
+|---|---|---|---|
+| `soul-engine` | `higgsfield-soul-image-to-image` | Aesthetic editorial i2i with 100+ style presets | Soul Studio (✅ wired iter 4) |
+| `dop-engine` | `higgsfield-dop-image-to-video` | Director-of-Photography i2v with ~120 motion presets + 3 quality tiers | Could power motion-transfer + i2v with camera moves (not wired yet) |
+
+Everything else in the registry is a provider model (Kling, Veo, Flux, Wan, Runway, etc.) — the SAME models Higgsfield uses under the hood, so already at parity for the provider portion. Our nano-banana-pro + prompt-engineering approximations for Soul-Cinema / Cinema Studio are the best available substitute since the proprietary `cinematic_studio_*` engines are NOT in MuAPI.
+
+### Findings per tool
+
+**`soul-cinema`** (`/api/tools/soul-cinema/route.ts`) — proprietary `soul_cinematic` engine not in MuAPI. Current approximation (nano-banana-pro + cinematic descriptor + character/palette references) is the best we can do without that engine. ✅ acceptable.
+
+**`soul-cast`** (`/api/tools/soul-cast/route.ts`) — proprietary `cinematic_studio_soul_cast` not in MuAPI. Currently uses nano-banana-pro + structured character prompt. ✅ acceptable.
+
+**`soul-location`** (`/api/tools/soul-location/route.ts`) — proprietary `cinematic_studio_soul_location` not in MuAPI. Currently uses nano-banana-pro + structured location prompt. ✅ acceptable.
+
+**`cinema-studio`** — `cinematic_studio_video` not in MuAPI. Cinema video falls back to Kling 3.0 / Veo 3.1 / etc. which ARE the same provider models Higgsfield uses internally. ✅ acceptable at the provider level. Higgsfield's prompt template (the Contact Sheet etc.) we DO replicate verbatim in `CONTACT_SHEET_TEMPLATE`. ✅
+
+**`motion-transfer`** — Could route through `higgsfield-dop-image-to-video` for preset-motion mode, but DoP is i2v (one still + motion enum), not v2v (motion-source video + target image). Our motion-transfer correctly uses `kling-*-motion-control` for v2v. A SEPARATE new tool `dop-motion` would expose DoP directly. 🟢 flag for future iter, not a bug.
+
+### Architectural conclusion
+Iter 4's Soul Engine fix is the **only Higgsfield-proprietary engine swap** available. Every other tool either:
+1. Already uses the same provider model Higgsfield uses (Kling 3.0, Veo 3.1, etc.), OR
+2. Approximates a proprietary engine that MuAPI doesn't expose (Soul Cinema, Cinematic Studio, Marketing Studio).
+
+Bug categories remaining to audit (iter 6+):
+- 🟠 paramMap mismatches per-tool (the iter 3 filter catches most, but tools with stale model IDs or wrong defaults still need per-tool review)
+- 🟠 prompt-template divergences (we hand-wrote descriptors; Higgsfield's verbatim app templates may differ)
+- 🟡 missing fields per Higgsfield's UX (advanced settings, seed exposure, batch sizes)
 
 ---
 
