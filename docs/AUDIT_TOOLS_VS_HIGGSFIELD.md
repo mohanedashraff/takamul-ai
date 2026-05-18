@@ -640,4 +640,69 @@ Cinema 3.5's `videoI2vEndpoint` was hard-coded to `kling-v2.1-pro-i2v` even when
 
 ---
 
+## Iter 16: Sweep for more registry-vs-live-server drift
+
+Continuing the HTTP-probe methodology from iter 13. Found four more dead endpoints baked into production code:
+
+### Bug 16a — `flux-dev` and `flux-schnell` were dead
+**Symptom:** Cinema Studio 2.5 t2i submits (no reference image) would 404. The Tools dropdown and the Spaces canvas image-gen node both listed these slugs as user-pickable models — picking either guaranteed a failure.
+
+**Probe results:**
+```
+flux-dev               → HTTP 404 (Not Found)
+flux-schnell           → HTTP 404 (Not Found)
+flux-dev-image         → HTTP 402 (alive — out of credit)
+flux-schnell-image     → HTTP 402 (alive)
+```
+
+**Fix:** 4 spots updated to use the `-image` suffix. (`src/lib/data/cinema.ts`, `src/lib/data/tools.ts` × 2, `src/components/spaces/nodes/ImageGeneratorNode.tsx`).
+
+### Bug 16b — `/api/ai/refine` called dead `ai-image-upscaler`
+**Symptom:** the "Refine" button (shown across multiple tools) would 404 on every click.
+
+**Fix:** Swap to `topaz-image-upscale` (verified live). Same `{ image_url }` input contract.
+
+### Bug 16c — `/api/audio/voice-change` extracted audio via dead `audio-from-video`
+**Symptom:** Tool was previously marked `comingSoon: true` (tools.ts line 5522). Pipeline stage 1 (audio extraction from input video) hit a 404 before ElevenLabs STS could run.
+
+**Probe results:** Every plausible alternative slug 404s:
+```
+audio-from-video, video-to-audio, extract-audio, audio-extract,
+mmaudio, ffmpeg-audio-extract, audio-only, video-mute, ...
+```
+
+**Fix:** Replace the MuAPI call with a server-side ffmpeg pipe (`/usr/bin/ffmpeg` verified on production server: ffmpeg 4.4.2). Streams the video bytes into ffmpeg's stdin, reads mp3 out of stdout — no temp files. Hand off to the existing ElevenLabs STS flow unchanged. Tool's `comingSoon: true` flag flipped back to live.
+
+### Bug 16d — Upscaler picker still offered dead `ai-image-upscaler`
+**Symptom:** Iter 16b fixed `/api/ai/refine`, but `IMAGE_UPSCALER`'s user-facing model dropdown still listed `ai-image-upscaler` as a choice. Selecting it would 404.
+
+**Fix:** Removed from the picker. Topaz Redefine + SeedVR2 are both verified live.
+
+### Probed endpoint inventory (this iter)
+**Live (HTTP 422 or 402 on empty body):**
+- ✅ flux-dev-image / flux-schnell-image
+- ✅ topaz-image-upscale / topaz-video-upscale / seedvr2-image-upscale
+- ✅ latentsync-video, suno-create-music, suno-remix-music
+- ✅ ai-background-remover, ai-image-extension, ai-skin-enhancer
+- ✅ ai-product-shot, qwen-image-edit-plus, gpt4o-edit
+- ✅ bytedance-seedream-edit-v4, qwen-image-edit-plus-lora, ideogram-v3-reframe
+- ✅ minimax-hailuo-2.3-pro-t2v, wan2.6-t2v, wan2.5-t2i, wan2.2-i2v, wan2.2-speech-to-video
+- ✅ kling-v3.0-std-motion-control, kling-v2.6-std-motion-control
+- ✅ runway-act-two-i2v, kling-v2.1-master-i2v, nano-banana-2-edit, flux-kontext-max-i2i
+
+**Dead (HTTP 404):**
+- ❌ flux-dev, flux-schnell (bare slugs)
+- ❌ ai-image-upscaler
+- ❌ audio-from-video (+ every alias)
+- ❌ veo3.1-motion-control
+
+### Methodology update
+The script for /loop iterations is now:
+1. `grep` for all `endpoint: "..."` strings in `src/app/api/` and `src/components/`
+2. For each unique slug, `curl POST` against MuAPI with `{}` body
+3. HTTP 422 / 402 = endpoint exists. HTTP 404 = endpoint dead → fix.
+4. Keep registry file as a reference but never trust it without a probe.
+
+---
+
 _This document is appended to on every `/loop` iteration of the audit task._
