@@ -688,8 +688,11 @@ export const IMAGE_TOOLS: Tool[] = [
       category: "t2i",
       models: IMAGE_MODELS.map((m) => ({ id: m.value, label: m.label })),
       paramMap: {
-        ratio: "aspect_ratio",
-        count: "num_images",
+        ratio:   "aspect_ratio",
+        count:   "num_images",
+        quality: "resolution",
+        // The `style` slug is appended to the prompt by the muapi
+        // executor (style-picker writes its value as a prompt suffix).
       },
       dynamicCost: true,
     },
